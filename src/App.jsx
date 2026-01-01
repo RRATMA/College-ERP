@@ -50,7 +50,7 @@ export default function App() {
     <div style={{ ...styles.container, ...styles.centered }}>
       <div style={styles.loginCard}>
         <div style={{ marginBottom: '15px', color: '#2563eb' }}><GraduationCap size={64} style={{ margin: '0 auto' }} /></div>
-        <h1 style={{ color: '#1e293b', fontSize: '26px', fontWeight: '900', margin: '0' }}>College ERP</h1>
+        <h1 style={{ color: '#1e293b', fontSize: '26px', fontWeight: '900', margin: '0' }}>ATTENDANCE SYSTEM</h1>
         <p style={{ color: '#64748b', marginBottom: '30px' }}>ATMA MALIK INSTITUTE OF TECHNOLOGY AND RESEARCH</p>
         <input id="u" style={styles.input} placeholder="ID" />
         <input id="p" type="password" style={styles.input} placeholder="Password" />
