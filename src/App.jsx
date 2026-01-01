@@ -68,12 +68,12 @@ export default function App() {
         <h1 style={{ color: '#0f172a', fontSize: '20px', fontWeight: '900', textTransform: 'uppercase', lineHeight: '1.3', marginBottom: '5px' }}>
           Atma Malik Institute of Technology and Research
         </h1>
-        <p style={{ color: '#2563eb', fontWeight: 'bold', fontSize: '14px', marginBottom: '30px' }}>AMRIT ERP - DIGITAL PORTAL</p>
+        <p style={{ color: '#2563eb', fontWeight: 'bold', fontSize: '14px', marginBottom: '30px' }}>AMRIT</p>
         
         <input id="u" style={styles.input} placeholder="User ID" />
         <input id="p" type="password" style={styles.input} placeholder="Password" />
         <button style={{ ...styles.btn('#2563eb'), width: '100%', marginTop: '10px' }} onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)}>
-          SIGN IN
+          LOGIN
         </button>
       </div>
     </div>
