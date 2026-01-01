@@ -1,145 +1,231 @@
-import { Bell, BookOpen, CheckCircle, FileText, Mail, Save, Users, XCircle } from 'lucide-react';
-import { useState } from 'react';
-import { Route, BrowserRouter as Router, Routes, useNavigate } from 'react-router-dom';
+import { ArrowLeft, BookOpen, CheckCircle, GraduationCap, ListChecks, LogOut, MapPin, PlusCircle, UserPlus } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import * as XLSX from 'xlsx';
+import { supabase } from "./supabaseClient";
 
-// --- 1. LOGIN PAGE ---
-const Login = () => {
-  const [role, setRole] = useState('Admin');
-  const navigate = useNavigate();
-
-  const handleLogin = (e) => {
-    e.preventDefault();
-    if (role === 'Admin') navigate('/admin');
-    else if (role === 'Faculty') navigate('/faculty');
-    else navigate('/student');
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0f172a] p-6">
-      <div className="bg-[#1e293b] p-10 rounded-[2.5rem] shadow-2xl w-full max-w-md border border-slate-700">
-        <h2 className="text-3xl font-black text-center mb-8 text-white tracking-tight">Portal Login</h2>
-        <form onSubmit={handleLogin} className="space-y-6">
-          <select 
-            value={role} onChange={(e) => setRole(e.target.value)}
-            className="w-full bg-[#0f172a] border border-slate-600 rounded-2xl p-4 text-white outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
-          >
-            <option>Admin</option>
-            <option>Faculty</option>
-            <option>Student</option>
-          </select>
-          <input type="email" placeholder="Email" className="w-full bg-[#0f172a] border border-slate-600 rounded-2xl p-4 text-white outline-none" required />
-          <input type="password" placeholder="Password" className="w-full bg-[#0f172a] border border-slate-600 rounded-2xl p-4 text-white outline-none" required />
-          <button className="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition-all shadow-lg active:scale-95">Login</button>
-        </form>
-      </div>
-    </div>
-  );
+const styles = {
+  container: { width: '100vw', minHeight: '100vh', backgroundColor: '#0b1120', color: 'white', fontFamily: '"Inter", sans-serif' },
+  centered: { display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', padding: '20px' },
+  loginCard: { background: 'white', padding: '40px', borderRadius: '24px', width: '380px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' },
+  input: { padding: '12px', borderRadius: '8px', backgroundColor: '#1e293b', color: 'white', border: '1px solid #334155', width: '100%', marginBottom: '10px', boxSizing: 'border-box', outline: 'none' },
+  btn: (bg) => ({ backgroundColor: bg, color: 'white', padding: '10px 18px', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }),
+  nav: { background: '#1e293b', padding: '15px 5%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #334155' },
+  card: { background: '#1e293b', padding: '25px', borderRadius: '20px', marginTop: '20px', border: '1px solid #334155' },
+  tabBtn: (active) => ({ padding: '10px 20px', cursor: 'pointer', border: 'none', backgroundColor: active ? '#2563eb' : '#0f172a', color: 'white', borderRadius: '8px', fontWeight: 'bold', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }),
+  rollGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: '12px', marginTop: '20px' },
+  rollBtn: (active) => ({ padding: '18px 0', background: active ? '#10b981' : '#1e293b', borderRadius: '12px', textAlign: 'center', cursor: 'pointer', fontWeight: 'bold', border: active ? '2px solid #34d399' : '1px solid #334155' })
 };
 
-// --- 2. ADMIN DASHBOARD (With Classwise Sheet Selection & Email Sync) ---
-const AdminDashboard = () => {
-  const [selectedSheet, setSelectedSheet] = useState('');
-  const [subjects, setSubjects] = useState('');
-  const classSheets = ["TY-COM", "SY-COM", "SY-IT", "SY-AIML"];
-
-  const handleSync = () => {
-    if(!selectedSheet || !subjects) return alert("Fill Class and Subjects!");
-    alert(`Data Synced for ${selectedSheet}! Email notification sent to Dept & Faculty.`);
-    setSubjects('');
-  };
-
-  return (
-    <div className="min-h-screen bg-[#0f172a] text-white">
-      <nav className="bg-[#1e293b] p-4 flex justify-center gap-6 border-b border-slate-700 sticky top-0 shadow-xl">
-        <button className="flex items-center gap-2 px-6 py-2 bg-blue-600 rounded-xl font-bold"><BookOpen size={18}/> Subjects</button>
-        <button className="flex items-center gap-2 px-6 py-2 text-slate-400 hover:bg-slate-800 rounded-xl"><Users size={18}/> Faculty</button>
-        <button className="flex items-center gap-2 px-6 py-2 text-slate-400 hover:bg-slate-800 rounded-xl"><FileText size={18}/> Reports</button>
-      </nav>
-
-      <div className="p-10 max-w-4xl mx-auto">
-        <div className="bg-[#1e293b] rounded-[2.5rem] p-10 border border-slate-700 shadow-2xl relative overflow-hidden">
-          <h2 className="text-2xl font-bold mb-8 flex items-center gap-3"><Save className="text-emerald-500"/> Link Master Sheet</h2>
-          <div className="space-y-6">
-            <div>
-              <label className="text-slate-400 text-sm mb-2 block font-bold">Select Class Registry (Excel Sheet)</label>
-              <select value={selectedSheet} onChange={(e) => setSelectedSheet(e.target.value)} className="w-full bg-[#0f172a] border border-slate-600 rounded-xl p-4 outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">-- Choose TY-COM, SY-IT etc. --</option>
-                {classSheets.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-slate-400 text-sm mb-2 block font-bold">Subjects to Link</label>
-              <textarea value={subjects} onChange={(e) => setSubjects(e.target.value)} placeholder="Enter subjects (e.g. React, Java, SQL)" className="w-full bg-[#0f172a] border border-slate-600 rounded-xl p-4 outline-none h-32"></textarea>
-            </div>
-            <div className="flex gap-4">
-              <button onClick={handleSync} className="flex-1 bg-emerald-500 py-4 rounded-xl font-black text-white hover:bg-emerald-600 transition shadow-lg">SYNC & NOTIFY EMAIL</button>
-              <button className="bg-slate-700 px-6 rounded-xl hover:bg-slate-600 transition"><Mail size={22}/></button>
-            </div>
-          </div>
-          <div className="absolute bottom-0 left-0 w-full h-1 bg-slate-800"><div className="h-full bg-blue-500 w-1/4 rounded-full shadow-[0_0_15px_cyan]"></div></div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// --- 3. FACULTY DASHBOARD (Attendance & Absentee Email Alert) ---
-const FacultyDashboard = () => {
-  const [isLive, setIsLive] = useState(false);
-  const students = [{ roll: 1, name: "Arjun S." }, { roll: 2, name: "Sneha M." }, { roll: 3, name: "Rahul P." }];
-
-  const markAbsent = (name) => {
-    alert(`Alert: Marked Absent! Automated Email sent to ${name}'s parents.`);
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-50 p-8">
-      <div className="max-w-4xl mx-auto">
-        <header className="flex justify-between items-center mb-10 bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-          <h2 className="text-xl font-bold text-slate-800 tracking-tight">Attendance: TY-COM</h2>
-          <button onClick={() => setIsLive(!isLive)} className={`px-8 py-3 rounded-2xl font-black transition-all shadow-lg ${isLive ? 'bg-red-500 text-white animate-pulse' : 'bg-green-500 text-white'}`}>
-            {isLive ? 'LIVE NOW' : 'GO LIVE'}
-          </button>
-        </header>
-
-        <div className="space-y-4">
-          {students.map(s => (
-            <div key={s.roll} className="bg-white p-5 rounded-3xl flex justify-between items-center shadow-sm border border-slate-100 hover:shadow-md transition">
-              <div>
-                <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md">Roll {s.roll}</span>
-                <p className="text-lg font-bold text-slate-800 mt-1">{s.name}</p>
-              </div>
-              <div className="flex gap-3">
-                <button className="bg-green-500 text-white p-3 rounded-2xl shadow-md"><CheckCircle size={20}/></button>
-                <button onClick={() => markAbsent(s.name)} className="bg-red-100 text-red-600 p-3 rounded-2xl border border-red-200"><XCircle size={20}/></button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// --- 4. MAIN APP ROUTING ---
 export default function App() {
+  const [user, setUser] = useState(null);
+  const [view, setView] = useState('login');
+  const [faculties, setFaculties] = useState([]);
+  const [excelClasses, setExcelClasses] = useState([]);
+
+  useEffect(() => {
+    const init = async () => {
+      const { data } = await supabase.from('faculties').select('*');
+      setFaculties(data || []);
+      const res = await fetch('/students_list.xlsx');
+      if (res.ok) {
+        const ab = await res.arrayBuffer();
+        const wb = XLSX.read(ab, { type: 'array' });
+        setExcelClasses(wb.SheetNames);
+      }
+    };
+    init();
+  }, []);
+
+  const handleLogin = (u, p) => {
+    if (u.trim() === "HODCOM" && p.trim() === "COMP1578") {
+      setUser({ name: "HOD Admin", role: 'hod', id: 'HOD' }); setView('hod');
+    } else {
+      const f = faculties.find(x => x.id === u.trim() && x.password === p.trim());
+      if (f) { setUser({ ...f, role: 'faculty' }); setView('faculty'); }
+      else alert("Login Failed!");
+    }
+  };
+
+  if (view === 'login') return (
+    <div style={{ ...styles.container, ...styles.centered }}>
+      <div style={styles.loginCard}>
+        <div style={{ marginBottom: '15px', color: '#2563eb' }}><GraduationCap size={64} style={{ margin: '0 auto' }} /></div>
+        <h1 style={{ color: '#1e293b', fontSize: '26px', fontWeight: '900', margin: '0' }}>College ERP</h1>
+        <p style={{ color: '#64748b', marginBottom: '30px' }}>AMRIT System</p>
+        <input id="u" style={styles.input} placeholder="ID" />
+        <input id="p" type="password" style={styles.input} placeholder="Password" />
+        <button style={{ ...styles.btn('#2563eb'), width: '100%', marginTop: '10px' }} onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)}>Login</button>
+      </div>
+    </div>
+  );
+
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/faculty" element={<FacultyDashboard />} />
-        <Route path="/student" element={
-          <div className="min-h-screen flex items-center justify-center bg-[#0f172a] text-white p-8">
-            <div className="bg-[#1e293b] p-10 rounded-[3rem] text-center border border-slate-700 shadow-2xl max-w-sm w-full">
-              <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_#2563eb]"><Bell size={32}/></div>
-              <h2 className="text-2xl font-black mb-2">Student View</h2>
-              <p className="text-slate-400 mb-6">Attendance: <span className="text-emerald-400 font-black">92%</span></p>
-              <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-2xl font-bold animate-pulse">LIVE: React JS - Room 102</div>
-            </div>
+    <div style={styles.container}>
+      <nav style={styles.nav}>
+        <div><span style={{ fontSize: '11px', color: '#94a3b8' }}>DEPARTMENT OF COMPUTER</span><br /><b>{user.name}</b></div>
+        <button onClick={() => setView('login')} style={{ ...styles.btn('#ef4444'), padding: '8px 16px' }}><LogOut size={16} /> Logout</button>
+      </nav>
+      <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+        {view === 'hod' ? <HODPanel excelClasses={excelClasses} /> : <FacultyPanel user={user} />}
+      </div>
+    </div>
+  );
+}
+
+// --- HOD PANEL (RE-ADDED ALL FEATURES) ---
+function HODPanel({ excelClasses }) {
+  const [tab, setTab] = useState('report');
+  const [data, setData] = useState({ faculties: [], assigns: [], attendance: [] });
+  const [form, setForm] = useState({ facName: '', facId: '', facPass: '', selFac: '', selClass: '', selSub: '' });
+
+  const loadData = async () => {
+    const { data: f } = await supabase.from('faculties').select('*');
+    const { data: a } = await supabase.from('assignments').select('*');
+    const { data: att } = await supabase.from('attendance').select('*').order('created_at', { ascending: false });
+    setData({ faculties: f || [], assigns: a || [], attendance: att || [] });
+  };
+
+  useEffect(() => { loadData(); }, []);
+
+  const addFaculty = async () => {
+    if(!form.facId || !form.facName) return alert("Fill all details!");
+    await supabase.from('faculties').insert([{ id: form.facId, name: form.facName, password: form.facPass }]);
+    alert("Faculty Registered!"); loadData();
+  };
+
+  const assignSubject = async () => {
+    if(!form.selFac || !form.selClass) return alert("Select Faculty & Class!");
+    await supabase.from('assignments').insert([{ fac_id: form.selFac, class_name: form.selClass, subject_name: form.selSub }]);
+    alert("Subject Assigned!"); loadData();
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+        <button style={styles.tabBtn(tab==='report')} onClick={()=>setTab('report')}><ListChecks size={18}/> Reports</button>
+        <button style={styles.tabBtn(tab==='fac')} onClick={()=>setTab('fac')}><UserPlus size={18}/> Add Faculty</button>
+        <button style={styles.tabBtn(tab==='assign')} onClick={()=>setTab('assign')}><PlusCircle size={18}/> Assign Sub</button>
+      </div>
+
+      {tab === 'fac' && (
+        <div style={styles.card}>
+          <h3>Register New Faculty</h3>
+          <input style={styles.input} placeholder="Faculty Name" onChange={e=>setForm({...form, facName: e.target.value})} />
+          <input style={styles.input} placeholder="Faculty ID" onChange={e=>setForm({...form, facId: e.target.value})} />
+          <input style={styles.input} placeholder="Set Password" onChange={e=>setForm({...form, facPass: e.target.value})} />
+          <button style={styles.btn('#10b981')} onClick={addFaculty}>Register Faculty</button>
+        </div>
+      )}
+
+      {tab === 'assign' && (
+        <div style={styles.card}>
+          <h3>Assign Subject to Faculty</h3>
+          <select style={styles.input} onChange={e=>setForm({...form, selFac: e.target.value})}>
+            <option value="">-- Select Faculty --</option>
+            {data.faculties.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+          </select>
+          <select style={styles.input} onChange={e=>setForm({...form, selClass: e.target.value})}>
+            <option value="">-- Select Class --</option>
+            {excelClasses.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <input style={styles.input} placeholder="Subject Name (e.g. React JS)" onChange={e=>setForm({...form, selSub: e.target.value})} />
+          <button style={styles.btn('#2563eb')} onClick={assignSubject}>Assign Now</button>
+        </div>
+      )}
+
+      {tab === 'report' && (
+        <div style={styles.card}>
+          <h3>Attendance History</h3>
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px' }}>
+            <thead>
+              <tr style={{ textAlign: 'left', color: '#94a3b8', borderBottom: '2px solid #334155' }}>
+                <th style={{ padding: '10px' }}>Date</th><th>Class</th><th>Subject</th><th>Faculty</th><th>Count</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.attendance.map(r => (
+                <tr key={r.id} style={{ borderBottom: '1px solid #334155' }}>
+                  <td style={{ padding: '10px' }}>{r.time_str}</td><td>{r.class}</td><td>{r.sub}</td><td>{r.faculty}</td><td>{r.present}/{r.total}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- FACULTY PANEL ---
+function FacultyPanel({ user }) {
+  const [sel, setSel] = useState({ class: '', sub: '' });
+  const [students, setStudents] = useState([]);
+  const [present, setPresent] = useState([]);
+  const [myAssigns, setMyAssigns] = useState([]);
+
+  useEffect(() => {
+    supabase.from('assignments').select('*').eq('fac_id', user.id).then(({ data }) => setMyAssigns(data || []));
+  }, [user.id]);
+
+  useEffect(() => {
+    if (sel.class) {
+      fetch('/students_list.xlsx').then(r => r.arrayBuffer()).then(ab => {
+        const wb = XLSX.read(ab, { type: 'array' });
+        const sheet = wb.Sheets[sel.class];
+        if (sheet) {
+          const data = XLSX.utils.sheet_to_json(sheet);
+          setStudents(data.map(s => ({ id: String(s['ROLL NO'] || s['Roll No'] || ''), name: s['STUDENT NAME'], email: s['EMAIL'] })).filter(s => s.id));
+        }
+      });
+    }
+  }, [sel.class]);
+
+  const submitAtt = async () => {
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const timeStr = new Date().toLocaleString('en-GB');
+      await supabase.from('attendance').insert([{ faculty: user.name, sub: sel.sub, class: sel.class, present: present.length, total: students.length, time_str: timeStr }]);
+      
+      const logs = students.map(s => ({ student_id: s.id, class_name: sel.class, subject_name: sel.sub, status: present.includes(s.id) ? 'P' : 'A' }));
+      await supabase.from('attendance_logs').insert(logs);
+
+      const excelData = students.map(s => ({ "ROLL NO": s.id, "NAME": s.name, "SUBJECT": sel.sub, "DATETIME": timeStr, "STATUS": present.includes(s.id) ? "P" : "A" }));
+      const ws = XLSX.utils.json_to_sheet(excelData);
+      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+      XLSX.writeFile(wb, `${sel.class}_Report.xlsx`);
+
+      alert("✅ Success!");
+      setSel({ class: '', sub: '' }); setPresent([]);
+    }, () => alert("Enable GPS!"));
+  };
+
+  if (!sel.sub) return (
+    <div style={styles.card}>
+      <h3><BookOpen /> Select Lecture</h3>
+      <select style={styles.input} onChange={e => setSel({ ...sel, class: e.target.value })}>
+        <option value="">-- Select Class --</option>
+        {[...new Set(myAssigns.map(a => a.class_name))].map(c => <option key={c} value={c}>{c}</option>)}
+      </select>
+      <select style={styles.input} onChange={e => setSel({ ...sel, sub: e.target.value })}>
+        <option value="">-- Select Subject --</option>
+        {myAssigns.filter(a => a.class_name === sel.class).map(a => <option key={a.id} value={a.subject_name}>{a.subject_name}</option>)}
+      </select>
+    </div>
+  );
+
+  return (
+    <div style={styles.card}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+        <button onClick={() => setSel({ class: '', sub: '' })} style={styles.btn('#475569')}><ArrowLeft size={18} /> Back</button>
+        <div style={{ color: '#10b981', fontWeight: 'bold' }}><MapPin size={18} /> GPS Active</div>
+      </div>
+      <div style={styles.rollGrid}>
+        {students.map(s => (
+          <div key={s.id} onClick={() => setPresent(p => p.includes(s.id) ? p.filter(x => x !== s.id) : [...p, s.id])} style={styles.rollBtn(present.includes(s.id))}>
+            {s.id}
           </div>
-        } />
-      </Routes>
-    </Router>
+        ))}
+      </div>
+      <button style={{ ...styles.btn('#10b981'), width: '100%', marginTop: '30px', padding: '18px' }} onClick={submitAtt}><CheckCircle /> SUBMIT</button>
+    </div>
   );
 }
