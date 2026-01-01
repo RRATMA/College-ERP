@@ -79,7 +79,7 @@ export default function App() {
       <img src="/logo.png" style={styles.watermark} alt="watermark" />
       <div style={styles.loginCard}>
         <img src="/logo.png" style={{ width: '65px', marginBottom: '15px' }} alt="Logo" />
-        <h2 style={{ color: '#0f172a', fontWeight: '900', margin: '0' }}>AMRIT ERP</h2>
+        <h2 style={{ color: '#0f172a', fontWeight: '900', margin: '0' }}>Attendance System</h2>
         <p style={{ color: '#64748b', fontSize: '12px', marginBottom: '30px' }}>Atma Malik Institute of Technology</p>
         <div style={{ textAlign: 'left' }}>
           <label style={{...styles.label, color: '#475569'}}>Faculty ID</label>
@@ -95,7 +95,7 @@ export default function App() {
   return (
     <div style={styles.container}>
       <nav style={{ background: '#1e293b', padding: '15px 6%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #334155' }}>
-        <div><small style={{ color: '#94a3b8' }}>AMRIT ERP</small><br /><b>{user.name}</b></div>
+        <div><small style={{ color: '#94a3b8' }}>Welcome</small><br /><b>{user.name}</b></div>
         <button onClick={() => setView('login')} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '10px 15px', borderRadius: '10px', fontWeight: 'bold' }}><LogOut size={16}/></button>
       </nav>
       <div style={{ padding: '25px', maxWidth: '800px', margin: '0 auto' }}>
@@ -223,7 +223,7 @@ function FacultyPanel({ user }) {
     <div style={styles.card}>
       <img src="/logo.png" style={styles.watermark} alt="watermark" />
       <div style={{ position: 'relative', zIndex: 1 }}>
-        <h3><Clock/> Configuration</h3>
+        <h3><Clock/> Check the all things before take the atte</h3>
         <label style={styles.label}>Class</label>
         <select style={styles.input} onChange={e => setSel({...sel, class: e.target.value})}><option>Select</option>{[...new Set(myAssigns.map(a => a.class_name))].map(c => <option key={c} value={c}>{c}</option>)}</select>
         <label style={styles.label}>Subject</label>
