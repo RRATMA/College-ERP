@@ -5,9 +5,9 @@ import { supabase } from "./supabaseClient";
 import emailjs from '@emailjs/browser';
 
 // Constants for EmailJS
-const SERVICE_ID = "YOUR_SERVICE_ID"; // तुझे ID इथे टाक
-const TEMPLATE_ID = "YOUR_TEMPLATE_ID";
-const PUBLIC_KEY = "YOUR_PUBLIC_KEY";
+const SERVICE_ID = "service_gj2hxal";// तुझे ID इथे टाक
+const TEMPLATE_ID = "template_et0w07w";
+const PUBLIC_KEY = "n1VUJUSNKnim4ndVq";
 
 const styles = {
   container: { width: '100vw', minHeight: '100vh', backgroundColor: '#0f172a', color: '#f8fafc', fontFamily: '"Inter", sans-serif' },
