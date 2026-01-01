@@ -80,7 +80,7 @@ export default function App() {
       <div style={styles.loginCard}>
         <img src="/logo.png" style={{ width: '65px', marginBottom: '15px' }} alt="Logo" />
         <h2 style={{ color: '#0f172a', fontWeight: '900', margin: '0' }}>Attendance System</h2>
-        <p style={{ color: '#64748b', fontSize: '12px', marginBottom: '30px' }}>Atma Malik Institute of Technology</p>
+        <p style={{ color: '#64748b', fontSize: '12px', marginBottom: '30px' }}>Atma Malik Institute of Technology & Research</p>
         <div style={{ textAlign: 'left' }}>
           <label style={{...styles.label, color: '#475569'}}>Faculty ID</label>
           <input id="u" style={styles.input} placeholder="Enter ID" />
