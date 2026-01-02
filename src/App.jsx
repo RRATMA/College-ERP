@@ -45,57 +45,171 @@ export default function App() {
   // --- 1. Login Screen ---
   // हा कोड App.js मधील 'if (view === "login")' च्या जागी रिप्लेस कर.
 
-// --- LINE 36: LOGIN VIEW START ---
+// --- HOME PAGE (LOGIN VIEW) ---
   if (view === 'login') return (
     <div style={{
       ...styles.loginWrapper,
-      background: 'radial-gradient(circle, #1e293b 0%, #0f172a 100%)'
+      background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', // Deep professional gradient
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '30px'
     }}>
-      <img src="/logo.png" style={{...styles.watermark, zIndex: 0}} alt="bg" />
+      {/* Background Watermark - Perfectly Centered */}
+      <img src="/logo.png" style={{...styles.watermark, zIndex: 0, opacity: 0.05}} alt="bg" />
       
-      {/* PROFESSIONAL HEADER */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '50px', zIndex: 10 }}>
+      {/* --- SANJIVANI STYLE HEADER --- */}
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '20px', 
+        zIndex: 10,
+        animation: 'fadeInDown 0.8s ease-out' 
+      }}>
+        {/* Circle Logo with Glow */}
         <div style={{
           background: '#ffffff',
-          padding: '10px',
+          padding: '8px',
           borderRadius: '50%',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+          boxShadow: '0 0 20px rgba(59, 130, 246, 0.5)', // Blue glow effect
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center'
+          justifyContent: 'center',
+          border: '2px solid #3b82f6'
         }}>
-          <img src="/logo.png" style={{ width: '80px', height: '80px', borderRadius: '50%' }} alt="logo" />
+          <img src="/logo.png" style={{ width: '75px', height: '75px', borderRadius: '50%' }} alt="college-logo" />
         </div>
 
-        <div style={{ textAlign: 'left', borderLeft: '4px solid #3b82f6', paddingLeft: '20px' }}>
-          <h1 style={{ color: '#ffffff', margin: 0, fontSize: '32px', fontWeight: '900', textTransform: 'uppercase', lineHeight: '1' }}>
+        {/* College Text Branding */}
+        <div style={{ 
+          textAlign: 'left', 
+          borderLeft: '4px solid #3b82f6', 
+          paddingLeft: '20px' 
+        }}>
+          <h1 style={{ 
+            color: '#ffffff', 
+            margin: 0, 
+            fontSize: '30px', 
+            fontWeight: '900', 
+            letterSpacing: '1.5px',
+            textTransform: 'uppercase',
+            lineHeight: '1.1',
+            fontFamily: 'serif' // Makes it look more academic/official
+          }}>
             Atma Malik
           </h1>
-          <p style={{ margin: '5px 0 0 0', fontSize: '18px', color: '#3b82f6', fontWeight: '600' }}>
-            INSTITUTE OF TECHNOLOGY & RESEARCH
+          <p style={{ 
+            margin: '4px 0 0 0', 
+            fontSize: '16px', 
+            color: '#60a5fa', // Lighter blue for better readability on dark bg
+            fontWeight: '600',
+            letterSpacing: '0.8px',
+            textTransform: 'uppercase'
+          }}>
+            Institute of Technology & Research
           </p>
         </div>
       </div>
 
-      {/* LOGIN CARD */}
-      <div style={{ ...styles.loginCard, borderRadius: '30px', boxShadow: '0 25px 50px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}>
-        <h2 style={{ color: '#1e293b', margin: '0 0 5px 0', fontSize: '28px', fontWeight: '800' }}>AMRIT ERP</h2>
-        <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '30px' }}>Attendance Management System</p>
+      {/* --- LOGIN CARD --- */}
+      <div style={{ 
+        ...styles.loginCard, 
+        width: '380px', // Slightly wider for better spacing
+        borderRadius: '24px', 
+        padding: '45px 40px',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        background: '#ffffff',
+        zIndex: 10
+      }}>
+        <div style={{ marginBottom: '35px' }}>
+          <h2 style={{ 
+            color: '#0f172a', 
+            margin: 0, 
+            fontSize: '26px', 
+            fontWeight: '800',
+            letterSpacing: '-0.5px' 
+          }}>AMRIT ERP</h2>
+          <div style={{ 
+            width: '40px', 
+            height: '4px', 
+            background: '#3b82f6', 
+            margin: '8px auto', 
+            borderRadius: '2px' 
+          }}></div>
+          <p style={{ color: '#64748b', fontSize: '13px', fontWeight: '500' }}>
+            Faculty & Staff Attendance Portal
+          </p>
+        </div>
         
         <div style={{ textAlign: 'left' }}>
-          <label style={{ fontSize: '12px', color: '#1e293b', fontWeight: '700', display: 'block', marginBottom: '8px' }}>FACULTY ID</label>
-          <input id="u" style={{ ...styles.input, borderRadius: '15px', padding: '15px', backgroundColor: '#f8fafc' }} placeholder="Enter your ID" />
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ 
+              fontSize: '11px', 
+              color: '#475569', 
+              fontWeight: '800', 
+              display: 'block', 
+              marginBottom: '8px',
+              letterSpacing: '0.5px'
+            }}>FACULTY ID</label>
+            <input 
+              id="u" 
+              style={{ 
+                ...styles.input, 
+                borderRadius: '12px', 
+                padding: '14px', 
+                backgroundColor: '#f1f5f9',
+                border: '1px solid #e2e8f0',
+                fontSize: '15px',
+                transition: 'all 0.2s'
+              }} 
+              placeholder="e.g. AM1234" 
+            />
+          </div>
           
-          <label style={{ fontSize: '12px', color: '#1e293b', fontWeight: '700', display: 'block', margin: '15px 0 8px 0' }}>PASSWORD</label>
-          <input id="p" type="password" style={{ ...styles.input, borderRadius: '15px', padding: '15px', backgroundColor: '#f8fafc' }} placeholder="••••••••" />
+          <div style={{ marginBottom: '25px' }}>
+            <label style={{ 
+              fontSize: '11px', 
+              color: '#475569', 
+              fontWeight: '800', 
+              display: 'block', 
+              marginBottom: '8px',
+              letterSpacing: '0.5px'
+            }}>PASSWORD</label>
+            <input 
+              id="p" 
+              type="password" 
+              style={{ 
+                ...styles.input, 
+                borderRadius: '12px', 
+                padding: '14px', 
+                backgroundColor: '#f1f5f9',
+                border: '1px solid #e2e8f0',
+                fontSize: '15px'
+              }} 
+              placeholder="••••••••" 
+            />
+          </div>
         </div>
 
         <button 
-          style={{ ...styles.btnPrimary, marginTop: '20px', padding: '16px', borderRadius: '15px', fontSize: '18px' }} 
+          style={{ 
+            ...styles.btnPrimary, 
+            padding: '15px', 
+            borderRadius: '12px', 
+            fontSize: '16px', 
+            fontWeight: '700',
+            background: '#2563eb',
+            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)',
+            cursor: 'pointer'
+          }} 
           onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)}
         >
-          Sign In
+          SIGN IN TO PORTAL
         </button>
+        
+        <p style={{ marginTop: '25px', fontSize: '11px', color: '#94a3b8' }}>
+          © 2026 Atma Malik IOTR. All Rights Reserved.
+        </p>
       </div>
     </div>
   );
