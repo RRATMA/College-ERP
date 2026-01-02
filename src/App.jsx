@@ -41,48 +41,29 @@ export default function App() {
     }
   };
 
-  if (view === 'login') return (
+if (view === 'login') return (
     <div style={styles.loginWrapper}>
       {/* Background Watermark */}
-      <img src="/logo.png" style={styles.watermark} alt="watermark" />
-
-      {/* Main Wrapper for Header + Card */}
-      <div style={{ width: '100%', maxWidth: '380px', zIndex: 10, padding: '20px' }}>
-        
-        {/* --- COLLEGE HEADER START --- */}
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          gap: '12px', 
-          marginBottom: '25px' 
-        }}>
-          <img src="/logo.png" style={{ width: '70px', height: 'auto' }} alt="college-logo" />
+      <img src="/logo.png" style={styles.watermark} />
+      
+      <div style={{ width: '100%', maxWidth: '380px', zIndex: 10 }}>
+        {/* --- TOP COLLEGE HEADER --- */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '15px', marginBottom: '25px' }}>
+          <img src="/logo.png" style={{ width: '70px', height: 'auto' }} />
           <div style={{ textAlign: 'left' }}>
-            <h1 style={{ 
-              color: '#ffffff', 
-              margin: 0, 
-              fontSize: '20px', 
-              fontWeight: '900', 
-              lineHeight: '1.1',
-              textShadow: '2px 2px 10px rgba(0,0,0,0.3)'
-            }}>
+            <h1 style={{ color: '#ffffff', margin: 0, fontSize: '22px', fontWeight: '900', lineHeight: '1.2' }}>
               ATMA MALIK <br/> 
-              <span style={{ color: '#3b82f6', fontSize: '15px' }}>INSTITUTE OF TECHNOLOGY</span>
+              <span style={{ color: '#3b82f6', fontSize: '16px', fontWeight: 'bold' }}>INSTITUTE OF TECHNOLOGY</span>
             </h1>
           </div>
         </div>
-        {/* --- COLLEGE HEADER END --- */}
 
         {/* LOGIN CARD */}
         <div style={styles.loginCard}>
-          <h2 style={{ color: '#0f172a', margin: '0 0 5px 0', fontSize: '22px' }}>AMRIT ERP</h2>
-          <p style={{ color: '#64748b', fontSize: '12px', marginBottom: '20px' }}>Faculty Login Portal</p>
-          
+          <h2 style={{ color: '#0f172a', margin: '0 0 15px 0' }}>AMRIT ERP</h2>
           <div style={{ textAlign: 'left' }}>
             <label style={{...styles.label, color: '#64748b'}}>Faculty ID</label>
             <input id="u" style={styles.input} placeholder="Enter ID" />
-            
             <label style={{...styles.label, color: '#64748b'}}>Password</label>
             <input id="p" type="password" style={styles.input} placeholder="••••••••" />
           </div>
@@ -90,6 +71,25 @@ export default function App() {
             SIGN IN
           </button>
         </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={styles.container}>
+      {/* NAVBAR WITH LOGO AND NAME */}
+      <nav style={{ background: '#1e293b', padding: '12px 5%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #334155' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <img src="/logo.png" style={{ width: '35px', height: '35px' }} />
+          <b style={{ fontSize: '16px' }}>{user.name}</b>
+        </div>
+        <button onClick={() => setView('login')} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <LogOut size={16}/> Logout
+        </button>
+      </nav>
+
+      <div style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto' }}>
+        {view === 'hod' ? <HODPanel excelClasses={excelClasses} /> : <FacultyPanel user={user} />}
       </div>
     </div>
   );
