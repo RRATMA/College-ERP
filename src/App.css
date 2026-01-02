@@ -40,3 +40,21 @@
 .read-the-docs {
   color: #888;
 }
+/* App.css */
+
+@media (max-width: 600px) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+/* आयकॉन्सला थोडे जिवंत (Interactive) बनवण्यासाठी हे सुद्धा ॲड करा */
+.icon-pulse:hover {
+  transform: scale(1.1);
+  transition: 0.3s;
+}
+
+.spin-on-hover:hover {
+  transform: rotate(20deg);
+  transition: 0.3s;
+    }
