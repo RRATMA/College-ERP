@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { 
   LogOut, ArrowLeft, Clock, Trash2, Edit3, Download, ShieldCheck, 
   User, Search, BookOpen, Fingerprint, MapPin, CheckCircle, 
-  Users, BarChart3, Plus, Calendar, AlertCircle, Info, RefreshCw
+  Users, BarChart3, Plus, Calendar, AlertCircle, Info, RefreshCw, X
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from "./supabaseClient";
 
+// --- Configuration ---
 const CAMPUS_LAT = 19.7042; 
 const CAMPUS_LON = 72.7645;
 
@@ -19,7 +20,7 @@ export default function App() {
     fetch('/students_list.xlsx').then(res => res.arrayBuffer()).then(ab => {
       const wb = XLSX.read(ab, { type: 'array' });
       setExcelSheets(wb.SheetNames);
-    }).catch(e => console.error("Excel File Missing"));
+    }).catch(e => console.error("Excel mapping failed. Ensure file is in public folder."));
   }, []);
 
   const handleLogin = async (u, p) => {
@@ -29,7 +30,7 @@ export default function App() {
     } else {
       const { data } = await supabase.from('faculties').select('*').eq('id', u).eq('password', p).single();
       if (data) { setUser({ ...data, role: 'faculty' }); setView('faculty'); }
-      else alert("Invalid Credentials!");
+      else alert("Authentication Failed! Check ID/Password.");
     }
   };
 
@@ -61,25 +62,53 @@ export default function App() {
       <main style={styles.mainArea}>
         {view === 'hod' ? <HODPanel excelSheets={excelSheets} /> : <FacultyPanel user={user} />}
       </main>
+      <style>{`
+        @media (max-width: 600px) {
+          .hide-mobile { display: none !important; }
+          .grid-2 { grid-template-columns: 1fr !important; }
+          .roll-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 8px !important; }
+        }
+      `}</style>
     </div>
   );
 }
 
-// --- HOD PANEL (With Search & Logs) ---
+// --- HOD PANEL ---
 function HODPanel({ excelSheets }) {
   const [tab, setTab] = useState('logs');
-  const [data, setData] = useState({ facs: [], logs: [], assigns: [] });
-  const [logSearch, setLogSearch] = useState(''); // SEARCH STATE
+  const [db, setDb] = useState({ facs: [], logs: [], assigns: [] });
+  const [form, setForm] = useState({ n: '', i: '', p: '', fId: '', cl: '', sub: '' });
+  const [editingFac, setEditingFac] = useState(null);
+  const [search, setSearch] = useState('');
 
-  const load = async () => {
+  const refreshData = async () => {
     const { data: f } = await supabase.from('faculties').select('*').order('name');
     const { data: l } = await supabase.from('attendance').select('*').order('created_at', { ascending: false });
-    setData(prev => ({ ...prev, facs: f || [], logs: l || [] }));
+    const { data: a } = await supabase.from('assignments').select('*');
+    setDb({ facs: f || [], logs: l || [], assigns: a || [] });
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { refreshData(); }, []);
+
+  const crudFac = async (act, val) => {
+    if (act === 'del' && window.confirm("Delete this faculty?")) await supabase.from('faculties').delete().eq('id', val);
+    if (act === 'upd') {
+        await supabase.from('faculties').update({ name: editingFac.name, password: editingFac.password }).eq('id', editingFac.id);
+        setEditingFac(null);
+    }
+    if (act === 'add') {
+        await supabase.from('faculties').insert([{id:form.i, name:form.n, password:form.p}]);
+        setForm({...form, n:'', i:'', p:''});
+    }
+    refreshData();
+  };
 
   return (
     <div>
+      <div className="grid-2" style={styles.statsRow}>
+        <div style={styles.statBox}><Users color="#6366f1"/> <div><small>Faculty</small><br/><b>{db.facs.length}</b></div></div>
+        <div style={styles.statBox}><BarChart3 color="#10b981"/> <div><small>Sessions</small><br/><b>{db.logs.length}</b></div></div>
+      </div>
+
       <div style={styles.tabContainer}>
         {['logs', 'faculties', 'manage'].map(t => (
           <button key={t} onClick={() => setTab(t)} style={{...styles.tabLink, background: tab === t ? '#6366f1' : 'transparent'}}>{t.toUpperCase()}</button>
@@ -88,42 +117,69 @@ function HODPanel({ excelSheets }) {
 
       {tab === 'logs' && (
         <>
-          <div style={styles.inputGroup}>
-            <Search size={18} style={styles.iconIn} />
-            <input 
-              style={styles.inputField} 
-              placeholder="Search by Faculty, Class or Subject..." 
-              onChange={e => setLogSearch(e.target.value.toLowerCase())}
-            />
+          <div style={styles.inputGroup}><Search size={18} style={styles.iconIn} />
+            <input style={styles.inputField} placeholder="Search by Teacher, Class, or Subject..." onChange={e=>setSearch(e.target.value.toLowerCase())} />
           </div>
           <button onClick={() => {
-             const ws = XLSX.utils.json_to_sheet(data.logs);
+             const ws = XLSX.utils.json_to_sheet(db.logs);
              const wb = XLSX.utils.book_new();
-             XLSX.utils.book_append_sheet(wb, ws, "Logs");
-             XLSX.writeFile(wb, "Master_Report.xlsx");
-          }} style={styles.downloadBtn}><Download size={18}/> DOWNLOAD ALL</button>
-
-          {data.logs.filter(l => 
-            l.faculty.toLowerCase().includes(logSearch) || 
-            l.class.toLowerCase().includes(logSearch) || 
-            l.sub.toLowerCase().includes(logSearch)
-          ).map(log => (
+             XLSX.utils.book_append_sheet(wb, ws, "MasterLogs");
+             XLSX.writeFile(wb, "Amrit_Attendance_Report.xlsx");
+          }} style={styles.downloadBtn}><Download size={18}/> EXPORT TO EXCEL</button>
+          {db.logs.filter(l => (l.faculty+l.class+l.sub).toLowerCase().includes(search)).map(log => (
             <div key={log.id} style={styles.itemRow}>
               <div><b>{log.class}</b><br/><small>{log.sub} ({log.type}) | {log.faculty}</small></div>
-              <div style={{textAlign:'right'}}>
-                <b style={{color:'#10b981'}}>{log.present}/{log.total}</b><br/>
-                <small style={{fontSize:'10px'}}>{log.time_str} | {log.duration}</small>
+              <div style={{textAlign:'right'}}><b style={{color:'#10b981'}}>{log.present}/{log.total}</b><br/><small style={{fontSize:'10px'}}>{log.duration}</small></div>
+            </div>
+          ))}
+        </>
+      )}
+
+      {tab === 'faculties' && (
+        <>
+          {editingFac && (
+            <div style={styles.editBox}>
+                <h3>Update: {editingFac.id}</h3>
+                <input style={styles.inputSml} value={editingFac.name} onChange={e=>setEditingFac({...editingFac, name:e.target.value})} />
+                <input style={styles.inputSml} value={editingFac.password} onChange={e=>setEditingFac({...editingFac, password:e.target.value})} />
+                <button style={styles.btnAction} onClick={()=>crudFac('upd')}>SAVE</button>
+            </div>
+          )}
+          {db.facs.map(f => (
+            <div key={f.id} style={styles.itemRow}>
+              <div><b>{f.name}</b><br/><small>ID: {f.id} | Pass: {f.password}</small></div>
+              <div style={{display:'flex', gap:'10px'}}>
+                <button onClick={()=>setEditingFac(f)} style={styles.iconBtn}><Edit3 size={18}/></button>
+                <button onClick={()=>crudFac('del', f.id)} style={{...styles.iconBtn, color:'#f43f5e'}}><Trash2 size={18}/></button>
               </div>
             </div>
           ))}
         </>
       )}
-      {/* Faculties & Manage tabs remain as discussed in previous CRUD version */}
+
+      {tab === 'manage' && (
+        <div className="grid-2" style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'20px'}}>
+          <div style={styles.formBox}>
+            <h3 style={{marginTop:0}}><Plus size={18}/> New Teacher</h3>
+            <input placeholder="Name" style={styles.inputSml} value={form.n} onChange={e=>setForm({...form, n:e.target.value})} />
+            <input placeholder="ID" style={styles.inputSml} value={form.i} onChange={e=>setForm({...form, i:e.target.value})} />
+            <input placeholder="Pass" style={styles.inputSml} value={form.p} onChange={e=>setForm({...form, p:e.target.value})} />
+            <button style={styles.btnAction} onClick={()=>crudFac('add')}>REGISTER</button>
+          </div>
+          <div style={styles.formBox}>
+            <h3 style={{marginTop:0}}><RefreshCw size={18}/> Workload Map</h3>
+            <select style={styles.inputSml} onChange={e=>setForm({...form, fId:e.target.value})}><option>Select Teacher</option>{db.facs.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select>
+            <select style={styles.inputSml} onChange={e=>setForm({...form, cl:e.target.value})}><option>Select Class</option>{excelSheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
+            <input placeholder="Subject Name" style={styles.inputSml} onChange={e=>setForm({...form, sub:e.target.value})} />
+            <button style={{...styles.btnAction, background:'#10b981'}} onClick={async ()=>{await supabase.from('assignments').insert([{fac_id:form.fId, class_name:form.cl, subject_name:form.sub}]); alert("Mapped!");}}>LINK SUBJECT</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// --- FACULTY PANEL (With Type Selection) ---
+// --- FACULTY PANEL ---
 function FacultyPanel({ user }) {
   const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', start: '', end: '' });
   const [active, setActive] = useState(false);
@@ -135,55 +191,69 @@ function FacultyPanel({ user }) {
     supabase.from('assignments').select('*').eq('fac_id', user.id).then(res => setMyJobs(res.data || []));
   }, [user.id]);
 
-  const startSession = () => {
-    if(!setup.cl || !setup.sub || !setup.start || !setup.end) return alert("All fields are mandatory!");
-    setActive(true);
-    // Excel loading logic...
+  useEffect(() => {
+    if (setup.cl) {
+      fetch('/students_list.xlsx').then(r => r.arrayBuffer()).then(ab => {
+        const wb = XLSX.read(ab, { type: 'array' });
+        const sheet = XLSX.utils.sheet_to_json(wb.Sheets[setup.cl]);
+        setStudents(sheet.map(s => ({ id: String(s['ROLL NO'] || s['Roll No']) })).filter(s => s.id));
+      });
+    }
+  }, [setup.cl]);
+
+  const saveAll = () => {
+    if(!setup.start || !setup.end) return alert("Select Start & End Time!");
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const dist = Math.sqrt(Math.pow(pos.coords.latitude - CAMPUS_LAT, 2) + Math.pow(pos.coords.longitude - CAMPUS_LON, 2));
+      if (dist > 0.01) return alert("You are outside campus area!");
+      
+      await supabase.from('attendance').insert([{ 
+        faculty: user.name, sub: setup.sub, class: setup.cl, type: setup.ty, 
+        duration: `${setup.start} - ${setup.end}`,
+        present: marked.length, total: students.length, 
+        time_str: new Date().toLocaleDateString('en-GB') 
+      }]);
+      alert("Attendance Saved Successfully!"); setActive(false); setMarked([]);
+    }, () => alert("Enable GPS to submit."));
   };
 
   if (!active) return (
     <div style={styles.setupCard}>
-      <h2 style={{textAlign:'center'}}><Clock/> Setup Session</h2>
+      <h2 style={{textAlign:'center'}}><Clock/> New Session</h2>
       <select style={styles.inputSml} onChange={e=>setSetup({...setup, cl:e.target.value})}><option>Select Class</option>{[...new Set(myJobs.map(j=>j.class_name))].map(c=><option key={c} value={c}>{c}</option>)}</select>
       <select style={styles.inputSml} onChange={e=>setSetup({...setup, sub:e.target.value})}><option>Select Subject</option>{myJobs.filter(j=>j.class_name===setup.cl).map(j=><option key={j.id} value={j.subject_name}>{j.subject_name}</option>)}</select>
-      
-      {/* TYPE FEATURE ADDED */}
-      <select style={styles.inputSml} value={setup.ty} onChange={e=>setSetup({...setup, ty:e.target.value})}>
-        <option value="Theory">Theory</option>
-        <option value="Practical">Practical</option>
-        <option value="Tutorial">Tutorial</option>
-      </select>
-
+      <select style={styles.inputSml} value={setup.ty} onChange={e=>setSetup({...setup, ty:e.target.value})}><option value="Theory">Theory</option><option value="Practical">Practical</option><option value="Tutorial">Tutorial</option></select>
       <div style={{display:'flex', gap:'10px', marginBottom:'10px'}}>
-        <div style={{flex:1}}><small>Start Time</small><input type="time" style={styles.inputSml} onChange={e=>setSetup({...setup, start:e.target.value})} /></div>
-        <div style={{flex:1}}><small>End Time</small><input type="time" style={styles.inputSml} onChange={e=>setSetup({...setup, end:e.target.value})} /></div>
+        <div style={{flex:1}}><small>From</small><input type="time" style={styles.inputSml} onChange={e=>setSetup({...setup, start:e.target.value})} /></div>
+        <div style={{flex:1}}><small>To</small><input type="time" style={styles.inputSml} onChange={e=>setSetup({...setup, end:e.target.value})} /></div>
       </div>
-      <button style={styles.btnPrimary} onClick={startSession}>START SESSION</button>
+      <button style={styles.btnPrimary} onClick={()=>setup.cl && setup.start ? setActive(true) : alert("Fill session details")}>START ROLL CALL</button>
     </div>
   );
 
   return (
     <div>
-       {/* Roll call grid (Same UI as before) */}
-       <div className="roll-grid" style={styles.rollGrid}>
-          {students.map(s => (
-            <div key={s.id} onClick={() => setMarked(p => p.includes(s.id) ? p.filter(x=>x!==s.id) : [...p, s.id])}
-                 style={{...styles.rollChip, background: marked.includes(s.id) ? '#6366f1' : '#1e293b'}}>{s.id}</div>
-          ))}
-       </div>
-       <div style={styles.floatingAction}>
-         <button onClick={() => {/* Save Logic */}} style={styles.submitLarge}>SUBMIT {setup.ty} ATTENDANCE</button>
-       </div>
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px'}}>
+        <button onClick={()=>setActive(false)} style={styles.backBtn}><ArrowLeft/></button>
+        <div style={{textAlign:'right'}}><b>{setup.cl}</b><br/><small>{setup.ty} | {setup.start}-{setup.end}</small></div>
+      </div>
+      <div className="roll-grid" style={styles.rollGrid}>
+        {students.map(s => (
+          <div key={s.id} onClick={() => setMarked(p => p.includes(s.id) ? p.filter(x=>x!==s.id) : [...p, s.id])}
+               style={{...styles.rollChip, background: marked.includes(s.id) ? '#6366f1' : '#1e293b'}}>{s.id}</div>
+        ))}
+      </div>
+      <div style={styles.floatingAction}><button onClick={saveAll} style={styles.submitLarge}>SUBMIT ATTENDANCE ({marked.length})</button></div>
     </div>
   );
 }
 
+// --- STYLES ---
 const styles = {
-  // Styles are exactly the same as previous to keep the UI fixed
   loginPage: { minHeight:'100vh', background:'#020617', display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' },
   glassCard: { background:'rgba(30, 41, 59, 0.7)', backdropFilter:'blur(12px)', padding:'40px 30px', borderRadius:'28px', width:'100%', maxWidth:'380px', textAlign:'center', border:'1px solid rgba(255,255,255,0.1)' },
   logoWrap: { background:'#fff', display:'inline-flex', padding:'15px', borderRadius:'20px', marginBottom:'20px' },
-  title: { color:'#fff', margin:0, fontSize:'32px' },
+  title: { color:'#fff', margin:0, fontSize:'32px', letterSpacing:'-1px' },
   badge: { color:'#6366f1', fontSize:'11px', fontWeight:'900', letterSpacing:'2px', marginBottom:'30px' },
   inputGroup: { position:'relative', marginBottom:'15px', width:'100%' },
   iconIn: { position:'absolute', left:'15px', top:'15px', color:'#94a3b8' },
@@ -194,10 +264,16 @@ const styles = {
   userCircle: { width:'35px', height:'35px', background:'#6366f1', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'bold' },
   logoutBtn: { background:'rgba(244, 63, 94, 0.1)', color:'#f43f5e', border:'none', padding:'8px 15px', borderRadius:'10px', fontWeight:'bold', cursor:'pointer' },
   mainArea: { padding:'20px', maxWidth:'1000px', margin:'0 auto' },
+  statsRow: { display:'grid', gridTemplateColumns:'1fr 1fr', gap:'15px', marginBottom:'25px' },
+  statBox: { background:'rgba(30, 41, 59, 0.5)', padding:'20px', borderRadius:'20px', display:'flex', alignItems:'center', gap:'15px', border:'1px solid rgba(255,255,255,0.05)' },
   tabContainer: { display:'flex', background:'#0f172a', padding:'5px', borderRadius:'15px', marginBottom:'20px' },
   tabLink: { flex:1, border:'none', color:'#fff', padding:'10px', borderRadius:'12px', fontWeight:'bold', cursor:'pointer' },
   itemRow: { background:'rgba(30, 41, 59, 0.4)', padding:'15px 20px', borderRadius:'18px', marginBottom:'10px', display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid rgba(255,255,255,0.03)' },
+  iconBtn: { background:'none', border:'none', color:'#94a3b8', cursor:'pointer' },
+  editBox: { background:'#1e293b', padding:'20px', borderRadius:'15px', marginBottom:'20px', border:'1px solid #6366f1' },
+  formBox: { background:'rgba(30, 41, 59, 0.4)', padding:'20px', borderRadius:'20px', border:'1px solid rgba(255,255,255,0.05)' },
   inputSml: { width:'100%', padding:'12px', borderRadius:'10px', border:'1px solid #334155', background:'#0f172a', color:'#fff', marginBottom:'12px', boxSizing:'border-box' },
+  btnAction: { width:'100%', padding:'12px', borderRadius:'10px', background:'#6366f1', color:'#fff', border:'none', fontWeight:'bold', cursor:'pointer' },
   setupCard: { background:'rgba(30, 41, 59, 0.5)', padding:'30px', borderRadius:'25px', maxWidth:'450px', margin:'40px auto' },
   rollGrid: { display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(65px, 1fr))', gap:'10px', paddingBottom:'120px' },
   rollChip: { height:'65px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'15px', fontWeight:'bold', cursor:'pointer' },
