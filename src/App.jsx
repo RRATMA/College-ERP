@@ -16,29 +16,14 @@ const CAMPUS_LON = 72.7645;
 
 const styles = {
   container: { width: '100vw', minHeight: '100vh', backgroundColor: '#0f172a', color: '#f8fafc', fontFamily: '"Inter", sans-serif' },
-  // Login with Horizontal Watermark
   loginWrapper: { display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#0f172a', position: 'relative', overflow: 'hidden' },
   loginCard: { background: '#ffffff', padding: '45px', borderRadius: '32px', width: '380px', textAlign: 'center', boxShadow: '0 25px 50px rgba(0,0,0,0.5)', zIndex: 10, position: 'relative' },
-  // Dashboard Card
   card: { background: '#1e293b', padding: '30px', borderRadius: '28px', border: '1px solid rgba(255,255,255,0.08)', position: 'relative', overflow: 'hidden', boxShadow: '0 15px 35px rgba(0,0,0,0.3)' },
-  // FIXED WATERMARK: Straight (No Rotation)
-  watermark: { 
-    position: 'absolute', 
-    top: '50%', 
-    left: '50%', 
-    transform: 'translate(-50%, -50%)', // Removed rotate(-30deg)
-    opacity: 0.03, 
-    width: '380px', 
-    pointerEvents: 'none', 
-    zIndex: 0 
-  },
-  // Inputs Style
+  watermark: { position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0.03, width: '380px', pointerEvents: 'none', zIndex: 0 },
   label: { fontSize: '11px', color: '#94a3b8', marginBottom: '8px', display: 'block', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px' },
   input: { padding: '15px', borderRadius: '14px', backgroundColor: '#f1f5f9', color: '#0f172a', border: '1px solid #e2e8f0', width: '100%', marginBottom: '20px', fontSize: '15px', outline: 'none', boxSizing: 'border-box' },
-  // Time Grid (Side-by-side)
   timeGrid: { display: 'flex', gap: '15px', width: '100%', marginBottom: '10px' },
   timeBox: { flex: 1 },
-  // Buttons
   btnPrimary: { background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', color: 'white', padding: '16px', border: 'none', borderRadius: '15px', cursor: 'pointer', fontWeight: 'bold', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', boxShadow: '0 8px 16px rgba(37, 99, 235, 0.3)' },
   statsBar: { background: 'rgba(255,255,255,0.05)', padding: '20px', borderRadius: '20px', display: 'flex', justifyContent: 'space-around', marginBottom: '25px', border: '1px solid rgba(255,255,255,0.08)' },
   rollGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(75px, 1fr))', gap: '10px' },
@@ -79,8 +64,8 @@ export default function App() {
       <img src="/logo.png" style={styles.watermark} alt="watermark" />
       <div style={styles.loginCard}>
         <img src="/logo.png" style={{ width: '65px', marginBottom: '15px' }} alt="Logo" />
-        <h2 style={{ color: '#0f172a', fontWeight: '900', margin: '0' }}>Attendance System</h2>
-        <p style={{ color: '#64748b', fontSize: '12px', marginBottom: '30px' }}>Atma Malik Institute of Technology & Research</p>
+        <h2 style={{ color: '#0f172a', fontWeight: '900', margin: '0' }}>AMRIT ERP</h2>
+        <p style={{ color: '#64748b', fontSize: '12px', marginBottom: '30px' }}>Atma Malik Institute of Technology</p>
         <div style={{ textAlign: 'left' }}>
           <label style={{...styles.label, color: '#475569'}}>Faculty ID</label>
           <input id="u" style={styles.input} placeholder="Enter ID" />
@@ -95,7 +80,7 @@ export default function App() {
   return (
     <div style={styles.container}>
       <nav style={{ background: '#1e293b', padding: '15px 6%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #334155' }}>
-        <div><small style={{ color: '#94a3b8' }}>Welcome</small><br /><b>{user.name}</b></div>
+        <div><small style={{ color: '#94a3b8' }}>AMRIT ERP</small><br /><b>{user.name}</b></div>
         <button onClick={() => setView('login')} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '10px 15px', borderRadius: '10px', fontWeight: 'bold' }}><LogOut size={16}/></button>
       </nav>
       <div style={{ padding: '25px', maxWidth: '800px', margin: '0 auto' }}>
@@ -123,7 +108,7 @@ function HODPanel({ excelClasses }) {
         <button onClick={() => setTab('2')} style={{ flex: 1, padding: '15px', borderRadius: '12px', border: 'none', background: tab === '2' ? '#3b82f6' : '#1e293b', color: 'white', fontWeight: 'bold' }}>ADMIN</button>
       </div>
       <div style={styles.card}>
-        <img src="/logo.png" style={styles.watermark} alt="watermark" />
+        <img src="/logo.png" style={styles.watermark} />
         {tab === '1' ? (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
@@ -143,16 +128,16 @@ function HODPanel({ excelClasses }) {
           </div>
         ) : (
           <div style={{ maxWidth: '400px', margin: '0 auto' }}>
-            <h3>Manage Faculty</h3>
+            <h3>Register Faculty</h3>
             <input style={styles.input} placeholder="Name" onChange={e => setF({...f, name: e.target.value})} />
             <input style={styles.input} placeholder="ID" onChange={e => setF({...f, id: e.target.value})} />
-            <input style={styles.input} type="password" placeholder="Pass" onChange={e => setF({...f, pass: e.target.value})} />
+            <input style={styles.input} type="password" placeholder="Password" onChange={e => setF({...f, pass: e.target.value})} />
             <button style={styles.btnPrimary} onClick={async () => { await supabase.from('faculties').insert([{id:f.id, name:f.name, password:f.pass}]); alert("Saved!"); }}>REGISTER</button>
             <hr style={{ margin: '30px 0', opacity: 0.1 }} />
             <h3>Map Subjects</h3>
             <select style={styles.input} onChange={e => setF({...f, sFac: e.target.value})}><option>Select Faculty</option>{list.faculties.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
             <select style={styles.input} onChange={e => setF({...f, sClass: e.target.value})}><option>Select Class</option>{excelClasses.map(c => <option key={c} value={c}>{c}</option>)}</select>
-            <input style={styles.input} placeholder="Subject" onChange={e => setF({...f, sSub: e.target.value})} />
+            <input style={styles.input} placeholder="Subject Name" onChange={e => setF({...f, sSub: e.target.value})} />
             <button style={styles.btnPrimary} onClick={async () => { await supabase.from('assignments').insert([{fac_id:f.sFac, class_name:f.sClass, subject_name:f.sSub}]); alert("Linked!"); }}>LINK</button>
           </div>
         )}
@@ -161,13 +146,16 @@ function HODPanel({ excelClasses }) {
   );
 }
 
-// --- FACULTY PANEL ---
+// --- FACULTY PANEL (WITH VALIDATION) ---
 function FacultyPanel({ user }) {
   const [sel, setSel] = useState({ class: '', sub: '', type: 'Theory Lecture', startTime: '', endTime: '' });
+  const [isReady, setIsReady] = useState(false);
   const [students, setStudents] = useState([]);
   const [present, setPresent] = useState([]);
   const [myAssigns, setMyAssigns] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  const isFormValid = sel.class !== '' && sel.sub !== '' && sel.startTime !== '' && sel.endTime !== '';
 
   useEffect(() => {
     supabase.from('assignments').select('*').eq('fac_id', user.id).then(res => setMyAssigns(res.data || []));
@@ -184,7 +172,6 @@ function FacultyPanel({ user }) {
   }, [sel.class]);
 
   const submitAtt = async () => {
-    if(!sel.startTime || !sel.endTime) return alert("Timing Required!");
     setLoading(true);
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const R = 6371e3;
@@ -193,9 +180,10 @@ function FacultyPanel({ user }) {
       const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(pos.coords.latitude * Math.PI/180) * Math.cos(CAMPUS_LAT * Math.PI/180) * Math.sin(dLon/2) * Math.sin(dLon/2);
       const dist = R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
 
-      if (dist > 150) { setLoading(false); return alert(`Geofence: Out of campus.`); }
+      if (dist > 150) { setLoading(false); return alert(`Geofence Alert: You are ${Math.round(dist)}m away from campus.`); }
 
       const timeStr = new Date().toLocaleDateString('en-GB');
+      
       await supabase.from('attendance').insert([{ faculty: user.name, sub: sel.sub, class: sel.class, type: sel.type, start_time: sel.startTime, end_time: sel.endTime, present: present.length, total: students.length, time_str: timeStr }]);
       
       const logs = students.map(s => ({ student_id: s.id, class_name: sel.class, subject_name: sel.sub, status: present.includes(s.id) ? 'P' : 'A', date: timeStr }));
@@ -215,26 +203,51 @@ function FacultyPanel({ user }) {
       const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Attendance");
       XLSX.writeFile(wb, `${sel.class}_Report.xlsx`);
 
-      setLoading(false); alert("Success!"); setSel({...sel, sub: ''}); setPresent([]);
-    }, () => { setLoading(false); alert("GPS Error!"); }, { enableHighAccuracy: true });
+      setLoading(false); alert("Attendance Submitted!"); setIsReady(false); setPresent([]);
+    }, () => { setLoading(false); alert("GPS Required!"); }, { enableHighAccuracy: true });
   };
 
-  if (!sel.sub) return (
+  if (!isReady) return (
     <div style={styles.card}>
       <img src="/logo.png" style={styles.watermark} alt="watermark" />
       <div style={{ position: 'relative', zIndex: 1 }}>
-        <h3><Clock/> Check The All Things Before Take Attendance</h3>
-        <label style={styles.label}>Class</label>
-        <select style={styles.input} onChange={e => setSel({...sel, class: e.target.value})}><option>Select</option>{[...new Set(myAssigns.map(a => a.class_name))].map(c => <option key={c} value={c}>{c}</option>)}</select>
-        <label style={styles.label}>Subject</label>
-        <select style={styles.input} onChange={e => setSel({...sel, sub: e.target.value})}><option>Select</option>{myAssigns.filter(a => a.class_name === sel.class).map(a => <option key={a.id} value={a.subject_name}>{a.subject_name}</option>)}</select>
-        <label style={styles.label}>Type</label>
-        <select style={styles.input} onChange={e => setSel({...sel, type: e.target.value})}><option>Theory Lecture</option><option>Practical</option></select>
+        <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#fff' }}><Clock size={20}/> Check The All Things Before Take Attendance</h3>
+        
+        <label style={styles.label}>CLASS</label>
+        <select style={styles.input} value={sel.class} onChange={e => setSel({...sel, class: e.target.value})}>
+          <option value="">Select</option>
+          {[...new Set(myAssigns.map(a => a.class_name))].map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+
+        <label style={styles.label}>SUBJECT</label>
+        <select style={styles.input} value={sel.sub} onChange={e => setSel({...sel, sub: e.target.value})}>
+          <option value="">Select</option>
+          {myAssigns.filter(a => a.class_name === sel.class).map(a => <option key={a.id} value={a.subject_name}>{a.subject_name}</option>)}
+        </select>
+
+        <label style={styles.label}>TYPE</label>
+        <select style={styles.input} value={sel.type} onChange={e => setSel({...sel, type: e.target.value})}>
+          <option>Theory Lecture</option>
+          <option>Practical / Lab</option>
+        </select>
+
         <div style={styles.timeGrid}>
-          <div style={styles.timeBox}><label style={styles.label}>Start</label><input type="time" style={{...styles.input, marginBottom: 0}} onChange={e => setSel({...sel, startTime: e.target.value})} /></div>
-          <div style={styles.timeBox}><label style={styles.label}>End</label><input type="time" style={{...styles.input, marginBottom: 0}} onChange={e => setSel({...sel, endTime: e.target.value})} /></div>
+          <div style={styles.timeBox}>
+            <label style={styles.label}>START</label>
+            <input type="time" style={{...styles.input, marginBottom: 0}} onChange={e => setSel({...sel, startTime: e.target.value})} />
+          </div>
+          <div style={styles.timeBox}>
+            <label style={styles.label}>END</label>
+            <input type="time" style={{...styles.input, marginBottom: 0}} onChange={e => setSel({...sel, endTime: e.target.value})} />
+          </div>
         </div>
-        <button style={{...styles.btnPrimary, marginTop: '20px'}} onClick={() => sel.sub && setSel({...sel, sub: sel.sub})}>ROLL CALL</button>
+
+        <button 
+          style={{...styles.btnPrimary, marginTop: '30px', opacity: isFormValid ? 1 : 0.6}} 
+          onClick={() => isFormValid ? setIsReady(true) : alert("All fields are mandatory!")}
+        >
+          ROLL CALL
+        </button>
       </div>
     </div>
   );
@@ -244,7 +257,7 @@ function FacultyPanel({ user }) {
       <img src="/logo.png" style={styles.watermark} alt="watermark" />
       <div style={{ position: 'relative', zIndex: 1 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-          <button onClick={() => setSel({...sel, sub: ''})} style={{ background: 'none', border: 'none', color: '#94a3b8' }}><ArrowLeft/></button>
+          <button onClick={() => setIsReady(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}><ArrowLeft/></button>
           <b>{sel.class} | {sel.sub}</b>
         </div>
         <div style={styles.statsBar}>
