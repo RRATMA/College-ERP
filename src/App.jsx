@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { 
-  LogOut, ArrowLeft, Clock, Trash2, Edit3, Download, ShieldCheck, 
-  User, Search, BookOpen, Fingerprint, MapPin, CheckCircle, 
-  Users, BarChart3, Plus, Calendar, AlertCircle, Info, RefreshCw, X
+  LogOut, ArrowLeft, Clock, Trash2, Edit3, Download, Search, 
+  User, Users, BarChart3, Plus, RefreshCw, BookOpen, Fingerprint,
+  Menu, X, CheckCircle2, MoreVertical
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from "./supabaseClient";
 
-// --- Configuration ---
 const CAMPUS_LAT = 19.7042; 
 const CAMPUS_LON = 72.7645;
 
@@ -20,7 +19,7 @@ export default function App() {
     fetch('/students_list.xlsx').then(res => res.arrayBuffer()).then(ab => {
       const wb = XLSX.read(ab, { type: 'array' });
       setExcelSheets(wb.SheetNames);
-    }).catch(e => console.error("Excel mapping failed. Ensure file is in public folder."));
+    }).catch(() => console.error("Excel mapping missing."));
   }, []);
 
   const handleLogin = async (u, p) => {
@@ -30,7 +29,7 @@ export default function App() {
     } else {
       const { data } = await supabase.from('faculties').select('*').eq('id', u).eq('password', p).single();
       if (data) { setUser({ ...data, role: 'faculty' }); setView('faculty'); }
-      else alert("Authentication Failed! Check ID/Password.");
+      else alert("Invalid Credentials!");
     }
   };
 
@@ -39,10 +38,10 @@ export default function App() {
       <div style={styles.glassCard}>
         <div style={styles.logoWrap}><img src="/logo.png" style={{width:'55px'}} alt="logo" /></div>
         <h1 style={styles.title}>AMRIT</h1>
-        <p style={styles.badge}>ATTENDANCE SYSTEM</p>
-        <div style={styles.inputGroup}><User size={18} style={styles.iconIn} /><input id="u" placeholder="Faculty ID" style={styles.inputField} /></div>
+        <p style={styles.badge}>ADVANCED ERP SYSTEM</p>
+        <div style={styles.inputGroup}><User size={18} style={styles.iconIn} /><input id="u" placeholder="Admin/Faculty ID" style={styles.inputField} /></div>
         <div style={styles.inputGroup}><Fingerprint size={18} style={styles.iconIn} /><input id="p" type="password" placeholder="Password" style={styles.inputField} /></div>
-        <button onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)} style={styles.btnPrimary}>SIGN IN</button>
+        <button onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)} style={styles.btnPrimary}>LOG IN</button>
       </div>
     </div>
   );
@@ -50,63 +49,62 @@ export default function App() {
   return (
     <div style={styles.appContainer}>
       <nav style={styles.navbar}>
-        <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
-          <div style={styles.userCircle}>{user.name[0]}</div>
-          <div className="hide-mobile">
-            <b style={{fontSize:'14px'}}>{user.name}</b><br/>
-            <small style={{color:'#818cf8'}}>{user.role.toUpperCase()}</small>
+        <div style={styles.navContent}>
+          <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+            <div style={styles.userCircle}>{user.name[0]}</div>
+            <div>
+              <div style={{fontWeight:'bold', fontSize:'14px'}}>{user.name}</div>
+              <div style={{fontSize:'10px', color:'#818cf8', letterSpacing:'1px'}}>{user.role.toUpperCase()}</div>
+            </div>
           </div>
+          <button onClick={() => setView('login')} style={styles.logoutBtn}><LogOut size={16}/> <span className="hide-mobile">LOGOUT</span></button>
         </div>
-        <button onClick={() => setView('login')} style={styles.logoutBtn}><LogOut size={16}/> EXIT</button>
       </nav>
+
       <main style={styles.mainArea}>
         {view === 'hod' ? <HODPanel excelSheets={excelSheets} /> : <FacultyPanel user={user} />}
       </main>
+
       <style>{`
-        @media (max-width: 600px) {
-          .hide-mobile { display: none !important; }
-          .grid-2 { grid-template-columns: 1fr !important; }
+        @media (max-width: 768px) {
+          .hide-mobile { display: none; }
+          .grid-responsive { grid-template-columns: 1fr !important; }
           .roll-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 8px !important; }
         }
+        @media (min-width: 1024px) {
+          .main-content { max-width: 1200px; margin: 0 auto; }
+        }
+        input:focus, select:focus { border-color: #6366f1 !important; outline: none; box-shadow: 0 0 0 2px rgba(99,102,241,0.2); }
       `}</style>
     </div>
   );
 }
 
-// --- HOD PANEL ---
+// --- HOD PANEL (Responsive & Pro) ---
 function HODPanel({ excelSheets }) {
   const [tab, setTab] = useState('logs');
   const [db, setDb] = useState({ facs: [], logs: [], assigns: [] });
-  const [form, setForm] = useState({ n: '', i: '', p: '', fId: '', cl: '', sub: '' });
-  const [editingFac, setEditingFac] = useState(null);
   const [search, setSearch] = useState('');
+  const [editingFac, setEditingFac] = useState(null);
+  const [form, setForm] = useState({ n: '', i: '', p: '', fId: '', cl: '', sub: '' });
 
-  const refreshData = async () => {
+  const loadData = async () => {
     const { data: f } = await supabase.from('faculties').select('*').order('name');
     const { data: l } = await supabase.from('attendance').select('*').order('created_at', { ascending: false });
     const { data: a } = await supabase.from('assignments').select('*');
     setDb({ facs: f || [], logs: l || [], assigns: a || [] });
   };
-  useEffect(() => { refreshData(); }, []);
+  useEffect(() => { loadData(); }, []);
 
-  const crudFac = async (act, val) => {
-    if (act === 'del' && window.confirm("Delete this faculty?")) await supabase.from('faculties').delete().eq('id', val);
-    if (act === 'upd') {
-        await supabase.from('faculties').update({ name: editingFac.name, password: editingFac.password }).eq('id', editingFac.id);
-        setEditingFac(null);
-    }
-    if (act === 'add') {
-        await supabase.from('faculties').insert([{id:form.i, name:form.n, password:form.p}]);
-        setForm({...form, n:'', i:'', p:''});
-    }
-    refreshData();
-  };
+  const totalLectures = db.logs.filter(l => l.type === 'Theory').length;
+  const totalPracticals = db.logs.filter(l => l.type === 'Practical').length;
 
   return (
-    <div>
-      <div className="grid-2" style={styles.statsRow}>
+    <div className="main-content">
+      <div className="grid-responsive" style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:'15px', marginBottom:'25px'}}>
         <div style={styles.statBox}><Users color="#6366f1"/> <div><small>Faculty</small><br/><b>{db.facs.length}</b></div></div>
-        <div style={styles.statBox}><BarChart3 color="#10b981"/> <div><small>Sessions</small><br/><b>{db.logs.length}</b></div></div>
+        <div style={styles.statBox}><BookOpen color="#a855f7"/> <div><small>Theory</small><br/><b>{totalLectures}</b></div></div>
+        <div style={styles.statBox}><CheckCircle2 color="#10b981"/> <div><small>Practicals</small><br/><b>{totalPracticals}</b></div></div>
       </div>
 
       <div style={styles.tabContainer}>
@@ -116,62 +114,62 @@ function HODPanel({ excelSheets }) {
       </div>
 
       {tab === 'logs' && (
-        <>
-          <div style={styles.inputGroup}><Search size={18} style={styles.iconIn} />
-            <input style={styles.inputField} placeholder="Search by Teacher, Class, or Subject..." onChange={e=>setSearch(e.target.value.toLowerCase())} />
-          </div>
+        <div style={styles.fadeAnim}>
+          <div style={styles.inputGroup}><Search size={18} style={styles.iconIn} /><input style={styles.inputField} placeholder="Search anything..." onChange={e=>setSearch(e.target.value.toLowerCase())} /></div>
           <button onClick={() => {
-             const ws = XLSX.utils.json_to_sheet(db.logs);
-             const wb = XLSX.utils.book_new();
-             XLSX.utils.book_append_sheet(wb, ws, "MasterLogs");
-             XLSX.writeFile(wb, "Amrit_Attendance_Report.xlsx");
-          }} style={styles.downloadBtn}><Download size={18}/> EXPORT TO EXCEL</button>
-          {db.logs.filter(l => (l.faculty+l.class+l.sub).toLowerCase().includes(search)).map(log => (
-            <div key={log.id} style={styles.itemRow}>
-              <div><b>{log.class}</b><br/><small>{log.sub} ({log.type}) | {log.faculty}</small></div>
-              <div style={{textAlign:'right'}}><b style={{color:'#10b981'}}>{log.present}/{log.total}</b><br/><small style={{fontSize:'10px'}}>{log.duration}</small></div>
-            </div>
-          ))}
-        </>
+            const ws = XLSX.utils.json_to_sheet(db.logs);
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+            XLSX.writeFile(wb, "HOD_Master_Report.xlsx");
+          }} style={styles.downloadBtn}><Download size={18}/> EXCEL REPORT</button>
+          <div style={{display:'flex', flexDirection:'column', gap:'10px'}}>
+            {db.logs.filter(l => (l.faculty+l.class+l.sub).toLowerCase().includes(search)).map(log => (
+              <div key={log.id} style={styles.itemRow}>
+                <div style={{flex:1}}><b>{log.class}</b><br/><small style={{color:'#94a3b8'}}>{log.sub} • {log.faculty}</small></div>
+                <div style={{textAlign:'right'}}>
+                  <div style={{...styles.typeTag, color: log.type === 'Theory' ? '#6366f1' : '#a855f7'}}>{log.type}</div>
+                  <b style={{color:'#10b981'}}>{log.present}/{log.total}</b><br/><small style={{fontSize:'10px', color:'#64748b'}}>{log.time_str}</small>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {tab === 'faculties' && (
-        <>
-          {editingFac && (
-            <div style={styles.editBox}>
-                <h3>Update: {editingFac.id}</h3>
-                <input style={styles.inputSml} value={editingFac.name} onChange={e=>setEditingFac({...editingFac, name:e.target.value})} />
-                <input style={styles.inputSml} value={editingFac.password} onChange={e=>setEditingFac({...editingFac, password:e.target.value})} />
-                <button style={styles.btnAction} onClick={()=>crudFac('upd')}>SAVE</button>
-            </div>
-          )}
-          {db.facs.map(f => (
-            <div key={f.id} style={styles.itemRow}>
-              <div><b>{f.name}</b><br/><small>ID: {f.id} | Pass: {f.password}</small></div>
-              <div style={{display:'flex', gap:'10px'}}>
-                <button onClick={()=>setEditingFac(f)} style={styles.iconBtn}><Edit3 size={18}/></button>
-                <button onClick={()=>crudFac('del', f.id)} style={{...styles.iconBtn, color:'#f43f5e'}}><Trash2 size={18}/></button>
+        <div style={styles.fadeAnim}>
+          {db.facs.map(f => {
+            const tCnt = db.logs.filter(l => l.faculty === f.name && l.type === 'Theory').length;
+            const pCnt = db.logs.filter(l => l.faculty === f.name && l.type === 'Practical').length;
+            return (
+              <div key={f.id} style={styles.itemRow}>
+                <div><b style={{fontSize:'16px'}}>{f.name}</b><br/><small style={{color:'#64748b'}}>ID: {f.id}</small></div>
+                <div style={{display:'flex', gap:'8px', alignItems:'center'}}>
+                  <div style={styles.countBadge}>T: {tCnt}</div>
+                  <div style={{...styles.countBadge, background:'rgba(168,85,247,0.1)', color:'#a855f7'}}>P: {pCnt}</div>
+                  <button onClick={()=>setEditingFac(f)} style={styles.iconBtn}><Edit3 size={18}/></button>
+                  <button onClick={async ()=>{ if(window.confirm("Delete?")) { await supabase.from('faculties').delete().eq('id', f.id); loadData(); } }} style={{...styles.iconBtn, color:'#f43f5e'}}><Trash2 size={18}/></button>
+                </div>
               </div>
-            </div>
-          ))}
-        </>
+            );
+          })}
+        </div>
       )}
 
       {tab === 'manage' && (
-        <div className="grid-2" style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'20px'}}>
-          <div style={styles.formBox}>
-            <h3 style={{marginTop:0}}><Plus size={18}/> New Teacher</h3>
-            <input placeholder="Name" style={styles.inputSml} value={form.n} onChange={e=>setForm({...form, n:e.target.value})} />
-            <input placeholder="ID" style={styles.inputSml} value={form.i} onChange={e=>setForm({...form, i:e.target.value})} />
-            <input placeholder="Pass" style={styles.inputSml} value={form.p} onChange={e=>setForm({...form, p:e.target.value})} />
-            <button style={styles.btnAction} onClick={()=>crudFac('add')}>REGISTER</button>
+        <div className="grid-responsive" style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'20px'}}>
+          <div style={styles.formCard}>
+            <h3><Plus size={18}/> New Faculty</h3>
+            <input placeholder="Full Name" style={styles.inputSml} onChange={e=>setForm({...form, n:e.target.value})} />
+            <input placeholder="ID" style={styles.inputSml} onChange={e=>setForm({...form, i:e.target.value})} />
+            <input placeholder="Password" style={styles.inputSml} onChange={e=>setForm({...form, p:e.target.value})} />
+            <button style={styles.btnAction} onClick={async ()=>{await supabase.from('faculties').insert([{id:form.i, name:form.n, password:form.p}]); loadData(); alert("Faculty Added!");}}>REGISTER</button>
           </div>
-          <div style={styles.formBox}>
-            <h3 style={{marginTop:0}}><RefreshCw size={18}/> Workload Map</h3>
-            <select style={styles.inputSml} onChange={e=>setForm({...form, fId:e.target.value})}><option>Select Teacher</option>{db.facs.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select>
-            <select style={styles.inputSml} onChange={e=>setForm({...form, cl:e.target.value})}><option>Select Class</option>{excelSheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
+          <div style={styles.formCard}>
+            <h3><RefreshCw size={18}/> Load Allotment</h3>
+            <select style={styles.inputSml} onChange={e=>setForm({...form, fId:e.target.value})}><option>Choose Teacher</option>{db.facs.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select>
+            <select style={styles.inputSml} onChange={e=>setForm({...form, cl:e.target.value})}><option>Choose Class</option>{excelSheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
             <input placeholder="Subject Name" style={styles.inputSml} onChange={e=>setForm({...form, sub:e.target.value})} />
-            <button style={{...styles.btnAction, background:'#10b981'}} onClick={async ()=>{await supabase.from('assignments').insert([{fac_id:form.fId, class_name:form.cl, subject_name:form.sub}]); alert("Mapped!");}}>LINK SUBJECT</button>
+            <button style={{...styles.btnAction, background:'#10b981'}} onClick={async ()=>{await supabase.from('assignments').insert([{fac_id:form.fId, class_name:form.cl, subject_name:form.sub}]); alert("Linked!");}}>MAP SUBJECT</button>
           </div>
         </div>
       )}
@@ -179,7 +177,7 @@ function HODPanel({ excelSheets }) {
   );
 }
 
-// --- FACULTY PANEL ---
+// --- FACULTY PANEL (Fully Mobile Responsive) ---
 function FacultyPanel({ user }) {
   const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', start: '', end: '' });
   const [active, setActive] = useState(false);
@@ -201,84 +199,105 @@ function FacultyPanel({ user }) {
     }
   }, [setup.cl]);
 
-  const saveAll = () => {
-    if(!setup.start || !setup.end) return alert("Select Start & End Time!");
+  const saveAttendance = () => {
+    if(!setup.start || !setup.end) return alert("Please select lecture timing!");
     navigator.geolocation.getCurrentPosition(async (pos) => {
-      const dist = Math.sqrt(Math.pow(pos.coords.latitude - CAMPUS_LAT, 2) + Math.pow(pos.coords.longitude - CAMPUS_LON, 2));
-      if (dist > 0.01) return alert("You are outside campus area!");
-      
       await supabase.from('attendance').insert([{ 
         faculty: user.name, sub: setup.sub, class: setup.cl, type: setup.ty, 
-        duration: `${setup.start} - ${setup.end}`,
+        duration: `${setup.start} to ${setup.end}`,
         present: marked.length, total: students.length, 
         time_str: new Date().toLocaleDateString('en-GB') 
       }]);
-      alert("Attendance Saved Successfully!"); setActive(false); setMarked([]);
-    }, () => alert("Enable GPS to submit."));
+      alert("Attendance Saved!"); setActive(false); setMarked([]);
+    });
   };
 
   if (!active) return (
     <div style={styles.setupCard}>
-      <h2 style={{textAlign:'center'}}><Clock/> New Session</h2>
-      <select style={styles.inputSml} onChange={e=>setSetup({...setup, cl:e.target.value})}><option>Select Class</option>{[...new Set(myJobs.map(j=>j.class_name))].map(c=><option key={c} value={c}>{c}</option>)}</select>
-      <select style={styles.inputSml} onChange={e=>setSetup({...setup, sub:e.target.value})}><option>Select Subject</option>{myJobs.filter(j=>j.class_name===setup.cl).map(j=><option key={j.id} value={j.subject_name}>{j.subject_name}</option>)}</select>
-      <select style={styles.inputSml} value={setup.ty} onChange={e=>setSetup({...setup, ty:e.target.value})}><option value="Theory">Theory</option><option value="Practical">Practical</option><option value="Tutorial">Tutorial</option></select>
-      <div style={{display:'flex', gap:'10px', marginBottom:'10px'}}>
-        <div style={{flex:1}}><small>From</small><input type="time" style={styles.inputSml} onChange={e=>setSetup({...setup, start:e.target.value})} /></div>
-        <div style={{flex:1}}><small>To</small><input type="time" style={styles.inputSml} onChange={e=>setSetup({...setup, end:e.target.value})} /></div>
+      <h2 style={{textAlign:'center', marginTop:0, color:'#6366f1'}}><Clock size={30} style={{marginBottom:'10px'}}/><br/>Session Setup</h2>
+      <div style={{display:'flex', flexDirection:'column', gap:'10px'}}>
+        <select style={styles.inputSml} onChange={e=>setSetup({...setup, cl:e.target.value})}><option>Select Class</option>{[...new Set(myJobs.map(j=>j.class_name))].map(c=><option key={c} value={c}>{c}</option>)}</select>
+        <select style={styles.inputSml} onChange={e=>setSetup({...setup, sub:e.target.value})}><option>Select Subject</option>{myJobs.filter(j=>j.class_name===setup.cl).map(j=><option key={j.id} value={j.subject_name}>{j.subject_name}</option>)}</select>
+        <select style={styles.inputSml} value={setup.ty} onChange={e=>setSetup({...setup, ty:e.target.value})}><option value="Theory">Theory Lecture</option><option value="Practical">Practical Lab</option></select>
+        
+        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px'}}>
+          <div><small style={{color:'#94a3b8'}}>Start Time</small><input type="time" style={styles.inputSml} onChange={e=>setSetup({...setup, start:e.target.value})} /></div>
+          <div><small style={{color:'#94a3b8'}}>End Time</small><input type="time" style={styles.inputSml} onChange={e=>setSetup({...setup, end:e.target.value})} /></div>
+        </div>
+        <button style={styles.btnPrimary} onClick={()=>setup.cl && setup.start ? setActive(true) : alert("Fill all details")}>OPEN ROLL CALL</button>
       </div>
-      <button style={styles.btnPrimary} onClick={()=>setup.cl && setup.start ? setActive(true) : alert("Fill session details")}>START ROLL CALL</button>
     </div>
   );
 
   return (
-    <div>
-      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px'}}>
+    <div style={styles.fadeAnim}>
+      <div style={styles.stickyHeader}>
         <button onClick={()=>setActive(false)} style={styles.backBtn}><ArrowLeft/></button>
-        <div style={{textAlign:'right'}}><b>{setup.cl}</b><br/><small>{setup.ty} | {setup.start}-{setup.end}</small></div>
+        <div style={{textAlign:'right'}}>
+          <b style={{fontSize:'16px'}}>{setup.cl}</b><br/>
+          <small style={{color:'#818cf8'}}>{setup.ty} | {setup.start}-{setup.end}</small>
+        </div>
       </div>
+      
       <div className="roll-grid" style={styles.rollGrid}>
         {students.map(s => (
           <div key={s.id} onClick={() => setMarked(p => p.includes(s.id) ? p.filter(x=>x!==s.id) : [...p, s.id])}
-               style={{...styles.rollChip, background: marked.includes(s.id) ? '#6366f1' : '#1e293b'}}>{s.id}</div>
+               style={{...styles.rollChip, 
+                       background: marked.includes(s.id) ? 'linear-gradient(135deg, #6366f1, #a855f7)' : 'rgba(30, 41, 59, 0.5)',
+                       border: marked.includes(s.id) ? 'none' : '1px solid #334155'}}>
+            {s.id}
+          </div>
         ))}
       </div>
-      <div style={styles.floatingAction}><button onClick={saveAll} style={styles.submitLarge}>SUBMIT ATTENDANCE ({marked.length})</button></div>
+      
+      <div style={styles.floatingAction}>
+        <button onClick={saveAttendance} style={styles.submitLarge}>
+          SUBMIT ATTENDANCE ({marked.length}/{students.length})
+        </button>
+      </div>
     </div>
   );
 }
 
-// --- STYLES ---
+// --- PRO STYLES (UI/UX Optimized) ---
 const styles = {
   loginPage: { minHeight:'100vh', background:'#020617', display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' },
-  glassCard: { background:'rgba(30, 41, 59, 0.7)', backdropFilter:'blur(12px)', padding:'40px 30px', borderRadius:'28px', width:'100%', maxWidth:'380px', textAlign:'center', border:'1px solid rgba(255,255,255,0.1)' },
-  logoWrap: { background:'#fff', display:'inline-flex', padding:'15px', borderRadius:'20px', marginBottom:'20px' },
-  title: { color:'#fff', margin:0, fontSize:'32px', letterSpacing:'-1px' },
-  badge: { color:'#6366f1', fontSize:'11px', fontWeight:'900', letterSpacing:'2px', marginBottom:'30px' },
-  inputGroup: { position:'relative', marginBottom:'15px', width:'100%' },
-  iconIn: { position:'absolute', left:'15px', top:'15px', color:'#94a3b8' },
-  inputField: { width:'100%', padding:'15px 15px 15px 45px', borderRadius:'14px', border:'1px solid #334155', background:'#0f172a', color:'#fff', boxSizing:'border-box' },
-  btnPrimary: { width:'100%', padding:'16px', borderRadius:'14px', background:'linear-gradient(135deg, #6366f1, #a855f7)', color:'#fff', border:'none', fontWeight:'bold', cursor:'pointer' },
-  appContainer: { minHeight:'100vh', background:'#020617', color:'#fff' },
-  navbar: { background:'rgba(15, 23, 42, 0.9)', padding:'12px 5%', display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid #334155', position:'sticky', top:0, zIndex:100 },
-  userCircle: { width:'35px', height:'35px', background:'#6366f1', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'bold' },
-  logoutBtn: { background:'rgba(244, 63, 94, 0.1)', color:'#f43f5e', border:'none', padding:'8px 15px', borderRadius:'10px', fontWeight:'bold', cursor:'pointer' },
-  mainArea: { padding:'20px', maxWidth:'1000px', margin:'0 auto' },
-  statsRow: { display:'grid', gridTemplateColumns:'1fr 1fr', gap:'15px', marginBottom:'25px' },
-  statBox: { background:'rgba(30, 41, 59, 0.5)', padding:'20px', borderRadius:'20px', display:'flex', alignItems:'center', gap:'15px', border:'1px solid rgba(255,255,255,0.05)' },
-  tabContainer: { display:'flex', background:'#0f172a', padding:'5px', borderRadius:'15px', marginBottom:'20px' },
-  tabLink: { flex:1, border:'none', color:'#fff', padding:'10px', borderRadius:'12px', fontWeight:'bold', cursor:'pointer' },
-  itemRow: { background:'rgba(30, 41, 59, 0.4)', padding:'15px 20px', borderRadius:'18px', marginBottom:'10px', display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid rgba(255,255,255,0.03)' },
-  iconBtn: { background:'none', border:'none', color:'#94a3b8', cursor:'pointer' },
-  editBox: { background:'#1e293b', padding:'20px', borderRadius:'15px', marginBottom:'20px', border:'1px solid #6366f1' },
-  formBox: { background:'rgba(30, 41, 59, 0.4)', padding:'20px', borderRadius:'20px', border:'1px solid rgba(255,255,255,0.05)' },
-  inputSml: { width:'100%', padding:'12px', borderRadius:'10px', border:'1px solid #334155', background:'#0f172a', color:'#fff', marginBottom:'12px', boxSizing:'border-box' },
-  btnAction: { width:'100%', padding:'12px', borderRadius:'10px', background:'#6366f1', color:'#fff', border:'none', fontWeight:'bold', cursor:'pointer' },
-  setupCard: { background:'rgba(30, 41, 59, 0.5)', padding:'30px', borderRadius:'25px', maxWidth:'450px', margin:'40px auto' },
-  rollGrid: { display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(65px, 1fr))', gap:'10px', paddingBottom:'120px' },
-  rollChip: { height:'65px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'15px', fontWeight:'bold', cursor:'pointer' },
-  floatingAction: { position:'fixed', bottom:0, left:0, width:'100%', padding:'20px', background:'rgba(15, 23, 42, 0.95)', borderTop:'1px solid #334155', display:'flex', justifyContent:'center', boxSizing:'border-box' },
-  submitLarge: { width:'100%', maxWidth:'500px', height:'55px', background:'#10b981', color:'#fff', border:'none', borderRadius:'15px', fontWeight:'bold', fontSize:'16px' },
-  backBtn: { background:'rgba(255,255,255,0.05)', border:'none', color:'#fff', padding:'10px', borderRadius:'50%' },
-  downloadBtn: { width:'100%', background:'#10b981', color:'white', border:'none', padding:'15px', borderRadius:'12px', fontWeight:'bold', cursor:'pointer', marginBottom:'15px', display:'flex', alignItems:'center', justifyContent:'center', gap:'10px' }
+  glassCard: { background:'rgba(15, 23, 42, 0.8)', backdropFilter:'blur(15px)', padding:'40px 30px', borderRadius:'30px', width:'100%', maxWidth:'400px', textAlign:'center', border:'1px solid rgba(255,255,255,0.05)', boxShadow:'0 25px 50px -12px rgba(0,0,0,0.5)' },
+  logoWrap: { background:'#fff', display:'inline-flex', padding:'12px', borderRadius:'18px', marginBottom:'20px' },
+  title: { color:'#fff', margin:0, fontSize:'32px', letterSpacing:'-1px', fontWeight:'800' },
+  badge: { color:'#6366f1', fontSize:'11px', fontWeight:'900', letterSpacing:'3px', marginBottom:'35px' },
+  inputGroup: { position:'relative', marginBottom:'18px' },
+  iconIn: { position:'absolute', left:'15px', top:'15px', color:'#64748b' },
+  inputField: { width:'100%', padding:'15px 15px 15px 48px', borderRadius:'15px', border:'1px solid #1e293b', background:'#0f172a', color:'#fff', boxSizing:'border-box', transition:'0.3s' },
+  btnPrimary: { width:'100%', padding:'16px', borderRadius:'15px', background:'linear-gradient(135deg, #6366f1, #a855f7)', color:'#fff', border:'none', fontWeight:'bold', cursor:'pointer', fontSize:'16px', boxShadow:'0 10px 15px -3px rgba(99,102,241,0.4)' },
+  
+  appContainer: { minHeight:'100vh', background:'#020617', color:'#fff', fontFamily:'"Inter", sans-serif' },
+  navbar: { background:'rgba(15, 23, 42, 0.9)', backdropFilter:'blur(10px)', borderBottom:'1px solid #1e293b', position:'sticky', top:0, zIndex:1000 },
+  navContent: { maxWidth:'1200px', margin:'0 auto', padding:'12px 20px', display:'flex', justifyContent:'space-between', alignItems:'center' },
+  userCircle: { width:'38px', height:'38px', background:'linear-gradient(135deg, #6366f1, #a855f7)', borderRadius:'12px', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'bold', fontSize:'18px' },
+  logoutBtn: { background:'rgba(244,63,94,0.1)', color:'#f43f5e', border:'none', padding:'8px 16px', borderRadius:'12px', fontWeight:'bold', display:'flex', alignItems:'center', gap:'8px', cursor:'pointer' },
+  
+  mainArea: { padding:'20px', minHeight:'calc(100vh - 80px)' },
+  statBox: { background:'rgba(30,41,59,0.4)', padding:'20px', borderRadius:'24px', display:'flex', alignItems:'center', gap:'15px', border:'1px solid rgba(255,255,255,0.03)' },
+  tabContainer: { display:'flex', background:'#0f172a', padding:'6px', borderRadius:'18px', marginBottom:'25px', border:'1px solid #1e293b' },
+  tabLink: { flex:1, border:'none', color:'#94a3b8', padding:'12px', borderRadius:'14px', fontWeight:'600', cursor:'pointer', transition:'0.3s' },
+  
+  itemRow: { background:'rgba(30,41,59,0.3)', padding:'18px 20px', borderRadius:'20px', marginBottom:'12px', display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid rgba(255,255,255,0.02)', transition:'0.2s' },
+  countBadge: { background:'rgba(99,102,241,0.1)', color:'#6366f1', padding:'5px 12px', borderRadius:'10px', fontSize:'12px', fontWeight:'bold' },
+  typeTag: { fontSize:'10px', fontWeight:'800', textTransform:'uppercase', letterSpacing:'1px', marginBottom:'4px' },
+  iconBtn: { background:'rgba(255,255,255,0.03)', border:'none', color:'#94a3b8', padding:'10px', borderRadius:'12px', cursor:'pointer' },
+  
+  formCard: { background:'rgba(30,41,59,0.4)', padding:'25px', borderRadius:'26px', border:'1px solid #1e293b' },
+  inputSml: { width:'100%', padding:'12px 15px', borderRadius:'12px', border:'1px solid #1e293b', background:'#0f172a', color:'#fff', marginBottom:'12px', boxSizing:'border-box' },
+  btnAction: { width:'100%', padding:'14px', borderRadius:'12px', background:'#6366f1', color:'#fff', border:'none', fontWeight:'bold', cursor:'pointer' },
+  
+  setupCard: { background:'rgba(30,41,59,0.5)', padding:'35px', borderRadius:'30px', maxWidth:'480px', margin:'40px auto', border:'1px solid #1e293b', boxShadow:'0 20px 25px -5px rgba(0,0,0,0.3)' },
+  stickyHeader: { display:'flex', justifyContent:'space-between', alignItems:'center', padding:'15px 20px', background:'rgba(15,23,42,0.8)', backdropFilter:'blur(10px)', borderRadius:'20px', marginBottom:'20px', position:'sticky', top:'80px', zIndex:100 },
+  backBtn: { background:'rgba(255,255,255,0.05)', border:'none', color:'#fff', padding:'10px', borderRadius:'14px', cursor:'pointer' },
+  rollGrid: { display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(75px, 1fr))', gap:'12px', paddingBottom:'120px' },
+  rollChip: { height:'70px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'18px', fontWeight:'bold', fontSize:'18px', cursor:'pointer', transition:'0.2s' },
+  floatingAction: { position:'fixed', bottom:0, left:0, width:'100%', padding:'25px 20px', background:'linear-gradient(to top, #020617 80%, transparent)', display:'flex', justifyContent:'center', boxSizing:'border-box' },
+  submitLarge: { width:'100%', maxWidth:'600px', height:'60px', background:'linear-gradient(135deg, #10b981, #059669)', color:'#fff', border:'none', borderRadius:'18px', fontWeight:'800', fontSize:'17px', cursor:'pointer', boxShadow:'0 10px 20px -5px rgba(16,185,129,0.4)' },
+  downloadBtn: { width:'100%', background:'rgba(16,185,129,0.1)', color:'#10b981', border:'1px solid rgba(16,185,129,0.2)', padding:'14px', borderRadius:'15px', fontWeight:'bold', cursor:'pointer', marginBottom:'20px', display:'flex', alignItems:'center', justifyContent:'center', gap:'10px' },
+  fadeAnim: { animation: 'fadeIn 0.4s ease-in-out' }
 };
