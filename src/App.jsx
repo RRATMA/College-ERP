@@ -46,44 +46,80 @@ if (view === 'login') return (
       {/* Background Watermark */}
       <img src="/logo.png" style={styles.watermark} />
       
-      <div style={{ width: '100%', maxWidth: '380px', zIndex: 10 }}>
-        {/* --- TOP COLLEGE HEADER --- */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '15px', marginBottom: '25px' }}>
-          <img src="/logo.png" style={{ width: '70px', height: 'auto' }} />
-          <div style={{ textAlign: 'left' }}>
-            <h1 style={{ color: '#ffffff', margin: 0, fontSize: '22px', fontWeight: '900', lineHeight: '1.2' }}>
-              ATMA MALIK <br/> 
-              <span style={{ color: '#3b82f6', fontSize: '16px', fontWeight: 'bold' }}>INSTITUTE OF TECHNOLOGY</span>
-            </h1>
-          </div>
+      {/* --- SANJIVANI STYLE TOP HEADER --- */}
+      <div style={{ 
+        position: 'absolute', 
+        top: '40px', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        width: '100%', 
+        gap: '20px',
+        padding: '0 20px'
+      }}>
+        {/* Left Side Logo */}
+        <img src="/logo.png" style={{ width: '90px', height: 'auto', filter: 'drop-shadow(2px 4px 6px rgba(0,0,0,0.3))' }} />
+        
+        {/* Right Side College Name */}
+        <div style={{ textAlign: 'left', borderLeft: '3px solid #3b82f6', paddingLeft: '20px' }}>
+          <h1 style={{ 
+            color: '#ffffff', 
+            margin: 0, 
+            fontSize: '28px', 
+            fontWeight: '900', 
+            letterSpacing: '1px',
+            lineHeight: '1.1',
+            textTransform: 'uppercase'
+          }}>
+            Atma Malik <br/>
+            <span style={{ fontSize: '20px', fontWeight: '500', color: '#3b82f6' }}>
+              Institute of Technology & Research
+            </span>
+          </h1>
+        </div>
+      </div>
+
+      {/* --- LOGIN CARD --- */}
+      <div style={{ ...styles.loginCard, marginTop: '120px' }}>
+        <h2 style={{ color: '#0f172a', margin: '0 0 10px 0', fontSize: '24px' }}>AMRIT ERP</h2>
+        <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '25px' }}>Attendance Management System</p>
+        
+        <div style={{ textAlign: 'left' }}>
+          <label style={{...styles.label, color: '#475569'}}>Faculty ID</label>
+          <input id="u" style={styles.input} placeholder="Enter your ID" />
+          
+          <label style={{...styles.label, color: '#475569'}}>Password</label>
+          <input id="p" type="password" style={styles.input} placeholder="••••••••" />
         </div>
 
-        {/* LOGIN CARD */}
-        <div style={styles.loginCard}>
-          <h2 style={{ color: '#0f172a', margin: '0 0 15px 0' }}>AMRIT ERP</h2>
-          <div style={{ textAlign: 'left' }}>
-            <label style={{...styles.label, color: '#64748b'}}>Faculty ID</label>
-            <input id="u" style={styles.input} placeholder="Enter ID" />
-            <label style={{...styles.label, color: '#64748b'}}>Password</label>
-            <input id="p" type="password" style={styles.input} placeholder="••••••••" />
-          </div>
-          <button style={styles.btnPrimary} onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)}>
-            SIGN IN
-          </button>
-        </div>
+        <button 
+          style={styles.btnPrimary} 
+          onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)}
+        >
+          LOG IN
+        </button>
       </div>
     </div>
   );
 
   return (
     <div style={styles.container}>
-      {/* NAVBAR WITH LOGO AND NAME */}
-      <nav style={{ background: '#1e293b', padding: '12px 5%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #334155' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <img src="/logo.png" style={{ width: '35px', height: '35px' }} />
-          <b style={{ fontSize: '16px' }}>{user.name}</b>
+      <nav style={{ 
+        background: '#1e293b', 
+        padding: '12px 5%', 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        borderBottom: '2px solid #3b82f6' 
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <img src="/logo.png" style={{ width: '40px', height: '40px' }} />
+          <div>
+            <b style={{ fontSize: '14px', display: 'block' }}>{user.name}</b>
+            <small style={{ color: '#3b82f6', fontSize: '10px' }}>Atma Malik IOTR</small>
+          </div>
         </div>
-        <button onClick={() => setView('login')} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+        <button onClick={() => setView('login')} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}>
           <LogOut size={16}/> Logout
         </button>
       </nav>
