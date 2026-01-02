@@ -1,65 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { 
-  LogOut, ArrowLeft, Clock, Trash2, Edit3, UserPlus, 
-  Database, Download, ShieldCheck, User, CheckCircle, 
-  ChevronRight, Zap, MapPin, Calendar, PlusCircle, BarChart3, Users, Search,
+  LogOut, ArrowLeft, Clock, Trash2, Edit3, 
+  Download, ShieldCheck, User, Search,
   LayoutDashboard, BookOpen, Fingerprint, GraduationCap, Settings, 
-  Monitor, Smartphone
+  MapPin, CheckCircle, ChevronRight, Users, Zap
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from "./supabaseClient";
 
-// --- Configuration ---
+// --- Config ---
 const CAMPUS_LAT = 19.7042; 
 const CAMPUS_LON = 72.7645;
-
-const theme = {
-  primary: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
-  accent: '#10b981',
-  danger: '#f43f5e',
-  bg: '#0f172a',
-  card: 'rgba(30, 41, 59, 0.7)',
-  border: 'rgba(255, 255, 255, 0.1)'
-};
-
-const styles = {
-  wrapper: {
-    minHeight: '100vh', width: '100%', background: theme.bg, color: '#f8fafc',
-    fontFamily: "'Plus Jakarta Sans', sans-serif", 
-    backgroundImage: `radial-gradient(circle at top right, rgba(99, 102, 241, 0.15), transparent), radial-gradient(circle at bottom left, rgba(168, 85, 247, 0.15), transparent)`,
-    display: 'flex', flexDirection: 'column', boxSizing: 'border-box'
-  },
-  nav: {
-    background: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(10px)', padding: '12px 5%',
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-    borderBottom: `1px solid ${theme.border}`, position: 'sticky', top: 0, zIndex: 1000
-  },
-  card: {
-    background: theme.card, backdropFilter: 'blur(12px)', borderRadius: '24px', padding: 'clamp(15px, 5vw, 25px)',
-    border: `1px solid ${theme.border}`, marginBottom: '20px', width: '100%', boxSizing: 'border-box',
-    boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)'
-  },
-  input: {
-    width: '100%', padding: '14px 18px', borderRadius: '14px', border: `1px solid ${theme.border}`,
-    background: 'rgba(15, 23, 42, 0.5)', color: 'white', fontSize: '15px', marginBottom: '15px', outline: 'none'
-  },
-  btn: {
-    padding: '12px 20px', borderRadius: '14px', border: 'none', fontWeight: '800', cursor: 'pointer',
-    display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    justifyContent: 'center', fontSize: '14px'
-  }
-};
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [view, setView] = useState('login');
   const [excelClasses, setExcelClasses] = useState([]);
 
+  // 1. मिस झालेली गोष्ट: सुरुवातीलाच Excel मधून क्लासेसची नावे लोड करणे
   useEffect(() => {
-    fetch('/students_list.xlsx').then(res => res.arrayBuffer()).then(ab => {
-      const wb = XLSX.read(ab, { type: 'array' });
-      setExcelClasses(wb.SheetNames);
-    });
+    fetch('/students_list.xlsx')
+      .then(res => res.arrayBuffer())
+      .then(ab => {
+        const wb = XLSX.read(ab, { type: 'array' });
+        setExcelClasses(wb.SheetNames);
+      }).catch(err => console.error("Excel load error:", err));
   }, []);
 
   const handleLogin = async (u, p) => {
@@ -69,188 +34,225 @@ export default function App() {
     } else {
       const { data } = await supabase.from('faculties').select('*').eq('id', u).eq('password', p).single();
       if (data) { setUser({ ...data, role: 'faculty' }); setView('faculty'); }
-      else alert("Login Failed!");
+      else alert("ID किंवा पासवर्ड चुकीचा आहे!");
     }
   };
 
-  // --- LOGIN VIEW (MOBILE RESPONSIVE) ---
+  // --- UI STYLES ---
+  const glass = {
+    background: 'rgba(30, 41, 59, 0.7)',
+    backdropFilter: 'blur(12px)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '24px'
+  };
+
   if (view === 'login') return (
-    <div style={{ ...styles.wrapper, justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
-       <div style={{ ...styles.card, maxWidth: '400px', textAlign: 'center' }}>
-          <div className="icon-pulse" style={{ background: '#fff', display: 'inline-flex', padding: '15px', borderRadius: '22px', marginBottom: '20px' }}>
-            <img src="/logo.png" style={{ width: '60px' }} alt="logo" />
-          </div>
-          <h1 style={{ fontSize: '32px', fontWeight: '900', margin: '0 0 5px 0', color: '#fff' }}>AMRIT</h1>
-          <p style={{ color: '#818cf8', fontSize: '12px', fontWeight: '800', letterSpacing: '2px', marginBottom: '30px' }}>ATTENDANCE SYSTEM</p>
-          
-          <div style={{ position: 'relative', marginBottom: '15px' }}>
-             <User size={18} style={{ position: 'absolute', left: '15px', top: '14px', color: '#94a3b8' }} />
-             <input id="u" style={{ ...styles.input, paddingLeft: '45px', marginBottom: 0 }} placeholder="User ID" />
-          </div>
-          <div style={{ position: 'relative', marginBottom: '25px' }}>
-             <Fingerprint size={18} style={{ position: 'absolute', left: '15px', top: '14px', color: '#94a3b8' }} />
-             <input id="p" type="password" style={{ ...styles.input, paddingLeft: '45px', marginBottom: 0 }} placeholder="Password" />
-          </div>
-          
-          <button style={{ ...styles.btn, background: theme.primary, color: 'white', width: '100%', height: '55px' }} 
-            onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)}>
-            GET STARTED <ShieldCheck size={18} className="spin-on-hover"/>
-          </button>
-       </div>
+    <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#0f172a', padding: '20px' }}>
+      <div style={{ ...glass, maxWidth: '400px', width: '100%', padding: '30px', textAlign: 'center' }}>
+        <div style={{ background: 'white', display: 'inline-block', padding: '15px', borderRadius: '20px', marginBottom: '15px' }}>
+          <img src="/logo.png" style={{ width: '60px' }} alt="logo" />
+        </div>
+        <h1 style={{ color: 'white', margin: '0 0 5px 0' }}>AMRIT</h1>
+        <p style={{ color: '#6366f1', fontSize: '12px', fontWeight: 'bold', letterSpacing: '2px', marginBottom: '30px' }}>ATTENDANCE SYSTEM</p>
+        <input id="u" placeholder="Faculty ID" style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #334155', background: '#1e293b', color: 'white', marginBottom: '15px' }} />
+        <input id="p" type="password" placeholder="Password" style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #334155', background: '#1e293b', color: 'white', marginBottom: '20px' }} />
+        <button onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)} style={{ width: '100%', padding: '15px', borderRadius: '12px', background: 'linear-gradient(135deg, #6366f1, #a855f7)', color: 'white', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>
+          LOGIN <ShieldCheck size={18} style={{ verticalAlign: 'middle', marginLeft: '8px' }}/>
+        </button>
+      </div>
     </div>
   );
 
   return (
-    <div style={styles.wrapper}>
-      <nav style={styles.nav}>
+    <div style={{ minHeight: '100vh', background: '#0f172a', color: 'white' }}>
+      {/* NAVBAR */}
+      <nav style={{ padding: '15px 5%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #334155', background: 'rgba(15, 23, 42, 0.9)', position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ background: theme.primary, padding: '8px', borderRadius: '12px' }}><User size={18} color="white"/></div>
-          <div className="hide-mobile">
-            <b style={{fontSize: '14px'}}>{user.name}</b><br/>
-            <small style={{color: '#a855f7'}}>{user.role.toUpperCase()}</small>
-          </div>
+          <div style={{ background: '#6366f1', padding: '8px', borderRadius: '10px' }}><User size={20}/></div>
+          <div className="hide-mobile"><b>{user.name}</b><br/><small style={{color:'#a855f7'}}>{user.role.toUpperCase()}</small></div>
         </div>
-        <button onClick={() => setView('login')} style={{ ...styles.btn, background: 'rgba(244, 63, 94, 0.1)', color: '#f43f5e', padding: '10px 15px' }}>
-          <LogOut size={16}/> <span className="hide-mobile">EXIT</span>
+        <button onClick={() => setView('login')} style={{ background: 'rgba(244, 63, 94, 0.1)', color: '#f43f5e', border: 'none', padding: '10px 15px', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold' }}>
+          <LogOut size={18}/>
         </button>
       </nav>
-      
-      <main style={{ padding: '15px', maxWidth: '1200px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+
+      <main style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
         {view === 'hod' ? <HODPanel excelClasses={excelClasses} /> : <FacultyPanel user={user} />}
       </main>
+
+      <style>{`
+        @media (max-width: 600px) { .hide-mobile { display: none; } }
+        button:active { transform: scale(0.95); }
+      `}</style>
     </div>
   );
 }
 
-// --- HOD PANEL (WITH RESPONSIVE GRID) ---
+// --- HOD PANEL (ALL MISSING FEATURES ADDED BACK) ---
 function HODPanel({ excelClasses }) {
   const [tab, setTab] = useState('logs');
-  const [list, setList] = useState({ faculties: [], attendance: [] });
+  const [list, setList] = useState({ faculties: [], attendance: [], assignments: [] });
+  const [f, setF] = useState({ name: '', id: '', pass: '', sFac: '', sClass: '', sSub: '' });
   const [search, setSearch] = useState('');
 
   const refresh = async () => {
     const { data: facs } = await supabase.from('faculties').select('*');
     const { data: att } = await supabase.from('attendance').select('*').order('created_at', { ascending: false });
-    setList({ faculties: facs || [], attendance: att || [] });
+    const { data: asgn } = await supabase.from('assignments').select('*');
+    setList({ faculties: facs || [], attendance: att || [], assignments: asgn || [] });
   };
 
   useEffect(() => { refresh(); }, []);
 
   return (
-    <div style={{ width: '100%' }}>
-      {/* STATS: 2 columns on mobile, 4 on desktop */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '20px' }}>
-        <div style={{ ...styles.card, margin: 0, padding: '15px' }}>
-          <Users color="#6366f1" size={20}/> 
-          <div style={{marginTop: '10px'}}><small>Faculty</small><br/><b>{list.faculties.length}</b></div>
+    <div>
+      {/* Quick Stats Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '15px', marginBottom: '25px' }}>
+        <div style={{ background: 'rgba(99, 102, 241, 0.1)', padding: '20px', borderRadius: '20px', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+          <Users color="#6366f1"/> <div style={{marginTop: '10px'}}><small>Faculty</small><br/><b>{list.faculties.length}</b></div>
         </div>
-        <div style={{ ...styles.card, margin: 0, padding: '15px' }}>
-          <BarChart3 color="#10b981" size={20}/> 
-          <div style={{marginTop: '10px'}}><small>Lectures</small><br/><b>{list.attendance.length}</b></div>
+        <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '20px', borderRadius: '20px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+          <BarChart3 color="#10b981"/> <div style={{marginTop: '10px'}}><small>Sessions</small><br/><b>{list.attendance.length}</b></div>
         </div>
       </div>
 
-      {/* TABS: Scrollable on very small screens */}
-      <div style={{ display: 'flex', gap: '5px', marginBottom: '20px', overflowX: 'auto', whiteSpace: 'nowrap', paddingBottom: '5px' }}>
+      {/* Interactive Tabs */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', overflowX: 'auto', paddingBottom: '10px' }}>
         {['logs', 'faculties', 'manage'].map(t => (
-          <button key={t} onClick={() => setTab(t)} 
-            style={{ ...styles.btn, background: tab === t ? theme.primary : 'rgba(255,255,255,0.05)', color: 'white', flex: 1, minWidth: '100px' }}>
+          <button key={t} onClick={() => setTab(t)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: tab === t ? '#6366f1' : '#1e293b', color: 'white', fontWeight: 'bold', minWidth: '100px' }}>
             {t.toUpperCase()}
           </button>
         ))}
       </div>
 
+      {/* TAB: Attendance Logs */}
       {tab === 'logs' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <div style={{ position: 'relative' }}>
-             <Search size={18} style={{ position: 'absolute', left: '15px', top: '14px', color: '#94a3b8' }} />
-             <input style={{ ...styles.input, paddingLeft: '45px' }} placeholder="Search..." onChange={e => setSearch(e.target.value)} />
+        <>
+          <div style={{ position: 'relative', marginBottom: '15px' }}>
+            <Search size={18} style={{ position: 'absolute', left: '15px', top: '15px', color: '#94a3b8' }} />
+            <input style={{ width: '100%', padding: '15px 15px 15px 45px', borderRadius: '15px', background: '#1e293b', border: '1px solid #334155', color: 'white' }} placeholder="Search class or faculty..." onChange={e => setSearch(e.target.value)} />
           </div>
           {list.attendance.filter(l => l.faculty.toLowerCase().includes(search.toLowerCase()) || l.class.toLowerCase().includes(search.toLowerCase())).map(log => (
-            <div key={log.id} style={styles.card}>
-               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div><b style={{fontSize: '18px'}}>{log.class}</b><br/><small>{log.sub}</small></div>
-                  <div style={{textAlign: 'right'}}><b style={{color: theme.accent}}>{log.present}/{log.total}</b><br/><small style={{fontSize:'10px'}}>{log.time_str}</small></div>
-               </div>
+            <div key={log.id} style={{ background: 'rgba(30, 41, 59, 0.5)', padding: '20px', borderRadius: '20px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div><b>{log.class}</b><br/><small style={{color: '#94a3b8'}}>{log.sub} • {log.faculty}</small></div>
+              <div style={{ textAlign: 'right' }}><b style={{ color: '#10b981' }}>{log.present}/{log.total}</b><br/><small style={{fontSize: '10px'}}>{log.time_str}</small></div>
             </div>
           ))}
+        </>
+      )}
+
+      {/* TAB: Faculty Stats */}
+      {tab === 'faculties' && (
+        list.faculties.map(fac => {
+          const tCount = list.attendance.filter(a => a.faculty === fac.name && a.type === 'Theory Lecture').length;
+          const pCount = list.attendance.filter(a => a.faculty === fac.name && a.type === 'Practical').length;
+          return (
+            <div key={fac.id} style={{ background: 'rgba(30, 41, 59, 0.5)', padding: '20px', borderRadius: '20px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div><b>{fac.name}</b><br/><small style={{color:'#94a3b8'}}>ID: {fac.id}</small></div>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ textAlign: 'center', background: '#1e293b', padding: '5px 10px', borderRadius: '10px' }}><small>T</small><br/><b>{tCount}</b></div>
+                <div style={{ textAlign: 'center', background: '#1e293b', padding: '5px 10px', borderRadius: '10px' }}><small>P</small><br/><b>{pCount}</b></div>
+              </div>
+            </div>
+          );
+        })
+      )}
+
+      {/* TAB: Manage (Add Faculty & Link Workload) */}
+      {tab === 'manage' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+          <div style={{ background: 'rgba(30, 41, 59, 0.5)', padding: '20px', borderRadius: '20px' }}>
+            <h3>Register Faculty</h3>
+            <input style={{ width: '100%', padding: '12px', marginBottom: '10px', borderRadius: '10px', background: '#0f172a', border: '1px solid #334155', color: 'white' }} placeholder="Name" onChange={e => setF({...f, name: e.target.value})} />
+            <input style={{ width: '100%', padding: '12px', marginBottom: '10px', borderRadius: '10px', background: '#0f172a', border: '1px solid #334155', color: 'white' }} placeholder="Faculty ID" onChange={e => setF({...f, id: e.target.value})} />
+            <input style={{ width: '100%', padding: '12px', marginBottom: '10px', borderRadius: '10px', background: '#0f172a', border: '1px solid #334155', color: 'white' }} placeholder="Password" onChange={e => setF({...f, pass: e.target.value})} />
+            <button onClick={async () => { await supabase.from('faculties').insert([{id: f.id, name: f.name, password: f.pass}]); refresh(); alert("Saved!"); }} style={{ width: '100%', padding: '12px', borderRadius: '10px', background: '#6366f1', color: 'white', border: 'none', fontWeight: 'bold' }}>SAVE FACULTY</button>
+          </div>
+          <div style={{ background: 'rgba(30, 41, 59, 0.5)', padding: '20px', borderRadius: '20px' }}>
+            <h3>Link Subject</h3>
+            <select style={{ width: '100%', padding: '12px', marginBottom: '10px', borderRadius: '10px', background: '#0f172a', border: '1px solid #334155', color: 'white' }} onChange={e => setF({...f, sFac: e.target.value})}><option>Select Faculty</option>{list.faculties.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
+            <select style={{ width: '100%', padding: '12px', marginBottom: '10px', borderRadius: '10px', background: '#0f172a', border: '1px solid #334155', color: 'white' }} onChange={e => setF({...f, sClass: e.target.value})}><option>Select Class</option>{excelClasses.map(c => <option key={c} value={c}>{c}</option>)}</select>
+            <input style={{ width: '100%', padding: '12px', marginBottom: '10px', borderRadius: '10px', background: '#0f172a', border: '1px solid #334155', color: 'white' }} placeholder="Subject Name" onChange={e => setF({...f, sSub: e.target.value})} />
+            <button onClick={async () => { await supabase.from('assignments').insert([{ fac_id: f.sFac, class_name: f.sClass, subject_name: f.sSub }]); alert("Linked!"); refresh(); }} style={{ width: '100%', padding: '12px', borderRadius: '10px', background: '#10b981', color: 'white', border: 'none', fontWeight: 'bold' }}>LINK WORKLOAD</button>
+          </div>
         </div>
       )}
-      
-      {/* ... Add other tabs here (keep logic same but use card styling) ... */}
     </div>
   );
 }
 
-// --- FACULTY PANEL (INTERACTIVE ROLL CALL) ---
+// --- FACULTY PANEL (INTERACTIVE GRID & GPS) ---
 function FacultyPanel({ user }) {
   const [sel, setSel] = useState({ class: '', sub: '', type: 'Theory Lecture' });
   const [isReady, setIsReady] = useState(false);
   const [students, setStudents] = useState([]);
   const [present, setPresent] = useState([]);
+  const [myAssigns, setMyAssigns] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  // Student loading logic remains same...
-  
+  useEffect(() => {
+    supabase.from('assignments').select('*').eq('fac_id', user.id).then(res => setMyAssigns(res.data || []));
+  }, [user.id]);
+
+  useEffect(() => {
+    if (sel.class) {
+      fetch('/students_list.xlsx').then(r => r.arrayBuffer()).then(ab => {
+        const wb = XLSX.read(ab, { type: 'array' });
+        const data = XLSX.utils.sheet_to_json(wb.Sheets[sel.class]);
+        setStudents(data.map(s => ({ id: String(s['ROLL NO'] || s['Roll No'] || ''), name: s['STUDENT NAME'] })).filter(s => s.id));
+      });
+    }
+  }, [sel.class]);
+
+  const submitAttendance = async () => {
+    if(present.length === 0) return alert("विद्यार्थी निवडा!");
+    setLoading(true);
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const R = 6371e3; 
+      const dLat = (CAMPUS_LAT - pos.coords.latitude) * Math.PI/180;
+      const dLon = (CAMPUS_LON - pos.coords.longitude) * Math.PI/180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(pos.coords.latitude * Math.PI/180) * Math.cos(CAMPUS_LAT * Math.PI/180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+      if ((R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))) > 200) { setLoading(false); return alert("तुम्ही कॅम्पसच्या बाहेर आहात!"); }
+      
+      await supabase.from('attendance').insert([{ 
+        faculty: user.name, sub: sel.sub, class: sel.class, type: sel.type, 
+        present: present.length, total: students.length, 
+        time_str: new Date().toLocaleDateString('en-GB') 
+      }]);
+      alert("Attendance Saved!"); setIsReady(false); setPresent([]); setLoading(false);
+    }, () => { setLoading(false); alert("GPS Error!"); });
+  };
+
   if (!isReady) return (
-    <div style={{ ...styles.card, maxWidth: '450px', margin: '0 auto' }}>
-      <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-        <Calendar size={32} color="#6366f1" style={{ marginBottom: '10px' }}/>
-        <h3>Class Setup</h3>
-      </div>
-      <select style={styles.input} onChange={e => setSel({...sel, class: e.target.value})}><option>Select Class</option>
-        {/* Class Options */}
-      </select>
-      <button style={{ ...styles.btn, background: theme.primary, color: 'white', width: '100%' }} onClick={() => setIsReady(true)}>
-        START SESSION
-      </button>
+    <div style={{ background: 'rgba(30, 41, 59, 0.5)', padding: '30px', borderRadius: '25px', maxWidth: '500px', margin: '0 auto' }}>
+      <h3 style={{ textAlign: 'center' }}><Clock size={24} style={{verticalAlign:'middle', marginRight:'10px'}}/> Setup Session</h3>
+      <select style={{ width: '100%', padding: '15px', borderRadius: '12px', background: '#0f172a', border: '1px solid #334155', color: 'white', marginBottom: '15px' }} onChange={e => setSel({...sel, class: e.target.value})}><option value="">Select Class</option>{[...new Set(myAssigns.map(a => a.class_name))].map(c => <option key={c} value={c}>{c}</option>)}</select>
+      <select style={{ width: '100%', padding: '15px', borderRadius: '12px', background: '#0f172a', border: '1px solid #334155', color: 'white', marginBottom: '15px' }} onChange={e => setSel({...sel, sub: e.target.value})}><option value="">Select Subject</option>{myAssigns.filter(a => a.class_name === sel.class).map(a => <option key={a.id} value={a.subject_name}>{a.subject_name}</option>)}</select>
+      <button onClick={() => sel.class && sel.sub ? setIsReady(true) : alert("माहिती भरा!")} style={{ width: '100%', padding: '15px', borderRadius: '12px', background: '#6366f1', color: 'white', border: 'none', fontWeight: 'bold' }}>START ROLL CALL</button>
     </div>
   );
 
   return (
-    <div style={{ width: '100%' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-        <button onClick={() => setIsReady(false)} style={{ background: 'none', border: 'none', color: '#fff' }}><ArrowLeft/></button>
-        <div style={{ textAlign: 'right' }}><b>{sel.class}</b></div>
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <button onClick={() => setIsReady(false)} style={{ background: 'none', border: 'none', color: 'white' }}><ArrowLeft/></button>
+        <div style={{ textAlign: 'right' }}><b>{sel.class}</b><br/><small>{sel.sub}</small></div>
       </div>
 
-      {/* ROLL GRID: 4 to 5 numbers per row on mobile */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fill, minmax(60px, 1fr))', 
-        gap: '10px' 
-      }}>
-        {[...Array(60)].map((_, i) => {
-          const id = (i + 1).toString();
-          const isSelected = present.includes(id);
-          return (
-            <div 
-              key={id} 
-              onClick={() => setPresent(p => isSelected ? p.filter(x => x !== id) : [...p, id])}
-              style={{
-                height: '60px', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: isSelected ? theme.primary : 'rgba(255,255,255,0.05)',
-                border: isSelected ? 'none' : `1px solid ${theme.border}`,
-                fontWeight: '900', transition: 'all 0.2s', 
-                transform: isSelected ? 'scale(0.95)' : 'scale(1)',
-                boxShadow: isSelected ? '0 0 15px rgba(99, 102, 241, 0.4)' : 'none'
-              }}
-            >
-              {id}
-            </div>
-          );
-        })}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(65px, 1fr))', gap: '10px', paddingBottom: '100px' }}>
+        {students.map(s => (
+          <div key={s.id} onClick={() => setPresent(p => p.includes(s.id) ? p.filter(x => x !== s.id) : [...p, s.id])} 
+               style={{ height: '65px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: present.includes(s.id) ? '#6366f1' : '#1e293b', borderRadius: '15px', fontWeight: 'bold', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', transition: '0.2s' }}>
+            {s.id}
+          </div>
+        ))}
       </div>
 
-      <div style={{ 
-        position: 'fixed', bottom: '0', left: '0', width: '100%', 
-        padding: '20px', background: 'rgba(15, 23, 42, 0.95)', 
-        borderTop: `1px solid ${theme.border}`, boxSizing: 'border-box' 
-      }}>
-        <button style={{ ...styles.btn, background: theme.accent, color: 'white', width: '100%', height: '55px' }}>
-          SUBMIT {present.length} ATTENDANCE <CheckCircle size={18}/>
+      <div style={{ position: 'fixed', bottom: 0, left: 0, width: '100%', padding: '20px', background: 'rgba(15, 23, 42, 0.95)', borderTop: '1px solid #334155', display: 'flex', justifyContent: 'center' }}>
+        <button disabled={loading} onClick={submitAttendance} style={{ maxWidth: '600px', width: '100%', padding: '18px', borderRadius: '15px', background: '#10b981', color: 'white', border: 'none', fontWeight: 'bold', fontSize: '16px' }}>
+          {loading ? "SAVING..." : `SUBMIT (${present.length})`}
         </button>
       </div>
-      <div style={{ height: '80px' }}></div> {/* Spacer for fixed button */}
     </div>
   );
-                      }
+      }
