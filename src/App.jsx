@@ -46,6 +46,7 @@ export default function App() {
   // हा कोड App.js मधील 'if (view === "login")' च्या जागी रिप्लेस कर.
 
 // --- HOME PAGE (LOGIN VIEW) ---
+ // --- HOME PAGE (LOGIN VIEW) ---
   if (view === 'login') return (
     <div style={{
       ...styles.loginWrapper,
