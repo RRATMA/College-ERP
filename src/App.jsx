@@ -43,56 +43,149 @@ export default function App() {
   };
 
   // --- 1. Login Screen ---
-  if (view === 'login') return (
-    <div style={styles.loginWrapper}>
-      <img src="/logo.png" style={styles.watermark} alt="bg" />
+  // हा कोड App.js मधील 'if (view === "login")' च्या जागी रिप्लेस कर.
+
+if (view === 'login') return (
+  <div style={{
+    ...styles.loginWrapper,
+    background: 'radial-gradient(circle, #1e293b 0%, #0f172a 100%)' // थोडा ग्रेडियंट बॅकग्राउंड
+  }}>
+    {/* Background Watermark */}
+    <img src="/logo.png" style={{...styles.watermark, zIndex: 0}} alt="bg" />
+    
+    {/* --- NEW PROFESSIONAL HEADER --- */}
+    <div style={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      gap: '20px', 
+      marginBottom: '50px', 
+      zIndex: 10 
+    }}>
+      {/* Circle Logo Container */}
+      <div style={{
+        background: '#ffffff',
+        padding: '10px',
+        borderRadius: '50%',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <img src="/logo.png" style={{ width: '80px', height: '80px', borderRadius: '50%' }} alt="logo" />
+      </div>
+
+      {/* College Name Styling */}
+      <div style={{ 
+        textAlign: 'left', 
+        borderLeft: '4px solid #3b82f6', 
+        paddingLeft: '20px' 
+      }}>
+        <h1 style={{ 
+          color: '#ffffff', 
+          margin: 0, 
+          fontSize: '32px', 
+          fontWeight: '900', 
+          letterSpacing: '1px',
+          textTransform: 'uppercase',
+          lineHeight: '1'
+        }}>
+          Atma Malik
+        </h1>
+        <p style={{ 
+          margin: '5px 0 0 0', 
+          fontSize: '18px', 
+          color: '#3b82f6', // Professional Blue
+          fontWeight: '600',
+          letterSpacing: '0.5px'
+        }}>
+          INSTITUTE OF TECHNOLOGY & RESEARCH
+        </p>
+      </div>
+    </div>
+
+    {/* --- MODERN LOGIN CARD --- */}
+    <div style={{
+      ...styles.loginCard,
+      borderRadius: '30px',
+      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+      border: '1px solid rgba(255,255,255,0.1)'
+    }}>
+      <h2 style={{ 
+        color: '#1e293b', 
+        margin: '0 0 10px 0', 
+        fontSize: '28px', 
+        fontWeight: '800' 
+      }}>AMRIT ERP</h2>
+      <p style={{ 
+        color: '#64748b', 
+        fontSize: '14px', 
+        marginBottom: '30px',
+        fontWeight: '500'
+      }}>Attendance Management System</p>
       
-      <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '40px', zIndex: 11 }}>
-        <img src="/logo.png" style={{ width: '85px' }} alt="logo" />
-        <div style={{ textAlign: 'left', borderLeft: '3px solid #3b82f6', paddingLeft: '20px' }}>
-          <h1 style={{ color: '#ffffff', margin: 0, fontSize: '26px', fontWeight: '900', textTransform: 'uppercase', lineHeight: '1.1' }}>
-            Atma Malik <br/>
-            <span style={{ fontSize: '18px', color: '#3b82f6', fontWeight: '500' }}>Institute of Technology & Research</span>
-          </h1>
-        </div>
+      <div style={{ textAlign: 'left' }}>
+        <label style={{
+          fontSize: '12px', 
+          color: '#1e293b', 
+          fontWeight: '700', 
+          display: 'block', 
+          marginBottom: '8px',
+          marginLeft: '5px'
+        }}>FACULTY ID</label>
+        <input 
+          id="u" 
+          style={{
+            ...styles.input,
+            borderRadius: '15px',
+            padding: '15px',
+            fontSize: '16px',
+            backgroundColor: '#f8fafc',
+            border: '2px solid #e2e8f0'
+          }} 
+          placeholder="Enter your ID" 
+        />
+        
+        <label style={{
+          fontSize: '12px', 
+          color: '#1e293b', 
+          fontWeight: '700', 
+          display: 'block', 
+          margin: '15px 0 8px 5px'
+        }}>PASSWORD</label>
+        <input 
+          id="p" 
+          type="password" 
+          style={{
+            ...styles.input,
+            borderRadius: '15px',
+            padding: '15px',
+            fontSize: '16px',
+            backgroundColor: '#f8fafc',
+            border: '2px solid #e2e8f0'
+          }} 
+          placeholder="••••••••" 
+        />
       </div>
 
-      <div style={styles.loginCard}>
-        <h2 style={{ color: '#0f172a', margin: '0 0 5px 0', fontSize: '22px' }}>AMRIT ERP</h2>
-        <p style={{ color: '#64748b', fontSize: '12px', marginBottom: '25px' }}>Attendance Management System</p>
-        <div style={{ textAlign: 'left' }}>
-          <label style={{...styles.label, color: '#475569'}}>Faculty ID</label>
-          <input id="u" style={styles.input} placeholder="ID" />
-          <label style={{...styles.label, color: '#475569'}}>Password</label>
-          <input id="p" type="password" style={styles.input} placeholder="••••••••" />
-        </div>
-        <button style={styles.btnPrimary} onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)}>SIGN IN</button>
-      </div>
+      <button 
+        style={{
+          ...styles.btnPrimary,
+          marginTop: '20px',
+          padding: '16px',
+          borderRadius: '15px',
+          fontSize: '18px',
+          textTransform: 'uppercase',
+          letterSpacing: '1px',
+          transition: 'all 0.3s ease',
+          boxShadow: '0 10px 15px -3px rgba(37, 99, 235, 0.4)'
+        }} 
+        onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)}
+      >
+        Sign In
+      </button>
     </div>
-  );
-
-  // --- 2. Main Dashboard Layout ---
-  return (
-    <div style={styles.container}>
-      <nav style={{ background: '#1e293b', padding: '12px 5%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #3b82f6' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <img src="/logo.png" style={{ width: '35px' }} alt="nav-logo" />
-          <div>
-            <b style={{ fontSize: '14px', display: 'block' }}>{user.name}</b>
-            <small style={{ color: '#3b82f6', fontSize: '10px' }}>Atma Malik IOTR</small>
-          </div>
-        </div>
-        <button onClick={() => setView('login')} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
-          <LogOut size={16}/>
-        </button>
-      </nav>
-
-      <div style={{ padding: '20px', maxWidth: '1100px', margin: '0 auto' }}>
-        {view === 'hod' ? <HODPanel excelClasses={excelClasses} /> : <FacultyPanel user={user} />}
-      </div>
-    </div>
-  );
-}
+  </div>
+);
 
 // --- 3. HOD Panel Component ---
 function HODPanel({ excelClasses }) {
