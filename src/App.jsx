@@ -46,7 +46,7 @@ export default function App() {
   if (view === 'login') return (
     <div style={styles.loginWrapper}>
       <div style={styles.topBar}>
-        <div style={{display:'flex', gap:'20px'}}><MapPin size={14}/> Sinnar, Nashik | <Phone size={14}/> +91 2551 222XXX</div>
+        <div style={{display:'flex', gap:'20px'}}><MapPin size={14}/> Aghai-Mohili, Shahapur | <Phone size={14}/> +91 7620705249</div>
         <div><Globe size={14}/> atmamalik.edu.in</div>
       </div>
       <header style={styles.header}>
