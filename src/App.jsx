@@ -21,15 +21,10 @@ const theme = {
 
 const styles = {
   wrapper: {
-    minHeight: '100vh', 
-    width: '100vw',
-    background: '#0f172a', 
-    color: '#f8fafc', 
-    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    minHeight: '100vh', width: '100vw', background: '#0f172a', color: '#f8fafc', 
+    fontFamily: "'Plus Jakarta Sans', sans-serif", overflowX: 'hidden',
     backgroundImage: `radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.1) 0, transparent 50%), radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.1) 0, transparent 50%)`,
-    display: 'flex',
-    flexDirection: 'column',
-    overflowX: 'hidden'
+    display: 'flex', flexDirection: 'column'
   },
   nav: {
     background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(10px)', padding: '15px 5%',
@@ -73,33 +68,20 @@ export default function App() {
     }
   };
 
-  // --- HOME PAGE UI (MOBILE FIXED & TEXT UPDATED) ---
   if (view === 'login') return (
     <div style={{ ...styles.wrapper, justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
        <div style={{ ...styles.card, maxWidth: '400px', textAlign: 'center' }}>
           <div style={{ background: 'white', display: 'inline-block', padding: '12px', borderRadius: '20px', marginBottom: '15px' }}>
-            <img src="/logo.png" style={{ width: '60px', height: 'auto', display: 'block' }} alt="logo" />
+            <img src="/logo.png" style={{ width: '60px' }} alt="logo" />
           </div>
-          
-          <h2 style={{ fontSize: '28px', fontWeight: '900', marginBottom: '5px', letterSpacing: '-1px' }}>AMRIT</h2>
+          <h2 style={{ fontSize: '28px', fontWeight: '900', marginBottom: '5px' }}>AMRIT</h2>
           <p style={{ color: '#6366f1', fontSize: '12px', fontWeight: '800', letterSpacing: '1.5px', marginBottom: '30px' }}>ATTENDANCE SYSTEM</p>
-          
-          <div style={{ width: '100%', textAlign: 'left' }}>
-            <label style={{ fontSize: '11px', color: '#94a3b8', marginLeft: '5px', fontWeight: 'bold' }}>USER ID</label>
-            <input id="u" style={styles.input} placeholder="Enter Faculty ID" />
-            
-            <label style={{ fontSize: '11px', color: '#94a3b8', marginLeft: '5px', fontWeight: 'bold' }}>PASSWORD</label>
-            <input id="p" type="password" style={styles.input} placeholder="••••••••" />
-          </div>
-          
-          <button style={{ ...styles.btn, background: theme.primary, color: 'white', width: '100%', justifyContent: 'center', marginTop: '10px', height: '52px' }} 
+          <input id="u" style={styles.input} placeholder="Faculty ID" />
+          <input id="p" type="password" style={styles.input} placeholder="Password" />
+          <button style={{ ...styles.btn, background: theme.primary, color: 'white', width: '100%', justifyContent: 'center', height: '52px' }} 
             onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)}>
             SIGN IN <ShieldCheck size={18}/>
           </button>
-          
-          <p style={{ marginTop: '25px', fontSize: '10px', color: '#475569', lineHeight: '1.5' }}>
-            Atma Malik Institute of Technology & Research<br/>Official ERP Portal
-          </p>
        </div>
     </div>
   );
@@ -113,17 +95,17 @@ export default function App() {
         </div>
         <button onClick={() => setView('login')} style={{ ...styles.btn, background: 'rgba(244, 63, 94, 0.1)', color: '#f43f5e' }}><LogOut size={14}/> LOGOUT</button>
       </nav>
-      <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+      <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
         {view === 'hod' ? <HODPanel excelClasses={excelClasses} /> : <FacultyPanel user={user} />}
       </div>
     </div>
   );
 }
 
-// --- HOD PANEL (FIXED - NO CHANGES) ---
+// --- HOD PANEL: MANAGEMENT & LOGS ---
 function HODPanel({ excelClasses }) {
   const [tab, setTab] = useState('logs');
-  const [list, setList] = useState({ faculties: [], attendance: [], stats: [], assignments: [] });
+  const [list, setList] = useState({ faculties: [], attendance: [], assignments: [] });
   const [search, setSearch] = useState('');
   const [f, setF] = useState({ name: '', id: '', pass: '', sFac: '', sClass: '', sSub: '' });
   const [editMode, setEditMode] = useState(false);
@@ -131,9 +113,8 @@ function HODPanel({ excelClasses }) {
   const refresh = async () => {
     const { data: facs } = await supabase.from('faculties').select('*').order('name');
     const { data: att } = await supabase.from('attendance').select('*').order('created_at', { ascending: false });
-    const { data: st } = await supabase.from('faculty_stats').select('*');
-    const { data: asgn } = await supabase.from('assignments').select('*, faculties(name)');
-    setList({ faculties: facs || [], attendance: att || [], stats: st || [], assignments: asgn || [] });
+    const { data: asgn } = await supabase.from('assignments').select('*');
+    setList({ faculties: facs || [], attendance: att || [], assignments: asgn || [] });
   };
 
   useEffect(() => { refresh(); }, []);
@@ -144,62 +125,52 @@ function HODPanel({ excelClasses }) {
     <div style={{ animation: 'fadeIn 0.5s ease' }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px', marginBottom: '25px' }}>
         <div style={{ ...styles.card, margin: 0, padding: '20px', display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <div style={{ background: 'rgba(99, 102, 241, 0.1)', padding: '12px', borderRadius: '15px' }}><Users color="#6366f1"/></div>
-          <div><small style={{color:'#94a3b8'}}>Faculty</small><br/><b style={{fontSize:'20px'}}>{list.faculties.length}</b></div>
+          <Users color="#6366f1"/> <div><small>Faculty</small><br/><b>{list.faculties.length}</b></div>
         </div>
         <div style={{ ...styles.card, margin: 0, padding: '20px', display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '12px', borderRadius: '15px' }}><BarChart3 color="#10b981"/></div>
-          <div><small style={{color:'#94a3b8'}}>Lectures</small><br/><b style={{fontSize:'20px'}}>{list.attendance.length}</b></div>
+          <BarChart3 color="#10b981"/> <div><small>Total Sessions</small><br/><b>{list.attendance.length}</b></div>
         </div>
       </div>
 
       <div style={{ display: 'flex', gap: '8px', marginBottom: '25px', background: 'rgba(255,255,255,0.05)', padding: '5px', borderRadius: '15px' }}>
         {['logs', 'faculties', 'manage'].map(t => (
-          <button key={t} onClick={() => {setTab(t); setEditMode(false);}} style={{ flex: 1, ...styles.btn, background: tab === t ? theme.primary : 'transparent', color: 'white', justifyContent: 'center', fontSize: '11px' }}>
-            {t.toUpperCase()}
-          </button>
+          <button key={t} onClick={() => {setTab(t); setEditMode(false);}} style={{ flex: 1, ...styles.btn, background: tab === t ? theme.primary : 'transparent', color: 'white', justifyContent: 'center' }}>{t.toUpperCase()}</button>
         ))}
       </div>
 
       {tab === 'logs' && (
         <>
           <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-            <div style={{ position: 'relative', flex: 1 }}>
-              <Search size={16} style={{ position: 'absolute', left: '15px', top: '15px', color: '#94a3b8' }} />
-              <input style={{ ...styles.input, paddingLeft: '45px', marginBottom: 0 }} placeholder="Search..." onChange={e => setSearch(e.target.value)} />
-            </div>
+            <input style={{ ...styles.input, marginBottom: 0 }} placeholder="Search..." onChange={e => setSearch(e.target.value)} />
             <button style={{ ...styles.btn, background: theme.accent, color: 'white' }} onClick={() => {
               const ws = XLSX.utils.json_to_sheet(list.attendance);
-              const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Attendance");
-              XLSX.writeFile(wb, "AMRIT_Full_Report.xlsx");
-            }}><Download size={18}/></button>
+              const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Data");
+              XLSX.writeFile(wb, "AMRIT_Attendance.xlsx");
+            }}><Download/></button>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '15px' }}>
-            {filteredLogs.map(log => (
-              <div key={log.id} style={{ ...styles.card, margin: 0 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <b style={{fontSize:'18px'}}>{log.class}</b>
-                  <span style={{ color: theme.accent, fontWeight: '900' }}>{log.present}/{log.total}</span>
-                </div>
-                <div style={{ fontSize: '13px', color: '#94a3b8', marginTop: '5px' }}>{log.sub} • {log.faculty}</div>
-              </div>
-            ))}
-          </div>
+          {filteredLogs.map(log => (
+            <div key={log.id} style={{ ...styles.card, display: 'flex', justifyContent: 'space-between' }}>
+              <div><b>{log.class}</b><br/><small>{log.sub} | {log.faculty}</small></div>
+              <div style={{textAlign: 'right'}}><b style={{color: theme.accent}}>{log.present}/{log.total}</b><br/><small>{log.time_str}</small></div>
+            </div>
+          ))}
         </>
       )}
 
       {tab === 'faculties' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {list.faculties.map(fac => (
-            <div key={fac.id} style={{ ...styles.card, margin: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div><b>{fac.name}</b><br/><small style={{color:'#94a3b8'}}>ID: {fac.id}</small></div>
-              <div style={{ display: 'flex', gap: '5px' }}>
-                <button onClick={() => {setF(fac); setEditMode(true); setTab('manage');}} style={{ background: 'rgba(99,102,241,0.1)', border: 'none', padding: '10px', borderRadius: '10px', color: '#6366f1' }}><Edit3 size={16}/></button>
-                <button onClick={async () => { if(window.confirm("Delete?")) { await supabase.from('faculties').delete().eq('id', fac.id); refresh(); } }} style={{ background: 'rgba(244,63,94,0.1)', border: 'none', padding: '10px', borderRadius: '10px', color: '#f43f5e' }}><Trash2 size={16}/></button>
+        list.faculties.map(fac => {
+          const tCount = list.attendance.filter(a => a.faculty === fac.name && a.type === 'Theory Lecture').length;
+          const pCount = list.attendance.filter(a => a.faculty === fac.name && a.type === 'Practical').length;
+          return (
+            <div key={fac.id} style={{ ...styles.card, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div><b>{fac.name}</b><br/><small>Theory: {tCount} | Practical: {pCount}</small></div>
+              <div style={{display:'flex', gap:'5px'}}>
+                <button onClick={() => {setF(fac); setEditMode(true); setTab('manage');}} style={{padding:'10px', borderRadius:'10px', border:'none', background:'rgba(99,102,241,0.1)', color:'#6366f1'}}><Edit3 size={16}/></button>
+                <button onClick={async () => { if(window.confirm("Delete?")) { await supabase.from('faculties').delete().eq('id', fac.id); refresh(); } }} style={{padding:'10px', borderRadius:'10px', border:'none', background:'rgba(244,63,94,0.1)', color:'#f43f5e'}}><Trash2 size={16}/></button>
               </div>
             </div>
-          ))}
-        </div>
+          );
+        })
       )}
 
       {tab === 'manage' && (
@@ -213,17 +184,17 @@ function HODPanel({ excelClasses }) {
               if(editMode) await supabase.from('faculties').update({name: f.name, password: f.pass}).eq('id', f.id);
               else await supabase.from('faculties').insert([{id: f.id, name: f.name, password: f.pass}]);
               setF({name:'', id:'', pass:''}); setEditMode(false); refresh(); setTab('faculties');
-            }}>SAVE</button>
+            }}>SAVE RECORD</button>
           </div>
           <div style={styles.card}>
-            <h3>Assign Workload</h3>
+            <h3>Link Workload</h3>
             <select style={styles.input} onChange={e => setF({...f, sFac: e.target.value})}><option>Select Faculty</option>{list.faculties.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
             <select style={styles.input} onChange={e => setF({...f, sClass: e.target.value})}><option>Select Class</option>{excelClasses.map(c => <option key={c} value={c}>{c}</option>)}</select>
             <input style={styles.input} placeholder="Subject Name" onChange={e => setF({...f, sSub: e.target.value})} />
             <button style={{ ...styles.btn, background: theme.accent, color: 'white', width: '100%', justifyContent: 'center' }} onClick={async () => {
               await supabase.from('assignments').insert([{ fac_id: f.sFac, class_name: f.sClass, subject_name: f.sSub }]);
               alert("Linked!"); refresh();
-            }}>LINK</button>
+            }}>ALLOT SUBJECT</button>
           </div>
         </div>
       )}
@@ -231,7 +202,7 @@ function HODPanel({ excelClasses }) {
   );
 }
 
-// --- FACULTY PANEL (FIXED - NO CHANGES) ---
+// --- FACULTY PANEL: ATTENDANCE & GPS ---
 function FacultyPanel({ user }) {
   const [sel, setSel] = useState({ class: '', sub: '', type: 'Theory Lecture', startTime: '', endTime: '' });
   const [isReady, setIsReady] = useState(false);
@@ -274,7 +245,7 @@ function FacultyPanel({ user }) {
 
   if (!isReady) return (
     <div style={{ ...styles.card, maxWidth: '500px', margin: '0 auto' }}>
-      <h3>New Session</h3>
+      <h3>Initialize Session</h3>
       <select style={styles.input} onChange={e => setSel({...sel, class: e.target.value})}><option value="">Class</option>{[...new Set(myAssigns.map(a => a.class_name))].map(c => <option key={c} value={c}>{c}</option>)}</select>
       <select style={styles.input} onChange={e => setSel({...sel, sub: e.target.value})}><option value="">Subject</option>{myAssigns.filter(a => a.class_name === sel.class).map(a => <option key={a.id} value={a.subject_name}>{a.subject_name}</option>)}</select>
       <select style={styles.input} onChange={e => setSel({...sel, type: e.target.value})}><option>Theory Lecture</option><option>Practical</option></select>
@@ -282,7 +253,7 @@ function FacultyPanel({ user }) {
         <input type="time" style={styles.input} onChange={e => setSel({...sel, startTime: e.target.value})} />
         <input type="time" style={styles.input} onChange={e => setSel({...sel, endTime: e.target.value})} />
       </div>
-      <button style={{ ...styles.btn, background: theme.primary, color: 'white', width: '100%', justifyContent: 'center' }} onClick={() => (sel.class && sel.sub) ? setIsReady(true) : alert("Fill all")}>START</button>
+      <button style={{ ...styles.btn, background: theme.primary, color: 'white', width: '100%', justifyContent: 'center' }} onClick={() => (sel.class && sel.sub) ? setIsReady(true) : alert("Check inputs")}>START ROLL CALL</button>
     </div>
   );
 
@@ -298,7 +269,7 @@ function FacultyPanel({ user }) {
                style={{ padding: '16px 0', background: present.includes(s.id) ? theme.primary : 'rgba(255,255,255,0.05)', color: 'white', borderRadius: '15px', textAlign: 'center', fontWeight: '900', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}>{s.id}</div>
         ))}
       </div>
-      <button disabled={loading} style={{ ...styles.btn, background: theme.accent, color: 'white', width: '100%', marginTop: '30px', justifyContent: 'center' }} onClick={submitAttendance}>{loading ? "Saving..." : `SUBMIT (${present.length})`}</button>
+      <button disabled={loading} style={{ ...styles.btn, background: theme.accent, color: 'white', width: '100%', marginTop: '30px', justifyContent: 'center' }} onClick={submitAttendance}>{loading ? "Verifying GPS..." : `SUBMIT (${present.length})`}</button>
     </div>
   );
-}
+          }
