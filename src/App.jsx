@@ -223,7 +223,7 @@ function FacultyPanel({ user }) {
     <div style={styles.card}>
       <img src="/logo.png" style={styles.watermark} alt="watermark" />
       <div style={{ position: 'relative', zIndex: 1 }}>
-        <h3><Clock/> Check the all things before take the Attendance</h3>
+        <h3><Clock/> Check The All Things Before Take Attendance</h3>
         <label style={styles.label}>Class</label>
         <select style={styles.input} onChange={e => setSel({...sel, class: e.target.value})}><option>Select</option>{[...new Set(myAssigns.map(a => a.class_name))].map(c => <option key={c} value={c}>{c}</option>)}</select>
         <label style={styles.label}>Subject</label>
