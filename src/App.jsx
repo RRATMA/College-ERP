@@ -54,8 +54,8 @@ export default function App() {
           <img src="/logo.png" style={{ width: '70px', height: '70px', borderRadius: '50%' }} alt="logo" />
         </div>
         <div>
-          <h1 style={{ color: '#1e3a8a', margin: 0, fontSize: '28px', fontWeight: '900' }}>ATMA MALIK</h1>
-          <p style={{ margin: 0, fontSize: '14px', color: '#3b82f6', fontWeight: '600' }}>INSTITUTE OF TECHNOLOGY & RESEARCH</p>
+          <h1 style={{ color: '#1e3a8a', margin: 0, fontSize: '28px', fontWeight: '900' }}>ATMA MALIK INSTITUTE OF TECHNOLOGY & RESEARCH</h1>
+          <p style={{ margin: 0, fontSize: '14px', color: '#3b82f6', fontWeight: '600' }}>AGHAI-MOHILI,SHAHAPUR</p>
         </div>
       </header>
       <main style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
