@@ -82,7 +82,6 @@ if (view === 'login') return (
       {/* --- LOGIN CARD --- */}
       <div style={{ ...styles.loginCard, marginTop: '120px' }}>
         <h2 style={{ color: '#0f172a', margin: '0 0 10px 0', fontSize: '24px' }}>AMRIT ERP</h2>
-        <h1 style={{ color: '#0f172a', margin: '0 0 10px 0', fontSize: '24px' }}>Atma Malik Institute of Technology & Research</h2>
         <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '25px' }}>Attendance Management System</p>
         
         <div style={{ textAlign: 'left' }}>
