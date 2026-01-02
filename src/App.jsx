@@ -46,14 +46,14 @@ export default function App() {
   if (view === 'login') return (
     <div style={styles.loginWrapper}>
       <div style={styles.topBar}>
-        <span><MapPin size={12}/> Sinnar, Nashik</span>
+        <span><MapPin size={12}/> Aghai-Mohili, Shahapur</span>
         <span><Globe size={12}/> atmamalik.edu.in</span>
       </div>
       <header style={styles.header}>
         <img src="/logo.png" style={{ width: '55px', borderRadius: '50%', border: '2px solid #1e3a8a' }} alt="logo" />
         <div>
-          <h1 style={{ color: '#1e3a8a', margin: 0, fontSize: '20px', fontWeight: '900' }}>ATMA MALIK</h1>
-          <p style={{ margin: 0, fontSize: '11px', color: '#3b82f6', fontWeight: 'bold' }}>IOTR - AMRIT ERP</p>
+          <h1 style={{ color: '#1e3a8a', margin: 0, fontSize: '20px', fontWeight: '900' }}>ATMA MALIK INSTITUTE OF TECHNOLOGY & RESEARCH</h1>
+          <p style={{ margin: 0, fontSize: '11px', color: '#3b82f6', fontWeight: 'bold' }}>ATTENDANCE SYSTEM</p>
         </div>
       </header>
       <main style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -65,7 +65,7 @@ export default function App() {
             <input id="u" style={styles.input} placeholder="Enter ID" autoFocus />
             <label style={styles.label}>PASSWORD</label>
             <input id="p" type="password" style={styles.input} placeholder="••••••••" />
-            <button style={styles.btnPrimary} onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)}>SIGN IN</button>
+            <button style={styles.btnPrimary} onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)}>LOGIN</button>
           </div>
         </div>
       </main>
