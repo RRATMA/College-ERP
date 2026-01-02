@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { LogOut, ArrowLeft, Clock, Trash2, Edit3, UserPlus, Database, Phone, MapPin, Globe, Download, Menu, X } from 'lucide-react';
+import { LogOut, ArrowLeft, Clock, Trash2, Edit3, UserPlus, Database, Phone, MapPin, Globe, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from "./supabaseClient";
 
@@ -8,18 +8,52 @@ const CAMPUS_LAT = 19.7042;
 const CAMPUS_LON = 72.7645;
 
 const styles = {
-  container: { width: '100%', minHeight: '100vh', backgroundColor: '#f0f2f5', color: '#1c1e21', fontFamily: 'sans-serif' },
-  topBar: { background: '#1e3a8a', color: '#ffffff', padding: '8px 5%', display: 'flex', justifyContent: 'space-between', fontSize: '11px', flexWrap: 'wrap' },
-  header: { background: '#ffffff', padding: '15px 5%', display: 'flex', alignItems: 'center', gap: '15px', borderBottom: '4px solid #3b82f6', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', flexWrap: 'wrap' },
-  loginWrapper: { display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f0f2f5', padding: '10px' },
-  loginCard: { background: '#ffffff', width: '100%', maxWidth: '400px', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 15px 35px rgba(0,0,0,0.15)', margin: 'auto', zIndex: 10 },
-  input: { padding: '12px', borderRadius: '8px', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', width: '100%', marginBottom: '15px', boxSizing: 'border-box', fontSize: '16px' }, // Font 16px for no zoom on iPhone
-  btnPrimary: { background: '#1e3a8a', color: 'white', padding: '14px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', width: '100%', fontSize: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' },
-  card: { background: '#ffffff', padding: '20px', borderRadius: '12px', border: '1px solid #e5e7eb', position: 'relative', overflow: 'hidden', marginBottom: '20px' },
-  watermark: { position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0.04, width: '80%', pointerEvents: 'none', zIndex: 0 },
-  label: { fontSize: '12px', color: '#1e3a8a', marginBottom: '5px', display: 'block', fontWeight: '700' },
-  rollBtn: (active) => ({ padding: '15px 5px', background: active ? '#10b981' : '#ffffff', color: active ? 'white' : '#1e3a8a', borderRadius: '8px', textAlign: 'center', cursor: 'pointer', border: '1px solid #d1d5db', fontWeight: 'bold', fontSize: '16px' }),
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(65px, 1fr))', gap: '10px' }
+  container: { width: '100%', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'sans-serif' },
+  topBar: { background: '#1e3a8a', color: '#ffffff', padding: '6px 5%', display: 'flex', justifyContent: 'space-between', fontSize: '10px' },
+  header: { 
+    background: '#ffffff', 
+    padding: '12px 5%', 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '15px', 
+    borderBottom: '4px solid #3b82f6', 
+    boxShadow: '0 2px 10px rgba(0,0,0,0.1)' 
+  },
+  loginWrapper: { display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#0f172a' }, // Dark Blue Background like your image
+  loginCard: { 
+    background: '#ffffff', 
+    width: '90%', 
+    maxWidth: '400px', 
+    borderRadius: '20px', 
+    overflow: 'hidden', 
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', 
+    margin: 'auto',
+    zIndex: 10 
+  },
+  input: { 
+    padding: '14px', 
+    borderRadius: '10px', 
+    border: '1px solid #cbd5e1', 
+    width: '100%', 
+    marginBottom: '15px', 
+    fontSize: '16px', 
+    boxSizing: 'border-box',
+    backgroundColor: '#f8fafc'
+  },
+  btnPrimary: { 
+    background: '#2563eb', 
+    color: 'white', 
+    padding: '16px', 
+    border: 'none', 
+    borderRadius: '10px', 
+    cursor: 'pointer', 
+    fontWeight: 'bold', 
+    width: '100%', 
+    fontSize: '16px' 
+  },
+  label: { fontSize: '11px', color: '#1e3a8a', marginBottom: '5px', display: 'block', fontWeight: 'bold', letterSpacing: '0.5px' },
+  watermark: { position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0.05, width: '350px', pointerEvents: 'none' },
+  rollBtn: (active) => ({ padding: '15px 0', background: active ? '#10b981' : '#ffffff', color: active ? 'white' : '#1e3a8a', borderRadius: '10px', textAlign: 'center', cursor: 'pointer', border: '1px solid #e2e8f0', fontWeight: 'bold', fontSize: '16px' })
 };
 
 export default function App() {
@@ -45,27 +79,31 @@ export default function App() {
 
   if (view === 'login') return (
     <div style={styles.loginWrapper}>
-      <div style={styles.topBar}>
-        <span><MapPin size={12}/> Aghai-Mohili, Shahapur</span>
-        <span><Globe size={12}/> atmamalik.edu.in</span>
-      </div>
-      <header style={styles.header}>
-        <img src="/logo.png" style={{ width: '55px', borderRadius: '50%', border: '2px solid #1e3a8a' }} alt="logo" />
-        <div>
-          <h1 style={{ color: '#1e3a8a', margin: 0, fontSize: '20px', fontWeight: '900' }}>ATMA MALIK INSTITUTE OF TECHNOLOGY & RESEARCH</h1>
-          <p style={{ margin: 0, fontSize: '11px', color: '#3b82f6', fontWeight: 'bold' }}>ATTENDANCE SYSTEM</p>
+      <header style={{...styles.header, background: 'transparent', border: 'none', boxShadow: 'none', justifyContent: 'center', paddingTop: '40px'}}>
+        <div style={{display:'flex', alignItems:'center', gap:'15px', borderLeft: '3px solid #3b82f6', paddingLeft: '15px'}}>
+          <img src="/logo.png" style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'white' }} alt="logo" />
+          <div>
+            <h1 style={{ color: 'white', margin: 0, fontSize: '20px', fontWeight: '900' }}>ATMA MALIK</h1>
+            <p style={{ margin: 0, fontSize: '11px', color: '#3b82f6', fontWeight: 'bold' }}>INSTITUTE OF TECHNOLOGY & RESEARCH</p>
+          </div>
         </div>
       </header>
-      <main style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <img src="/logo.png" style={styles.watermark} alt="bg" />
+
+      <main style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
         <div style={styles.loginCard}>
-          <div style={{ background: '#1e3a8a', color: 'white', padding: '15px', textAlign: 'center' }}><h3 style={{ margin: 0 }}>FACULTY LOGIN</h3></div>
-          <div style={{ padding: '25px' }}>
-            <label style={styles.label}>FACULTY ID</label>
-            <input id="u" style={styles.input} placeholder="Enter ID" autoFocus />
-            <label style={styles.label}>PASSWORD</label>
-            <input id="p" type="password" style={styles.input} placeholder="••••••••" />
-            <button style={styles.btnPrimary} onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)}>LOGIN</button>
+          <div style={{ padding: '30px', textAlign: 'center' }}>
+            <h2 style={{ margin: '0 0 5px 0', color: '#1e293b' }}>AMRIT ERP</h2>
+            <p style={{ margin: '0 0 25px 0', fontSize: '12px', color: '#64748b' }}>Attendance Management System</p>
+            
+            <div style={{textAlign: 'left'}}>
+              <label style={styles.label}>FACULTY ID</label>
+              <input id="u" style={styles.input} placeholder="ID" />
+              
+              <label style={styles.label}>PASSWORD</label>
+              <input id="p" type="password" style={styles.input} placeholder="••••••••" />
+              
+              <button style={styles.btnPrimary} onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)}>SIGN IN</button>
+            </div>
           </div>
         </div>
       </main>
@@ -74,14 +112,14 @@ export default function App() {
 
   return (
     <div style={styles.container}>
-      <nav style={{ background: '#1e3a8a', padding: '10px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'white', position: 'sticky', top: 0, zIndex: 100 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <nav style={{ background: '#1e3a8a', padding: '12px 5%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'white', position: 'sticky', top: 0, zIndex: 100 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <img src="/logo.png" style={{ width: '30px', background: 'white', borderRadius: '50%' }} alt="logo" />
-          <div style={{lineHeight: 1}}><b style={{ fontSize: '13px' }}>{user.name}</b><br/><small style={{fontSize: '9px', color: '#93c5fd'}}>{user.role.toUpperCase()}</small></div>
+          <b style={{ fontSize: '14px' }}>{user.name}</b>
         </div>
-        <button onClick={() => setView('login')} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px' }}>LOGOUT</button>
+        <button onClick={() => setView('login')} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>LOGOUT</button>
       </nav>
-      <div style={{ padding: '15px' }}>
+      <div style={{ padding: '20px 5%' }}>
         {view === 'hod' ? <HODPanel excelClasses={excelClasses} /> : <FacultyPanel user={user} />}
       </div>
     </div>
@@ -103,54 +141,58 @@ function HODPanel({ excelClasses }) {
 
   useEffect(() => { refresh(); }, []);
 
+  const downloadExcel = () => {
+    const ws = XLSX.utils.json_to_sheet(list.attendance);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+    XLSX.writeFile(wb, "Master_Attendance.xlsx");
+  };
+
   return (
     <div>
-      <div style={{ display: 'flex', gap: '5px', marginBottom: '15px', overflowX: 'auto', paddingBottom: '5px' }}>
+      <div style={{ display: 'flex', gap: '5px', marginBottom: '20px', overflowX: 'auto' }}>
         {['1', '3', '2'].map(t => (
-          <button key={t} onClick={() => {setTab(t); setEditMode(false);}} style={{ flex: '1 0 auto', padding: '10px 15px', background: tab === t ? '#1e3a8a' : '#fff', color: tab === t ? 'white' : '#444', border: '1px solid #ddd', borderRadius: '8px', fontWeight: 'bold', fontSize: '12px' }}>
-            {t === '1' ? 'LOGS' : t === '3' ? 'FACULTY' : 'MANAGE'}
+          <button key={t} onClick={() => setTab(t)} style={{ flex: 1, padding: '12px', background: tab === t ? '#1e3a8a' : '#fff', color: tab === t ? 'white' : '#444', border: '1px solid #ddd', borderRadius: '8px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
+            {t === '1' ? 'LOGS' : t === '3' ? 'FACULTY LIST' : 'MANAGE'}
           </button>
         ))}
       </div>
       
-      <div style={styles.card}>
+      <div style={{ background: 'white', padding: '20px', borderRadius: '15px', border: '1px solid #e2e8f0', position: 'relative' }}>
+        <img src="/logo.png" style={styles.watermark} alt="bg" />
+        
         {tab === '1' && (
-          <>
-            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: '15px'}}>
-              <h4 style={{margin:0}}>Live Logs</h4>
-              <button onClick={() => {
-                const ws = XLSX.utils.json_to_sheet(list.attendance);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Logs");
-                XLSX.writeFile(wb, "Attendance.xlsx");
-              }} style={{background:'#10b981', color:'white', border:'none', padding:'6px 10px', borderRadius:'6px', fontSize:'10px', fontWeight:'bold'}}><Download size={12}/> EXCEL</button>
+          <div>
+            <div style={{display:'flex', justifyContent:'space-between', marginBottom:'15px'}}>
+              <h3 style={{margin:0, color:'#1e3a8a'}}>Attendance</h3>
+              <button onClick={downloadExcel} style={{background:'#10b981', color:'white', border:'none', padding:'8px 12px', borderRadius:'6px', fontWeight:'bold'}}><Download size={14}/> EXCEL</button>
             </div>
             {list.attendance.map(r => (
-              <div key={r.id} style={{ padding: '10px 0', borderBottom: '1px solid #eee', fontSize: '13px' }}>
+              <div key={r.id} style={{ padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
                 <div style={{display:'flex', justifyContent:'space-between'}}><b>{r.class}</b> <span style={{color: '#10b981'}}>{r.present}/{r.total}</span></div>
-                <div style={{color:'#666', fontSize: '11px'}}>{r.sub} • {r.faculty} • {r.time_str}</div>
+                <div style={{fontSize: '12px', color: '#64748b'}}>{r.sub} • {r.faculty} • {r.time_str}</div>
               </div>
             ))}
-          </>
+          </div>
         )}
 
         {tab === '3' && (
           <div style={{overflowX: 'auto'}}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-              <thead style={{background: '#f8fafc'}}><tr><th style={{padding: '8px'}}>Name</th><th style={{padding: '8px'}}>Lec/Pr</th><th style={{padding: '8px'}}>Act</th></tr></thead>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead><tr style={{textAlign:'left', background:'#f8fafc'}}><th style={{padding:'10px'}}>NAME</th><th style={{padding:'10px'}}>L/P</th><th style={{padding:'10px'}}>ACTION</th></tr></thead>
               <tbody>
                 {list.faculties.map(fac => {
-                   const s = list.stats.find(st => st.faculty === fac.name) || { theory_count: 0, practical_count: 0 };
-                   return (
-                     <tr key={fac.id} style={{ borderBottom: '1px solid #eee' }}>
-                       <td style={{padding: '8px'}}>{fac.name}</td>
-                       <td style={{padding: '8px'}}>{s.theory_count}/{s.practical_count}</td>
-                       <td style={{padding: '8px', display: 'flex', gap: '5px'}}>
-                          <Edit3 size={14} color="#3b82f6" onClick={() => {setF(fac); setEditMode(true); setTab('2');}}/>
-                          <Trash2 size={14} color="#ef4444" onClick={async () => { if(window.confirm("Delete?")){await supabase.from('faculties').delete().eq('id', fac.id); refresh();}}}/>
-                       </td>
-                     </tr>
-                   )
+                  const s = list.stats.find(st => st.faculty === fac.name) || { theory_count: 0, practical_count: 0 };
+                  return (
+                    <tr key={fac.id} style={{borderBottom:'1px solid #f1f5f9'}}>
+                      <td style={{padding:'10px'}}>{fac.name}</td>
+                      <td style={{padding:'10px'}}>{s.theory_count}/{s.practical_count}</td>
+                      <td style={{padding:'10px', display:'flex', gap:'10px'}}>
+                        <Edit3 size={16} color="#3b82f6" onClick={() => {setF(fac); setEditMode(true); setTab('2');}}/>
+                        <Trash2 size={16} color="#ef4444" onClick={async () => {if(window.confirm("Delete?")){await supabase.from('faculties').delete().eq('id', fac.id); refresh();}}}/>
+                      </td>
+                    </tr>
+                  )
                 })}
               </tbody>
             </table>
@@ -159,23 +201,23 @@ function HODPanel({ excelClasses }) {
 
         {tab === '2' && (
           <div>
-            <div style={{ marginBottom: '20px', padding: '10px', background: '#f8fafc', borderRadius: '8px' }}>
-              <h5 style={{margin: '0 0 10px 0'}}>{editMode ? 'Update Faculty' : 'Add Faculty'}</h5>
-              <input style={styles.input} value={f.name} placeholder="Name" onChange={e => setF({...f, name: e.target.value})} />
+            <div style={{padding:'15px', background:'#f8fafc', borderRadius:'10px', marginBottom:'20px'}}>
+              <h4>{editMode ? 'Update' : 'Add'} Faculty</h4>
+              <input style={styles.input} value={f.name} placeholder="Full Name" onChange={e => setF({...f, name: e.target.value})} />
               <input style={styles.input} value={f.id} placeholder="ID" disabled={editMode} onChange={e => setF({...f, id: e.target.value})} />
-              <input style={styles.input} value={f.pass} placeholder="Pass" onChange={e => setF({...f, pass: e.target.value})} />
+              <input style={styles.input} value={f.pass} placeholder="Password" onChange={e => setF({...f, pass: e.target.value})} />
               <button style={styles.btnPrimary} onClick={async () => {
-                if(editMode) await supabase.from('faculties').update({ name: f.name, password: f.pass }).eq('id', f.id);
-                else await supabase.from('faculties').insert([{ id: f.id, name: f.name, password: f.pass }]);
+                if(editMode) await supabase.from('faculties').update({name: f.name, password: f.pass}).eq('id', f.id);
+                else await supabase.from('faculties').insert([{id: f.id, name: f.name, password: f.pass}]);
                 setF({name:'', id:'', pass:''}); setEditMode(false); refresh(); alert("Success");
               }}>{editMode ? 'UPDATE' : 'SAVE'}</button>
             </div>
-            <div style={{ padding: '10px', background: '#f8fafc', borderRadius: '8px' }}>
-              <h5 style={{margin: '0 0 10px 0'}}>Link Subject</h5>
+            <div style={{padding:'15px', background:'#f0fdf4', borderRadius:'10px'}}>
+              <h4>Link Subject</h4>
               <select style={styles.input} onChange={e => setF({...f, sFac: e.target.value})}><option value="">Select Faculty</option>{list.faculties.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
-              <select style={styles.input} onChange={e => setF({...f, sClass: e.target.value})}><option value="">Class</option>{excelClasses.map(c => <option key={c} value={c}>{c}</option>)}</select>
+              <select style={styles.input} onChange={e => setF({...f, sClass: e.target.value})}><option value="">Select Class</option>{excelClasses.map(c => <option key={c} value={c}>{c}</option>)}</select>
               <input style={styles.input} placeholder="Subject Name" onChange={e => setF({...f, sSub: e.target.value})} />
-              <button style={{...styles.btnPrimary, background: '#10b981'}} onClick={async () => { await supabase.from('assignments').insert([{ fac_id: f.sFac, class_name: f.sClass, subject_name: f.sSub }]); alert("Linked!"); }}>LINK</button>
+              <button style={{...styles.btnPrimary, background:'#10b981'}} onClick={async () => { await supabase.from('assignments').insert([{ fac_id: f.sFac, class_name: f.sClass, subject_name: f.sSub }]); alert("Linked!"); }}>LINK SUBJECT</button>
             </div>
           </div>
         )}
@@ -215,45 +257,40 @@ function FacultyPanel({ user }) {
       const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
       const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
       
-      if (d > 150) { setLoading(false); return alert("Please go to campus for submission."); }
+      if (d > 150) { setLoading(false); return alert("Outside Campus Range!"); }
       const dStr = new Date().toLocaleDateString('en-GB');
       await supabase.from('attendance').insert([{ faculty: user.name, sub: sel.sub, class: sel.class, type: sel.type, start_time: sel.startTime, end_time: sel.endTime, present: present.length, total: students.length, time_str: dStr }]);
-      setLoading(false); alert("Success!"); setIsReady(false); setPresent([]);
-    }, () => { setLoading(false); alert("GPS Error!"); }, { enableHighAccuracy: true });
+      setLoading(false); alert("Attendance Submitted!"); setIsReady(false); setPresent([]);
+    }, () => { setLoading(false); alert("Enable GPS!"); }, { enableHighAccuracy: true });
   };
 
   if (!isReady) return (
-    <div style={styles.card}>
-      <img src="/logo.png" style={styles.watermark} alt="bg" />
-      <h3 style={{fontSize: '18px'}}><Clock size={18}/> New Session</h3>
-      <label style={styles.label}>Class</label>
-      <select style={styles.input} value={sel.class} onChange={e => setSel({...sel, class: e.target.value})}><option value="">Select</option>{[...new Set(myAssigns.map(a => a.class_name))].map(c => <option key={c} value={c}>{c}</option>)}</select>
-      <label style={styles.label}>Subject</label>
-      <select style={styles.input} value={sel.sub} onChange={e => setSel({...sel, sub: e.target.value})}><option value="">Select</option>{myAssigns.filter(a => a.class_name === sel.class).map(a => <option key={a.id} value={a.subject_name}>{a.subject_name}</option>)}</select>
-      <label style={styles.label}>Type</label>
+    <div style={{background:'white', padding:'25px', borderRadius:'15px', border:'1px solid #e2e8f0'}}>
+      <h3 style={{marginTop:0}}><Clock size={20}/> New Session</h3>
+      <label style={styles.label}>SELECT CLASS</label>
+      <select style={styles.input} value={sel.class} onChange={e => setSel({...sel, class: e.target.value})}><option value="">Class</option>{[...new Set(myAssigns.map(a => a.class_name))].map(c => <option key={c} value={c}>{c}</option>)}</select>
+      <label style={styles.label}>SELECT SUBJECT</label>
+      <select style={styles.input} value={sel.sub} onChange={e => setSel({...sel, sub: e.target.value})}><option value="">Subject</option>{myAssigns.filter(a => a.class_name === sel.class).map(a => <option key={a.id} value={a.subject_name}>{a.subject_name}</option>)}</select>
+      <label style={styles.label}>SESSION TYPE</label>
       <select style={styles.input} value={sel.type} onChange={e => setSel({...sel, type: e.target.value})}><option>Theory Lecture</option><option>Practical</option></select>
       <div style={{ display: 'flex', gap: '10px' }}>
         <input type="time" style={styles.input} onChange={e => setSel({...sel, startTime: e.target.value})} />
         <input type="time" style={styles.input} onChange={e => setSel({...sel, endTime: e.target.value})} />
       </div>
-      <button style={{ ...styles.btnPrimary, opacity: (sel.class && sel.sub) ? 1 : 0.6 }} onClick={() => (sel.class && sel.sub) ? setIsReady(true) : alert("Fill all fields")}>START ROLL CALL</button>
+      <button style={styles.btnPrimary} onClick={() => (sel.class && sel.sub) ? setIsReady(true) : alert("Fill All")}>OPEN ROLL CALL</button>
     </div>
   );
 
   return (
-    <div style={styles.card}>
-      <img src="/logo.png" style={styles.watermark} alt="bg" />
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', alignItems: 'center' }}>
-        <button onClick={() => setIsReady(false)} style={{ border: 'none', background: '#eee', padding: '8px', borderRadius: '50%' }}><ArrowLeft size={18}/></button>
-        <div style={{textAlign: 'right'}}><b style={{fontSize: '14px'}}>{sel.class}</b><br/><small style={{fontSize: '11px'}}>{sel.sub}</small></div>
+    <div style={{background:'white', padding:'20px', borderRadius:'15px', border:'1px solid #e2e8f0'}}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems:'center' }}>
+        <button onClick={() => setIsReady(false)} style={{ border: 'none', background: '#f1f5f9', padding: '10px', borderRadius: '50%' }}><ArrowLeft/></button>
+        <div style={{textAlign:'right'}}><b style={{fontSize:'14px'}}>{sel.class}</b><br/><small style={{color:'#64748b'}}>{sel.sub}</small></div>
       </div>
-      <div style={styles.grid}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(65px, 1fr))', gap: '10px' }}>
         {students.map(s => (<div key={s.id} onClick={() => setPresent(p => p.includes(s.id) ? p.filter(x => x !== s.id) : [...p, s.id])} style={styles.rollBtn(present.includes(s.id))}>{s.id}</div>))}
       </div>
-      <div style={{marginTop: '20px', padding: '15px', background: '#f8fafc', borderRadius: '10px', textAlign: 'center'}}>
-        <div style={{fontSize: '12px', color: '#666'}}>Present: <b>{present.length}/{students.length}</b></div>
-        <button disabled={loading} style={{ ...styles.btnPrimary, marginTop: '10px', background: '#10b981' }} onClick={submitAtt}>{loading ? "Checking..." : "SUBMIT SESSION"}</button>
-      </div>
+      <button disabled={loading} style={{ ...styles.btnPrimary, marginTop: '25px', background: '#10b981' }} onClick={submitAtt}>{loading ? "Checking GPS..." : `SUBMIT (${present.length} PRESENT)`}</button>
     </div>
   );
-  }
+          }
