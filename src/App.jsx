@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { 
   LogOut, ArrowLeft, Clock, Trash2, Download, Search, 
-  User, Users, BookOpen, Plus, RefreshCw, Activity, Mail, AlertTriangle, MapPin, CheckCircle2
+  User, Users, BookOpen, Activity, Mail, AlertTriangle, MapPin, CheckCircle2
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from "./supabaseClient";
 import emailjs from '@emailjs/browser';
 
-// --- Global Configuration ---
+// --- Configuration ---
 const CAMPUS_LAT = 19.7042; 
 const CAMPUS_LON = 72.7645;
-const RADIUS_LIMIT = 0.005; // ~500 meters
+const RADIUS_LIMIT = 0.005; 
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -18,11 +18,10 @@ export default function App() {
   const [excelSheets, setExcelSheets] = useState([]);
 
   useEffect(() => {
-    // Load class names from the Excel file in public folder
     fetch('/students_list.xlsx').then(res => res.arrayBuffer()).then(ab => {
       const wb = XLSX.read(ab, { type: 'array' });
       setExcelSheets(wb.SheetNames);
-    }).catch(() => console.error("Excel file missing in public folder."));
+    }).catch(e => console.error("Excel not found in public folder."));
   }, []);
 
   const handleLogin = async (u, p) => {
@@ -32,18 +31,17 @@ export default function App() {
     } else {
       const { data } = await supabase.from('faculties').select('*').eq('id', u).eq('password', p).single();
       if (data) { setUser({ ...data, role: 'faculty' }); setView('faculty'); }
-      else alert("Authentication Failed!");
+      else alert("Invalid Credentials!");
     }
   };
 
   if (view === 'login') return (
     <div style={styles.loginPage}>
       <div style={styles.glassCard}>
-        <div style={styles.logoWrap}><img src="/logo.png" style={{width:'50px'}} alt="logo" /></div>
         <h1 style={styles.title}>AMRIT ERP</h1>
-        <p style={styles.badge}>ADVANCED CAMPUS MANAGEMENT</p>
-        <input id="u" placeholder="Employee/Admin ID" style={styles.inputField} />
-        <input id="p" type="password" placeholder="Secure Password" style={styles.inputField} />
+        <p style={styles.badge}>INSTITUTIONAL MANAGEMENT SYSTEM</p>
+        <div style={styles.inputGroup}><User size={18} style={styles.iconIn}/><input id="u" placeholder="User ID" style={styles.inputField} /></div>
+        <div style={styles.inputGroup}><Clock size={18} style={styles.iconIn}/><input id="p" type="password" placeholder="Password" style={styles.inputField} /></div>
         <button onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)} style={styles.btnPrimary}>LOGIN</button>
       </div>
     </div>
@@ -55,7 +53,7 @@ export default function App() {
         <div style={styles.navContent}>
           <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
             <div style={styles.userCircle}>{user.name[0]}</div>
-            <div className="hide-mobile"><b>{user.name}</b><br/><small>{user.role.toUpperCase()}</small></div>
+            <div><b>{user.name}</b><br/><small style={{color:'#818cf8'}}>{user.role.toUpperCase()}</small></div>
           </div>
           <button onClick={() => setView('login')} style={styles.logoutBtn}><LogOut size={16}/> EXIT</button>
         </div>
@@ -63,21 +61,14 @@ export default function App() {
       <main style={styles.mainArea}>
         {view === 'hod' ? <HODPanel excelSheets={excelSheets} /> : <FacultyPanel user={user} />}
       </main>
-      <style>{`
-        @media (max-width: 768px) {
-          .hide-mobile { display: none; }
-          .grid-2 { grid-template-columns: 1fr !important; }
-          .roll-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 8px !important; }
-        }
-      `}</style>
     </div>
   );
 }
 
-// --- HOD PANEL: COMPLETE ---
+// --- HOD PANEL (DASHBOARD + LOGS + COUNTS + EMAIL) ---
 function HODPanel({ excelSheets }) {
   const [tab, setTab] = useState('dashboard');
-  const [db, setDb] = useState({ facs: [], logs: [], assigns: [] });
+  const [db, setDb] = useState({ facs: [], logs: [], assigns: [], critical: [] });
   const [search, setSearch] = useState('');
   const [form, setForm] = useState({ n: '', i: '', p: '', fId: '', cl: '', sub: '' });
 
@@ -85,21 +76,25 @@ function HODPanel({ excelSheets }) {
     const { data: f } = await supabase.from('faculties').select('*');
     const { data: l } = await supabase.from('attendance').select('*').order('created_at', { ascending: false });
     const { data: a } = await supabase.from('assignments').select('*');
-    setDb({ facs: f || [], logs: l || [], assigns: a || [] });
+    // Fetching critical absentees from the SQL View we created
+    const { data: c } = await supabase.from('critical_absentees_view').select('*');
+    setDb({ facs: f || [], logs: l || [], assigns: a || [], critical: c || [] });
   };
+  
   useEffect(() => { loadData(); }, []);
 
-  const downloadMasterSheet = () => {
+  const downloadExcel = () => {
     const ws = XLSX.utils.json_to_sheet(db.logs);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "AttendanceData");
-    XLSX.writeFile(wb, "Amrit_ERP_Master_Report.xlsx");
+    XLSX.utils.book_append_sheet(wb, ws, "AttendanceLogs");
+    XLSX.writeFile(wb, "Amrit_ERP_Report.xlsx");
   };
 
-  const sendAbsentEmail = (id, email) => {
-    emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', { student_id: id, to_email: email }, 'YOUR_PUBLIC_KEY')
-      .then(() => alert("Email Sent!"))
-      .catch(() => alert("Email Configuration Error"));
+  const notifyParent = (roll, className) => {
+    const params = { to_name: "Parent", student_roll: roll, class_name: className, message: "Your ward is absent for 3 consecutive days." };
+    emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', params, 'YOUR_PUBLIC_KEY')
+      .then(() => alert(`Email sent for Roll No: ${roll}`))
+      .catch(() => alert("Email Error! Check EmailJS Keys."));
   };
 
   return (
@@ -112,34 +107,22 @@ function HODPanel({ excelSheets }) {
 
       {tab === 'dashboard' && (
         <div style={styles.dashboardGrid}>
-          <div style={styles.statCard}><Users color="#6366f1"/> <div><h3>{db.facs.length}</h3><p>Faculties</p></div></div>
+          <div style={styles.statCard}><Users color="#6366f1"/> <div><h3>{db.facs.length}</h3><p>Total Faculty</p></div></div>
           <div style={styles.statCard}><Activity color="#10b981"/> <div><h3>{db.logs.length}</h3><p>Total Sessions</p></div></div>
+          <div style={styles.statCard}><AlertTriangle color="#f43f5e"/> <div><h3>{db.critical.length}</h3><p>Critical Absentees</p></div></div>
         </div>
       )}
 
-      {tab === 'logs' && (
-        <>
-          <div style={styles.inputGroup}><Search size={18} style={styles.iconIn} /><input style={styles.inputField} placeholder="Search Logs..." onChange={e=>setSearch(e.target.value.toLowerCase())} /></div>
-          <button onClick={downloadMasterSheet} style={styles.downloadBtn}><Download size={16}/> DOWNLOAD MASTER EXCEL</button>
-          {db.logs.filter(l => (l.faculty+l.class+l.sub).toLowerCase().includes(search)).map(log => (
-            <div key={log.id} style={styles.itemRow}>
-              <div><b>{log.class}</b><br/><small>{log.sub} | {log.faculty}</small></div>
-              <div style={{textAlign:'right'}}><b style={{color:'#10b981'}}>{log.present}/{log.total}</b><br/><small>{log.time_str}</small></div>
-            </div>
-          ))}
-        </>
-      )}
-
       {tab === 'faculties' && db.facs.map(f => {
-        const tCount = db.logs.filter(l => l.faculty === f.name && l.type === 'Theory').length;
-        const pCount = db.logs.filter(l => l.faculty === f.name && l.type === 'Practical').length;
+        const theory = db.logs.filter(l => l.faculty === f.name && l.type === 'Theory').length;
+        const practical = db.logs.filter(l => l.faculty === f.name && l.type === 'Practical').length;
         return (
           <div key={f.id} style={styles.itemRow}>
             <div><b>{f.name}</b><br/><small>ID: {f.id}</small></div>
-            <div style={{display:'flex', gap:'8px'}}>
-              <div style={styles.countBadge}>Lec: {tCount}</div>
-              <div style={styles.countBadge}>Prac: {pCount}</div>
-              <button onClick={async ()=>{if(window.confirm("Delete?")){await supabase.from('faculties').delete().eq('id', f.id); loadData();}}} style={{color:'#f43f5e', background:'none', border:'none'}}><Trash2 size={18}/></button>
+            <div style={{display:'flex', gap:'10px'}}>
+              <span style={styles.countBadge}>Lec: {theory}</span>
+              <span style={styles.countBadge}>Prac: {practical}</span>
+              <span style={{...styles.countBadge, color:'#10b981'}}>Total: {theory+practical}</span>
             </div>
           </div>
         );
@@ -147,28 +130,43 @@ function HODPanel({ excelSheets }) {
 
       {tab === 'absentees' && (
         <div>
-          <h3><AlertTriangle color="#f59e0b"/> Critical Absentee Alerts</h3>
-          <div style={styles.itemRow}>
-            <div><b>Roll No: 102 (Demo)</b><br/><small>Status: 3 Days Consecutive Absent</small></div>
-            <button onClick={() => sendAbsentEmail('102', 'parent@example.com')} style={styles.emailBtn}><Mail size={16}/> NOTIFY</button>
-          </div>
+          <h3 style={{marginBottom:'15px'}}>3-Day Consecutive Absent Alert</h3>
+          {db.critical.length === 0 ? <p>No critical cases found.</p> : db.critical.map(c => (
+            <div key={c.student_roll} style={styles.itemRow}>
+              <div><b>Roll No: {c.student_roll}</b><br/><small>Class: {c.class_name} | Days: {c.consecutive_days}</small></div>
+              <button onClick={() => notifyParent(c.student_roll, c.class_name)} style={styles.emailBtn}><Mail size={16}/> NOTIFY PARENT</button>
+            </div>
+          ))}
         </div>
       )}
 
+      {tab === 'logs' && (
+        <>
+          <div style={styles.inputGroup}><Search size={18} style={styles.iconIn}/><input style={styles.inputField} placeholder="Search anything..." onChange={e=>setSearch(e.target.value.toLowerCase())} /></div>
+          <button onClick={downloadExcel} style={styles.downloadBtn}><Download size={16}/> EXPORT MASTER SHEET</button>
+          {db.logs.filter(l => (l.faculty+l.class+l.sub).toLowerCase().includes(search)).map(log => (
+            <div key={log.id} style={styles.itemRow}>
+              <div><b>{log.class}</b><br/><small>{log.sub} ({log.type}) | {log.faculty}</small></div>
+              <div style={{textAlign:'right'}}><b>{log.present}/{log.total}</b><br/><small>{log.time_str}</small></div>
+            </div>
+          ))}
+        </>
+      )}
+
       {tab === 'manage' && (
-        <div className="grid-2" style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'20px'}}>
+        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'20px'}}>
           <div style={styles.formCard}>
-            <h3>Add Teacher</h3>
-            <input placeholder="Name" style={styles.inputSml} value={form.n} onChange={e=>setForm({...form, n:e.target.value})} />
-            <input placeholder="ID" style={styles.inputSml} value={form.i} onChange={e=>setForm({...form, i:e.target.value})} />
-            <input placeholder="Pass" style={styles.inputSml} value={form.p} onChange={e=>setForm({...form, p:e.target.value})} />
-            <button style={styles.btnAction} onClick={async ()=>{await supabase.from('faculties').insert([{id:form.i, name:form.n, password:form.p}]); loadData(); alert("Faculty Added!");}}>REGISTER</button>
+            <h3>Register Faculty</h3>
+            <input placeholder="Name" style={styles.inputSml} onChange={e=>setForm({...form, n:e.target.value})} />
+            <input placeholder="ID" style={styles.inputSml} onChange={e=>setForm({...form, i:e.target.value})} />
+            <input placeholder="Password" style={styles.inputSml} onChange={e=>setForm({...form, p:e.target.value})} />
+            <button style={styles.btnAction} onClick={async ()=>{await supabase.from('faculties').insert([{id:form.i, name:form.n, password:form.p}]); loadData(); alert("Faculty Added!");}}>ADD</button>
           </div>
           <div style={styles.formCard}>
-            <h3>Link Workload</h3>
+            <h3>Workload Mapping</h3>
             <select style={styles.inputSml} onChange={e=>setForm({...form, fId:e.target.value})}><option>Select Faculty</option>{db.facs.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select>
             <select style={styles.inputSml} onChange={e=>setForm({...form, cl:e.target.value})}><option>Select Class</option>{excelSheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
-            <input placeholder="Subject Name" style={styles.inputSml} onChange={e=>setForm({...form, sub:e.target.value})} />
+            <input placeholder="Subject" style={styles.inputSml} onChange={e=>setForm({...form, sub:e.target.value})} />
             <button style={{...styles.btnAction, background:'#10b981'}} onClick={async ()=>{await supabase.from('assignments').insert([{fac_id:form.fId, class_name:form.cl, subject_name:form.sub}]); alert("Mapped!");}}>LINK</button>
           </div>
         </div>
@@ -177,7 +175,7 @@ function HODPanel({ excelSheets }) {
   );
 }
 
-// --- FACULTY PANEL: COMPLETE ---
+// --- FACULTY PANEL (GPS + EXCEL ROLL CALL) ---
 function FacultyPanel({ user }) {
   const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', start: '', end: '' });
   const [active, setActive] = useState(false);
@@ -189,12 +187,12 @@ function FacultyPanel({ user }) {
     supabase.from('assignments').select('*').eq('fac_id', user.id).then(res => setMyJobs(res.data || []));
   }, [user.id]);
 
-  const startAttendance = () => {
-    if(!setup.cl || !setup.start) return alert("Fill all details");
+  const startSession = () => {
+    if(!setup.cl) return alert("Select Class");
     fetch('/students_list.xlsx').then(r => r.arrayBuffer()).then(ab => {
       const wb = XLSX.read(ab, { type: 'array' });
       const sheet = XLSX.utils.sheet_to_json(wb.Sheets[setup.cl]);
-      setStudents(sheet.map(s => ({ id: String(s['ROLL NO'] || s['Roll No']) })).filter(s => s.id));
+      setStudents(sheet.map(s => ({ id: String(s['ROLL NO'] || s['Roll No']) })).filter(x => x.id));
       setActive(true);
     });
   };
@@ -202,27 +200,38 @@ function FacultyPanel({ user }) {
   const submitAttendance = () => {
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const d = Math.sqrt(Math.pow(pos.coords.latitude-CAMPUS_LAT,2)+Math.pow(pos.coords.longitude-CAMPUS_LON,2));
-      if(d > RADIUS_LIMIT) return alert("Outside Geofence!");
+      if(d > RADIUS_LIMIT) return alert("You are outside the campus!");
 
-      await supabase.from('attendance').insert([{ 
+      const { data: attendanceData } = await supabase.from('attendance').insert([{ 
         faculty: user.name, sub: setup.sub, class: setup.cl, type: setup.ty, 
         duration: `${setup.start}-${setup.end}`, present: marked.length, total: students.length, 
         time_str: new Date().toLocaleDateString('en-GB') 
-      }]);
-      alert("Attendance Saved Successfully!"); setActive(false); setMarked([]);
-    }, () => alert("GPS Required"));
+      }]).select().single();
+
+      // --- AUTOMATIC ABSENTEE RECORDING ---
+      const absentStudents = students.filter(s => !marked.includes(s.id));
+      const absenteeEntries = absentStudents.map(s => ({
+        attendance_id: attendanceData.id,
+        student_roll: s.id,
+        class_name: setup.cl
+      }));
+      
+      if(absenteeEntries.length > 0) {
+        await supabase.from('absentee_records').insert(absenteeEntries);
+      }
+
+      alert("Attendance Submitted & Absentees Tracked!");
+      setActive(false); setMarked([]);
+    }, () => alert("Enable GPS to submit."));
   };
 
   if (!active) return (
     <div style={styles.setupCard}>
-      <h2 style={{textAlign:'center'}}><MapPin color="#6366f1"/> Start Session</h2>
+      <h2><MapPin color="#6366f1"/> Setup Session</h2>
       <select style={styles.inputSml} onChange={e=>setSetup({...setup, cl:e.target.value})}><option>Select Class</option>{[...new Set(myJobs.map(j=>j.class_name))].map(c=><option key={c} value={c}>{c}</option>)}</select>
       <select style={styles.inputSml} onChange={e=>setSetup({...setup, sub:e.target.value})}><option>Select Subject</option>{myJobs.filter(j=>j.class_name===setup.cl).map(j=><option key={j.id} value={j.subject_name}>{j.subject_name}</option>)}</select>
-      <div style={{display:'flex', gap:'10px', marginBottom:'10px'}}>
-        <input type="time" style={styles.inputSml} onChange={e=>setSetup({...setup, start:e.target.value})} />
-        <input type="time" style={styles.inputSml} onChange={e=>setSetup({...setup, end:e.target.value})} />
-      </div>
-      <button style={styles.btnPrimary} onClick={startAttendance}>START ROLL CALL</button>
+      <select style={styles.inputSml} value={setup.ty} onChange={e=>setSetup({...setup, ty:e.target.value})}><option value="Theory">Theory</option><option value="Practical">Practical</option></select>
+      <button style={styles.btnPrimary} onClick={startSession}>OPEN ROLL CALL</button>
     </div>
   );
 
@@ -230,47 +239,49 @@ function FacultyPanel({ user }) {
     <div>
       <div style={styles.stickyHeader}>
         <button onClick={()=>setActive(false)} style={{background:'none', border:'none', color:'#fff'}}><ArrowLeft/></button>
-        <div style={{textAlign:'right'}}><b>{setup.cl}</b><br/><small>{setup.start}-{setup.end}</small></div>
+        <div><b>{setup.cl}</b> | {setup.sub}</div>
       </div>
-      <div className="roll-grid" style={styles.rollGrid}>
+      <div style={styles.rollGrid}>
         {students.map(s => (
           <div key={s.id} onClick={() => setMarked(p => p.includes(s.id) ? p.filter(x=>x!==s.id) : [...p, s.id])}
                style={{...styles.rollChip, background: marked.includes(s.id) ? '#6366f1' : '#1e293b'}}>{s.id}</div>
         ))}
       </div>
-      <div style={styles.floatingAction}><button onClick={submitAttendance} style={styles.submitLarge}>SUBMIT ({marked.length})</button></div>
+      <button onClick={submitAttendance} style={styles.submitLarge}>SUBMIT ATTENDANCE ({marked.length})</button>
     </div>
   );
 }
 
+// --- STYLES ---
 const styles = {
   loginPage: { minHeight:'100vh', background:'#020617', display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' },
   glassCard: { background:'rgba(30, 41, 59, 0.7)', padding:'30px', borderRadius:'20px', width:'100%', maxWidth:'360px', textAlign:'center', border:'1px solid #334155' },
-  title: { color:'#fff', fontSize:'24px', fontWeight:'bold', margin:0 },
-  badge: { color:'#6366f1', fontSize:'10px', marginBottom:'20px', letterSpacing:'1px' },
-  inputField: { width:'100%', padding:'12px', borderRadius:'10px', border:'1px solid #334155', background:'#0f172a', color:'#fff', marginBottom:'10px', boxSizing:'border-box' },
+  title: { color:'#fff', fontSize:'26px', fontWeight:'bold', margin:0 },
+  badge: { color:'#6366f1', fontSize:'10px', marginBottom:'20px' },
+  inputGroup: { position:'relative', marginBottom:'15px' },
+  iconIn: { position:'absolute', left:'12px', top:'12px', color:'#94a3b8' },
+  inputField: { width:'100%', padding:'12px 12px 12px 40px', borderRadius:'10px', background:'#0f172a', color:'#fff', border:'1px solid #334155', boxSizing:'border-box' },
   btnPrimary: { width:'100%', padding:'15px', borderRadius:'10px', background:'#6366f1', color:'#fff', border:'none', fontWeight:'bold', cursor:'pointer' },
   appContainer: { minHeight:'100vh', background:'#020617', color:'#fff' },
-  navbar: { background:'#0f172a', padding:'10px 20px', borderBottom:'1px solid #334155' },
-  navContent: { display:'flex', justifyContent:'space-between', alignItems:'center', maxWidth:'1000px', margin:'0 auto' },
+  navbar: { background:'rgba(15, 23, 42, 0.9)', padding:'10px 20px', borderBottom:'1px solid #334155', sticky:'top' },
+  navContent: { maxWidth:'1000px', margin:'0 auto', display:'flex', justifyContent:'space-between', alignItems:'center' },
   userCircle: { width:'35px', height:'35px', background:'#6366f1', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'bold' },
-  logoutBtn: { background:'rgba(244, 63, 94, 0.1)', color:'#f43f5e', border:'none', padding:'8px 15px', borderRadius:'10px', cursor:'pointer', display:'flex', alignItems:'center', gap:'5px' },
+  logoutBtn: { background:'rgba(244, 63, 94, 0.1)', color:'#f43f5e', border:'none', padding:'8px 12px', borderRadius:'8px', cursor:'pointer' },
   mainArea: { padding:'20px', maxWidth:'1000px', margin:'0 auto' },
-  tabContainer: { display:'flex', background:'#0f172a', padding:'5px', borderRadius:'10px', marginBottom:'20px' },
-  tabLink: { flex:1, border:'none', color:'#fff', padding:'10px', borderRadius:'8px', cursor:'pointer', fontWeight:'bold', fontSize:'10px' },
-  dashboardGrid: { display:'grid', gridTemplateColumns:'1fr 1fr', gap:'20px' },
-  statCard: { background:'rgba(30, 41, 59, 0.5)', padding:'20px', borderRadius:'15px', display:'flex', alignItems:'center', gap:'15px' },
+  tabContainer: { display:'flex', background:'#0f172a', padding:'5px', borderRadius:'12px', marginBottom:'20px', overflowX:'auto' },
+  tabLink: { flex:1, border:'none', color:'#fff', padding:'10px', borderRadius:'8px', cursor:'pointer', fontWeight:'bold', fontSize:'11px', minWidth:'80px' },
+  dashboardGrid: { display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap:'20px' },
+  statCard: { background:'rgba(30, 41, 59, 0.5)', padding:'20px', borderRadius:'15px', display:'flex', alignItems:'center', gap:'15px', border:'1px solid rgba(255,255,255,0.05)' },
   itemRow: { background:'rgba(30, 41, 59, 0.4)', padding:'15px', borderRadius:'15px', marginBottom:'10px', display:'flex', justifyContent:'space-between', alignItems:'center' },
-  countBadge: { background:'#0f172a', padding:'4px 8px', borderRadius:'6px', fontSize:'11px', color:'#10b981' },
+  countBadge: { background:'#0f172a', padding:'5px 10px', borderRadius:'8px', fontSize:'12px', fontWeight:'bold', color:'#818cf8', border:'1px solid #334155' },
+  emailBtn: { background:'#10b981', color:'#fff', border:'none', padding:'8px 12px', borderRadius:'8px', display:'flex', alignItems:'center', gap:'5px', cursor:'pointer', fontSize:'12px' },
   formCard: { background:'rgba(30, 41, 59, 0.4)', padding:'20px', borderRadius:'15px', border:'1px solid #334155' },
-  inputSml: { width:'100%', padding:'10px', borderRadius:'8px', border:'1px solid #334155', background:'#0f172a', color:'#fff', marginBottom:'10px', boxSizing:'border-box' },
-  btnAction: { width:'100%', padding:'12px', borderRadius:'8px', border:'none', background:'#6366f1', color:'#fff', fontWeight:'bold' },
-  setupCard: { background:'rgba(30, 41, 59, 0.5)', padding:'30px', borderRadius:'25px', maxWidth:'400px', margin:'0 auto' },
-  stickyHeader: { display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px', background:'#1e293b', padding:'15px', borderRadius:'15px' },
-  rollGrid: { display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(65px, 1fr))', gap:'10px' },
+  inputSml: { width:'100%', padding:'10px', borderRadius:'8px', background:'#0f172a', color:'#fff', border:'1px solid #334155', marginBottom:'10px', boxSizing:'border-box' },
+  btnAction: { width:'100%', padding:'12px', borderRadius:'8px', background:'#6366f1', color:'#fff', border:'none', fontWeight:'bold' },
+  setupCard: { background:'rgba(30, 41, 59, 0.5)', padding:'30px', borderRadius:'20px', maxWidth:'400px', margin:'0 auto' },
+  stickyHeader: { display:'flex', gap:'15px', alignItems:'center', background:'#1e293b', padding:'15px', borderRadius:'15px', marginBottom:'20px' },
+  rollGrid: { display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(65px, 1fr))', gap:'10px', marginBottom:'100px' },
   rollChip: { height:'65px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'15px', cursor:'pointer', fontWeight:'bold' },
-  floatingAction: { position:'fixed', bottom:20, left:'50%', transform:'translateX(-50%)', width:'90%', maxWidth:'400px' },
-  submitLarge: { width:'100%', height:'55px', background:'#10b981', color:'#fff', border:'none', borderRadius:'15px', fontWeight:'bold', cursor:'pointer', boxShadow:'0 10px 20px rgba(0,0,0,0.3)' },
-  downloadBtn: { width:'100%', background:'#10b981', color:'white', padding:'12px', borderRadius:'10px', border:'none', marginBottom:'15px', cursor:'pointer', fontWeight:'bold', display:'flex', alignItems:'center', justifyContent:'center', gap:'8px' },
-  emailBtn: { background:'#10b981', color:'#fff', border:'none', padding:'8px 15px', borderRadius:'8px', display:'flex', alignItems:'center', gap:'5px', cursor:'pointer' }
+  submitLarge: { position:'fixed', bottom:'20px', left:'50%', transform:'translateX(-50%)', width:'90%', maxWidth:'400px', height:'55px', background:'#10b981', color:'#fff', border:'none', borderRadius:'15px', fontWeight:'bold', boxShadow:'0 10px 25px rgba(0,0,0,0.4)' },
+  downloadBtn: { width:'100%', background:'#10b981', color:'#fff', padding:'12px', borderRadius:'10px', border:'none', marginBottom:'15px', fontWeight:'bold', cursor:'pointer' }
 };
