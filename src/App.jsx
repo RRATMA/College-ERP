@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { LogOut, ArrowLeft, Clock, Trash2, Edit3, UserPlus, Database, Phone, MapPin, Globe } from 'lucide-react';
+import { LogOut, ArrowLeft, Clock, Trash2, Edit3, UserPlus, Database, Phone, MapPin, Globe, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from "./supabaseClient";
 
@@ -105,6 +105,13 @@ function HODPanel({ excelClasses }) {
 
   useEffect(() => { refresh(); }, []);
 
+  const downloadMasterSheet = () => {
+    const ws = XLSX.utils.json_to_sheet(list.attendance);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "AttendanceLogs");
+    XLSX.writeFile(wb, "Master_Attendance_Sheet.xlsx");
+  };
+
   const handleFaculty = async () => {
     if (editMode) await supabase.from('faculties').update({ name: f.name, password: f.pass }).eq('id', f.id);
     else await supabase.from('faculties').insert([{ id: f.id, name: f.name, password: f.pass }]);
@@ -129,28 +136,45 @@ function HODPanel({ excelClasses }) {
       </div>
       <div style={styles.card}>
         <img src="/logo.png" style={styles.watermark} alt="bg" />
-        {tab === '1' && list.attendance.map(r => (
-          <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #eee' }}>
-            <span><b>{r.class}</b> - {r.sub}<br/><small>{r.faculty} | {r.time_str}</small></span>
-            <b style={{ color: '#10b981' }}>{r.present}/{r.total}</b>
+        
+        {tab === '1' && (
+          <div>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'15px'}}>
+              <h3 style={{color:'#1e3a8a'}}>Attendance Records</h3>
+              <button onClick={downloadMasterSheet} style={{background:'#10b981', color:'white', border:'none', padding:'10px 15px', borderRadius:'6px', display:'flex', gap:'5px', fontWeight:'bold', cursor:'pointer'}}><Download size={16}/> MASTER SHEET</button>
+            </div>
+            {list.attendance.map(r => (
+              <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #eee' }}>
+                <span><b>{r.class}</b> - {r.sub}<br/><small>{r.faculty} | {r.time_str}</small></span>
+                <b style={{ color: '#10b981' }}>{r.present}/{r.total}</b>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
+
         {tab === '3' && (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr style={{ textAlign: 'left', background: '#f8fafc' }}><th style={{padding:'10px'}}>NAME</th><th style={{padding:'10px'}}>ID</th><th style={{padding:'10px'}}>ACTIONS</th></tr></thead>
+            <thead><tr style={{ textAlign: 'left', background: '#f8fafc' }}><th style={{padding:'10px'}}>NAME</th><th style={{padding:'10px'}}>ID</th><th style={{padding:'10px'}}>LECTURES</th><th style={{padding:'10px'}}>PRACTICALS</th><th style={{padding:'10px'}}>ACTIONS</th></tr></thead>
             <tbody>
-              {list.faculties.map(fac => (
-                <tr key={fac.id} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={{padding:'10px'}}>{fac.name}</td><td style={{padding:'10px'}}>{fac.id}</td>
-                  <td style={{padding:'10px'}}>
-                    <button onClick={() => { setF(fac); setEditMode(true); setTab('2'); }} style={{ color:'#3b82f6', background:'none', border:'none', marginRight:'10px' }}><Edit3 size={16}/></button>
-                    <button onClick={() => deleteFac(fac.id)} style={{ color:'#ef4444', background:'none', border:'none' }}><Trash2 size={16}/></button>
-                  </td>
-                </tr>
-              ))}
+              {list.faculties.map(fac => {
+                const s = list.stats.find(st => st.faculty === fac.name) || { theory_count: 0, practical_count: 0 };
+                return (
+                  <tr key={fac.id} style={{ borderBottom: '1px solid #eee' }}>
+                    <td style={{padding:'10px'}}>{fac.name}</td>
+                    <td style={{padding:'10px'}}>{fac.id}</td>
+                    <td style={{padding:'10px', fontWeight:'bold', color:'#3b82f6'}}>{s.theory_count}</td>
+                    <td style={{padding:'10px', fontWeight:'bold', color:'#10b981'}}>{s.practical_count}</td>
+                    <td style={{padding:'10px'}}>
+                      <button onClick={() => { setF(fac); setEditMode(true); setTab('2'); }} style={{ color:'#3b82f6', background:'none', border:'none', marginRight:'10px' }}><Edit3 size={16}/></button>
+                      <button onClick={() => deleteFac(fac.id)} style={{ color:'#ef4444', background:'none', border:'none' }}><Trash2 size={16}/></button>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         )}
+
         {tab === '2' && (
           <div style={styles.mGrid}>
             <div style={{ padding: '15px', border: '1px solid #eee', borderRadius: '8px' }}>
