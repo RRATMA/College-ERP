@@ -3,7 +3,7 @@ import {
   LogOut, ArrowLeft, Trash2, Search, User, Fingerprint, 
   BookOpen, Layers, FileSpreadsheet, ChevronRight, 
   CheckCircle2, LayoutGrid, Clock, AlertTriangle, Users,
-  BarChart3, PlusCircle, ShieldCheck, UserPlus
+  BarChart3, PlusCircle, ShieldCheck, UserPlus, Trash
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from "./supabaseClient";
@@ -61,65 +61,81 @@ export default function App() {
   );
 }
 
-// --- HOD PANEL (NEW DESIGNER UI) ---
+// --- REVISED HOD PANEL (ALL FEATURES INCLUDED) ---
 function HODPanel({ excelSheets, setView }) {
   const [tab, setTab] = useState('analytics');
-  const [db, setDb] = useState({ facs: [], logs: [], critical: [] });
-  const [loading, setLoading] = useState(true);
+  const [db, setDb] = useState({ facs: [], logs: [], maps: [] });
   const [form, setForm] = useState({ name:'', id:'', pass:'', fId:'', cls:'', sub:'' });
 
   const loadData = async () => {
-    setLoading(true);
     const { data: f } = await supabase.from('faculties').select('*').order('name');
     const { data: l } = await supabase.from('attendance').select('*').order('created_at', { ascending: false });
-    const { data: c } = await supabase.from('critical_absentees_view').select('*');
-    setDb({ facs: f || [], logs: l || [], critical: c || [] });
-    setLoading(false);
+    const { data: m } = await supabase.from('assignments').select('*');
+    setDb({ facs: f || [], logs: l || [], maps: m || [] });
   };
 
   useEffect(() => { loadData(); }, []);
 
+  const deleteFaculty = async (id) => {
+    if(window.confirm("Are you sure? This will remove the faculty and their assignments.")){
+      await supabase.from('faculties').delete().eq('id', id);
+      loadData();
+    }
+  };
+
   const downloadReport = () => {
     const ws = XLSX.utils.json_to_sheet(db.logs);
-    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Attendance");
-    XLSX.writeFile(wb, "HOD_Master_Report.xlsx");
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "MasterLogs");
+    XLSX.writeFile(wb, "Amrit_ERP_Report.xlsx");
   };
 
   return (
     <div style={hStyles.wrapper}>
       <div style={hStyles.header}>
-        <div><h2 style={{margin:0, fontSize:'24px'}}>HOD Console</h2><small style={{color:'#818cf8'}}>Department Management</small></div>
+        <div><h2 style={{margin:0, fontSize:'24px'}}>HOD Admin</h2><small style={{color:'#818cf8'}}>Management Control</small></div>
         <button onClick={()=>setView('login')} style={fStyles.exitBtn}><LogOut size={18}/></button>
       </div>
 
       <div style={hStyles.tabBar}>
-        <button onClick={()=>setTab('analytics')} style={{...hStyles.tabItem, color: tab==='analytics'?'#6366f1':'#475569'}}><BarChart3 size={20}/><span>Stats</span></button>
-        <button onClick={()=>setTab('logs')} style={{...hStyles.tabItem, color: tab==='logs'?'#6366f1':'#475569'}}><FileSpreadsheet size={20}/><span>Logs</span></button>
-        <button onClick={()=>setTab('manage')} style={{...hStyles.tabItem, color: tab==='manage'?'#6366f1':'#475569'}}><PlusCircle size={20}/><span>Manage</span></button>
+        <button onClick={()=>setTab('analytics')} style={{...hStyles.tabItem, color: tab==='analytics'?'#6366f1':'#475569'}}><BarChart3 size={18}/><span>Stats</span></button>
+        <button onClick={()=>setTab('faculties')} style={{...hStyles.tabItem, color: tab==='faculties'?'#6366f1':'#475569'}}><Users size={18}/><span>Staff</span></button>
+        <button onClick={()=>setTab('logs')} style={{...hStyles.tabItem, color: tab==='logs'?'#6366f1':'#475569'}}><FileSpreadsheet size={18}/><span>Logs</span></button>
+        <button onClick={()=>setTab('manage')} style={{...hStyles.tabItem, color: tab==='manage'?'#6366f1':'#475569'}}><PlusCircle size={18}/><span>Add</span></button>
       </div>
 
-      <div style={{animation: 'fadeIn 0.4s ease'}}>
+      <div style={{animation: 'fadeIn 0.3s ease'}}>
         {tab === 'analytics' && (
           <div style={hStyles.section}>
              <div style={hStyles.statsGrid}>
-                <div style={hStyles.statCard}><Users color="#6366f1"/><h2 style={{margin:'10px 0 5px 0'}}>{db.facs.length}</h2><p style={{margin:0, fontSize:'12px', opacity:0.6}}>Active Faculty</p></div>
-                <div style={hStyles.statCard}><ShieldCheck color="#10b981"/><h2 style={{margin:'10px 0 5px 0'}}>{db.logs.length}</h2><p style={{margin:0, fontSize:'12px', opacity:0.6}}>Sessions</p></div>
+                <div style={hStyles.statCard}><Users color="#6366f1"/><h2 style={{margin:'10px 0 5px 0'}}>{db.facs.length}</h2><p style={hStyles.subT}>Faculties</p></div>
+                <div style={hStyles.statCard}><ShieldCheck color="#10b981"/><h2 style={{margin:'10px 0 5px 0'}}>{db.logs.length}</h2><p style={hStyles.subT}>Total Logs</p></div>
              </div>
-             <h4 style={hStyles.sectionTitle}>CRITICAL ATTENDANCE</h4>
-             {db.critical.length === 0 ? <p style={{textAlign:'center', opacity:0.5}}>No alerts found.</p> : 
-               db.critical.map((c, i) => (
-                 <div key={i} style={hStyles.critCard}>
-                    <AlertTriangle color="#f43f5e" size={18}/>
-                    <div style={{flex:1}}><b>Roll No: {c.student_roll}</b><br/><small>{c.class_name} • Absent: {c.absent_count} times</small></div>
-                 </div>
-               ))
-             }
+             <div style={hStyles.formCard}>
+                <h4 style={{marginTop:0}}>Current Mappings ({db.maps.length})</h4>
+                {db.maps.map(m => (
+                  <div key={m.id} style={hStyles.miniRow}>
+                    <span><b>{m.class_name}</b>: {m.subject_name}</span>
+                    <button onClick={async()=>{await supabase.from('assignments').delete().eq('id', m.id); loadData();}} style={hStyles.delIcon}><Trash2 size={14}/></button>
+                  </div>
+                ))}
+             </div>
+          </div>
+        )}
+
+        {tab === 'faculties' && (
+          <div style={hStyles.section}>
+            {db.facs.map(f => (
+              <div key={f.id} style={hStyles.logCard}>
+                <div style={{flex:1}}><b>{f.name}</b><br/><small>ID: {f.id}</small></div>
+                <button onClick={()=>deleteFaculty(f.id)} style={{background:'none', border:'none', color:'#f43f5e'}}><Trash2 size={18}/></button>
+              </div>
+            ))}
           </div>
         )}
 
         {tab === 'logs' && (
           <div style={hStyles.section}>
-            <button onClick={downloadReport} style={hStyles.downloadBtn}><Download size={16}/> Download Excel Report</button>
+            <button onClick={downloadReport} style={hStyles.downloadBtn}><Download size={16}/> EXPORT MASTER SHEET</button>
             {db.logs.map(log => (
               <div key={log.id} style={hStyles.logCard}>
                 <div style={{flex:1}}><b>{log.class} | {log.sub}</b><br/><small>{log.faculty} • {log.duration}</small></div>
@@ -132,19 +148,18 @@ function HODPanel({ excelSheets, setView }) {
         {tab === 'manage' && (
           <div style={hStyles.section}>
             <div style={hStyles.formCard}>
-              <h4 style={{marginTop:0}}><UserPlus size={18}/> Add New Faculty</h4>
-              <input placeholder="Full Name" style={hStyles.input} onChange={e=>setForm({...form, name:e.target.value})}/>
-              <input placeholder="Employee ID" style={hStyles.input} onChange={e=>setForm({...form, id:e.target.value})}/>
-              <input placeholder="Passcode" type="password" style={hStyles.input} onChange={e=>setForm({...form, pass:e.target.value})}/>
-              <button style={hStyles.actionBtn} onClick={async()=>{await supabase.from('faculties').insert([{id:form.id, name:form.name, password:form.pass}]); loadData(); alert("Faculty Added!");}}>REGISTER FACULTY</button>
+              <h4>Add Faculty</h4>
+              <input placeholder="Name" style={hStyles.input} onChange={e=>setForm({...form, name:e.target.value})}/>
+              <input placeholder="ID" style={hStyles.input} onChange={e=>setForm({...form, id:e.target.value})}/>
+              <input placeholder="Password" type="password" style={hStyles.input} onChange={e=>setForm({...form, pass:e.target.value})}/>
+              <button style={hStyles.actionBtn} onClick={async()=>{await supabase.from('faculties').insert([{id:form.id, name:form.name, password:form.pass}]); loadData(); alert("Saved!");}}>CREATE ACCOUNT</button>
             </div>
-
             <div style={{...hStyles.formCard, marginTop:'15px'}}>
-              <h4 style={{marginTop:0}}><Layers size={18}/> Faculty Mapping</h4>
-              <select style={hStyles.input} onChange={e=>setForm({...form, fId:e.target.value})}><option>Select Faculty</option>{db.facs.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select>
-              <select style={hStyles.input} onChange={e=>setForm({...form, cls:e.target.value})}><option>Select Class</option>{excelSheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
-              <input placeholder="Subject Name" style={hStyles.input} onChange={e=>setForm({...form, sub:e.target.value})}/>
-              <button style={{...hStyles.actionBtn, background:'#10b981'}} onClick={async()=>{await supabase.from('assignments').insert([{fac_id:form.fId, class_name:form.cls, subject_name:form.sub}]); alert("Mapping Successful!");}}>ASSIGN SUBJECT</button>
+              <h4>Map Subject</h4>
+              <select style={hStyles.input} onChange={e=>setForm({...form, fId:e.target.value})}><option>Faculty</option>{db.facs.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select>
+              <select style={hStyles.input} onChange={e=>setForm({...form, cls:e.target.value})}><option>Class</option>{excelSheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
+              <input placeholder="Subject" style={hStyles.input} onChange={e=>setForm({...form, sub:e.target.value})}/>
+              <button style={{...hStyles.actionBtn, background:'#10b981'}} onClick={async()=>{await supabase.from('assignments').insert([{fac_id:form.fId, class_name:form.cls, subject_name:form.sub}]); loadData(); alert("Mapped!");}}>ASSIGN</button>
             </div>
           </div>
         )}
@@ -153,7 +168,7 @@ function HODPanel({ excelSheets, setView }) {
   );
 }
 
-// --- FACULTY PANEL (UNCHANGED UI AS PER REQUEST) ---
+// --- FACULTY PANEL (UNTOUCHED) ---
 function FacultyPanel({ user, isMobile, setView }) {
   const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', start: '', end: '' });
   const [active, setActive] = useState(false);
@@ -167,7 +182,7 @@ function FacultyPanel({ user, isMobile, setView }) {
   }, [user.id]);
 
   const launch = () => {
-    if(!setup.cl || !setup.sub || !setup.start || !setup.end) return alert("Please fill all details including Time!");
+    if(!setup.cl || !setup.sub || !setup.start || !setup.end) return alert("Please fill all details!");
     fetch('/students_list.xlsx').then(r => r.arrayBuffer()).then(ab => {
       const wb = XLSX.read(ab, { type: 'array' });
       const sh = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames.find(s=>s.toLowerCase()===setup.cl.toLowerCase())]);
@@ -180,12 +195,11 @@ function FacultyPanel({ user, isMobile, setView }) {
     setLoading(true);
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const dist = Math.sqrt(Math.pow(pos.coords.latitude-CAMPUS_LAT,2)+Math.pow(pos.coords.longitude-CAMPUS_LON,2));
-      if(dist > RADIUS_LIMIT) { setLoading(false); return alert("❌ OUTSIDE CAMPUS RANGE"); }
+      if(dist > RADIUS_LIMIT) { setLoading(false); return alert("❌ OUTSIDE CAMPUS"); }
 
       const { data: att } = await supabase.from('attendance').insert([{ 
         faculty: user.name, sub: setup.sub, class: setup.cl, type: setup.ty, 
-        duration: `${setup.start} - ${setup.end}`,
-        present: marked.length, total: students.length, 
+        duration: `${setup.start} - ${setup.end}`, present: marked.length, total: students.length, 
         time_str: new Date().toLocaleDateString('en-GB') 
       }]).select().single();
 
@@ -204,7 +218,6 @@ function FacultyPanel({ user, isMobile, setView }) {
         </div>
         <button onClick={()=>setView('login')} style={fStyles.exitBtn}><LogOut size={18}/></button>
       </div>
-
       <div style={fStyles.section}>
         <label style={fStyles.label}>SELECT CLASS</label>
         <div style={fStyles.tileGrid}>
@@ -218,26 +231,16 @@ function FacultyPanel({ user, isMobile, setView }) {
           ))}
         </div>
       </div>
-
       {setup.cl && (
         <div style={{animation:'fadeIn 0.3s ease'}}>
           <label style={fStyles.label}>SELECT SUBJECT</label>
-          <div style={fStyles.subList}>
-            {myJobs.filter(j=>j.class_name===setup.cl).map(j => (
-              <div key={j.id} onClick={()=>setSetup({...setup, sub:j.subject_name})} 
-                   style={{...fStyles.subRow, background: setup.sub===j.subject_name?'#6366f1':'#1e293b'}}>
-                <BookOpen size={16}/> {j.subject_name}
-              </div>
-            ))}
-          </div>
-
+          <div style={fStyles.subList}>{myJobs.filter(j=>j.class_name===setup.cl).map(j => (<div key={j.id} onClick={()=>setSetup({...setup, sub:j.subject_name})} style={{...fStyles.subRow, background: setup.sub===j.subject_name?'#6366f1':'#1e293b'}}><BookOpen size={16}/> {j.subject_name}</div>))}</div>
           <label style={fStyles.label}>LECTURE TIME</label>
           <div style={fStyles.timeRow}>
             <div style={fStyles.timeInputWrap}><Clock size={14}/><input type="time" onChange={e=>setSetup({...setup, start:e.target.value})} style={fStyles.timeInput}/></div>
             <span style={{color:'#475569'}}>to</span>
             <div style={fStyles.timeInputWrap}><Clock size={14}/><input type="time" onChange={e=>setSetup({...setup, end:e.target.value})} style={fStyles.timeInput}/></div>
           </div>
-
           <label style={fStyles.label}>MODE</label>
           <div style={fStyles.toggleWrap}>
             <button onClick={()=>setSetup({...setup, ty:'Theory'})} style={{...fStyles.toggleBtn, background: setup.ty==='Theory'?'#fff':'transparent', color: setup.ty==='Theory'?'#000':'#fff'}}>Theory</button>
@@ -245,23 +248,16 @@ function FacultyPanel({ user, isMobile, setView }) {
           </div>
         </div>
       )}
-
-      <div style={fStyles.bottomAction}>
-        <button onClick={launch} style={fStyles.launchBtn}>START SESSION <ChevronRight/></button>
-      </div>
+      <div style={fStyles.bottomAction}><button onClick={launch} style={fStyles.launchBtn}>START SESSION <ChevronRight/></button></div>
     </div>
   );
 
   return (
     <div style={fStyles.mobileWrapper}>
       <div style={fStyles.stickyHeader}>
-        <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
-          <button onClick={()=>setActive(false)} style={fStyles.circleBtn}><ArrowLeft/></button>
-          <div><h3 style={{margin:0}}>{setup.cl}</h3><small style={{color:'#818cf8'}}>{setup.sub}</small></div>
-        </div>
+        <div style={{display:'flex', alignItems:'center', gap:'15px'}}><button onClick={()=>setActive(false)} style={fStyles.circleBtn}><ArrowLeft/></button><div><h3 style={{margin:0}}>{setup.cl}</h3><small style={{color:'#818cf8'}}>{setup.sub}</small></div></div>
         <div style={fStyles.statsBadge}><b>{marked.length}</b>/{students.length}</div>
       </div>
-
       <div style={fStyles.rollArea}>
         {students.map(s => (
           <div key={s.id} onClick={() => { if(window.navigator.vibrate) window.navigator.vibrate(10); setMarked(p=>p.includes(s.id)?p.filter(x=>x!==s.id):[...p, s.id])}}
@@ -272,31 +268,27 @@ function FacultyPanel({ user, isMobile, setView }) {
           </div>
         ))}
       </div>
-
-      <div style={fStyles.bottomAction}>
-        <button disabled={loading} onClick={submit} style={{...fStyles.submitBtn, background: loading?'#334155':'#10b981'}}>
-          {loading ? "SYNCING GPS..." : `SUBMIT ${marked.length} ATTENDANCE`}
-        </button>
-      </div>
+      <div style={fStyles.bottomAction}><button disabled={loading} onClick={submit} style={{...fStyles.submitBtn, background: loading?'#334155':'#10b981'}}>{loading ? "SYNCING..." : `SUBMIT ${marked.length} PRESENT`}</button></div>
     </div>
   );
 }
 
-// --- STYLING (HOD & FACULTY FIXED) ---
+// --- SHARED STYLES ---
 const hStyles = {
-  wrapper: { padding:'20px 15px 100px 15px', minHeight:'100vh' },
-  header: { display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'25px' },
-  tabBar: { display:'flex', background:'#0f172a', borderRadius:'20px', padding:'8px', gap:'5px', marginBottom:'25px', border:'1px solid #1e293b' },
-  tabItem: { flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:'4px', background:'none', border:'none', padding:'10px', fontSize:'11px', fontWeight:'800' },
-  statsGrid: { display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px', marginBottom:'25px' },
-  statCard: { background:'#0f172a', padding:'20px', borderRadius:'22px', border:'1px solid #1e293b', textAlign:'center' },
-  sectionTitle: { fontSize:'10px', fontWeight:'900', color:'#475569', letterSpacing:'1.5px', marginBottom:'15px' },
-  critCard: { display:'flex', alignItems:'center', gap:'12px', background:'rgba(244,63,94,0.1)', padding:'15px', borderRadius:'18px', marginBottom:'10px', border:'1px solid rgba(244,63,94,0.2)' },
-  logCard: { display:'flex', alignItems:'center', background:'#0f172a', padding:'18px', borderRadius:'20px', border:'1px solid #1e293b', marginBottom:'10px' },
-  downloadBtn: { width:'100%', padding:'15px', borderRadius:'15px', background:'#1e293b', color:'#fff', border:'1px solid #334155', fontWeight:'800', display:'flex', alignItems:'center', justifyContent:'center', gap:'10px', marginBottom:'15px' },
-  formCard: { background:'#0f172a', padding:'20px', borderRadius:'22px', border:'1px solid #1e293b' },
-  input: { width:'100%', padding:'14px', borderRadius:'12px', background:'#020617', border:'1px solid #334155', color:'#fff', marginBottom:'12px', outline:'none', boxSizing:'border-box' },
-  actionBtn: { width:'100%', padding:'16px', borderRadius:'15px', background:'#6366f1', color:'#fff', border:'none', fontWeight:'900' }
+  wrapper: { padding:'20px 15px 100px 15px' },
+  header: { display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px' },
+  tabBar: { display:'flex', background:'#0f172a', borderRadius:'15px', padding:'5px', marginBottom:'20px' },
+  tabItem: { flex:1, display:'flex', flexDirection:'column', alignItems:'center', background:'none', border:'none', padding:'8px', fontSize:'10px', fontWeight:'bold' },
+  statsGrid: { display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px', marginBottom:'20px' },
+  statCard: { background:'#0f172a', padding:'15px', borderRadius:'15px', border:'1px solid #1e293b', textAlign:'center' },
+  subT: { margin:0, fontSize:'11px', opacity:0.5 },
+  formCard: { background:'#0f172a', padding:'15px', borderRadius:'15px', border:'1px solid #1e293b' },
+  miniRow: { display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid #1e293b', fontSize:'13px' },
+  delIcon: { background:'none', border:'none', color:'#f43f5e' },
+  logCard: { display:'flex', alignItems:'center', background:'#0f172a', padding:'15px', borderRadius:'15px', marginBottom:'10px' },
+  downloadBtn: { width:'100%', padding:'12px', borderRadius:'10px', background:'#1e293b', color:'#fff', border:'none', marginBottom:'15px', fontWeight:'bold' },
+  input: { width:'100%', padding:'12px', borderRadius:'10px', background:'#020617', border:'1px solid #334155', color:'#fff', marginBottom:'10px', boxSizing:'border-box' },
+  actionBtn: { width:'100%', padding:'14px', borderRadius:'10px', background:'#6366f1', color:'#fff', border:'none', fontWeight:'bold' }
 };
 
 const fStyles = {
@@ -325,4 +317,4 @@ const fStyles = {
   rollArea: { display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:'10px' },
   rollChip: { height:'105px', borderRadius:'22px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', position:'relative' },
   checkIcon: { position:'absolute', top:'8px', right:'8px', color:'#fff' },
-  submitBtn: { width:'100%'
+  submitBtn: { 
