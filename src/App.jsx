@@ -7,17 +7,19 @@ import {
 import * as XLSX from 'xlsx';
 import { supabase } from "./supabaseClient";
 
+// --- STYLING ENGINE ---
 const injectStyles = () => {
-  if (document.getElementById('amrit-master-v2')) return;
+  if (document.getElementById('amrit-v2-final')) return;
   const styleTag = document.createElement("style");
-  styleTag.id = 'amrit-master-v2';
+  styleTag.id = 'amrit-v2-final';
   styleTag.innerHTML = `
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
-    body { font-family: 'Inter', sans-serif; background: #020617; margin: 0; color: #f1f5f9; }
+    body { font-family: 'Inter', sans-serif; background: #020617; margin: 0; color: #f1f5f9; overflow-x: hidden; }
     .glass-card { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; }
     .neon-logo-container { animation: pulse 3s infinite; border: 2px solid #06b6d4; border-radius: 50%; overflow: hidden; }
     @keyframes pulse { 0% { box-shadow: 0 0 5px #06b6d4; } 50% { box-shadow: 0 0 20px #06b6d4; } 100% { box-shadow: 0 0 5px #06b6d4; } }
     .scroll-hide::-webkit-scrollbar { display: none; }
+    input:focus, select:focus { outline: none; border-color: #06b6d4 !important; }
   `;
   document.head.appendChild(styleTag);
 };
@@ -36,7 +38,7 @@ export default function App() {
     fetch('/students_list.xlsx').then(res => res.arrayBuffer()).then(ab => {
       const wb = XLSX.read(ab, { type: 'array' });
       setExcelSheets(wb.SheetNames);
-    }).catch(() => console.error("Excel Missing"));
+    }).catch(() => console.error("Critical: students_list.xlsx not found in /public"));
   }, []);
 
   const handleLogin = async (u, p) => {
@@ -46,7 +48,7 @@ export default function App() {
     } else {
       const { data } = await supabase.from('faculties').select('*').eq('id', u).eq('password', p).single();
       if (data) { setUser({ ...data, role: 'faculty' }); setView('faculty'); }
-      else alert("Access Denied");
+      else alert("Unauthorized Access");
     }
   };
 
@@ -65,9 +67,10 @@ export default function App() {
     </div>
   );
 
-  return <div style={{minHeight: '100vh'}}>{view === 'hod' ? <HODPanel excelSheets={excelSheets} setView={setView} /> : <FacultyPanel user={user} setView={setView} />}</div>;
+  return <div style={{minHeight: '100vh'}}>{view === 'hod' ? <HODPanel excelSheets={excelSheets} setView={setView} /> : <FacultyPanel user={user} setView={setView} excelSheets={excelSheets} />}</div>;
 }
 
+// --- HOD DASHBOARD COMPONENT ---
 function HODPanel({ excelSheets, setView }) {
   const [tab, setTab] = useState('dashboard');
   const [db, setDb] = useState({ facs: [], logs: [], maps: [] });
@@ -85,7 +88,7 @@ function HODPanel({ excelSheets, setView }) {
   return (
     <div style={ui.container}>
       <div style={ui.header}>
-        <h3>HOD Console</h3>
+        <h3>HOD Management</h3>
         <button onClick={()=>setView('login')} style={ui.exitBtn}><LogOut size={20}/></button>
       </div>
       <div className="scroll-hide" style={ui.tabRow}>
@@ -93,31 +96,56 @@ function HODPanel({ excelSheets, setView }) {
           <button key={t} onClick={()=>setTab(t)} style={{...ui.tabBtn, background: tab===t?'#0891b2':'#1e293b', color:'#fff'}}>{t.toUpperCase()}</button>
         ))}
       </div>
+
       {tab === 'dashboard' && (
-        <div>
-          <div style={ui.statsGrid}>
-            <div className="glass-card" style={ui.statCard}><h2>{db.logs.length}</h2><p>Sessions</p></div>
-            <div className="glass-card" style={ui.statCard}><h2>{db.facs.length}</h2><p>Staff</p></div>
-            <div className="glass-card" style={ui.statCard}><h2>{excelSheets.length}</h2><p>Classes</p></div>
-          </div>
+        <div style={ui.statsGrid}>
+          <div className="glass-card" style={ui.statCard}><h2>{db.logs.length}</h2><p>Sessions</p></div>
+          <div className="glass-card" style={ui.statCard}><h2>{db.facs.length}</h2><p>Faculties</p></div>
+          <div className="glass-card" style={ui.statCard}><h2>{excelSheets.length}</h2><p>Classes</p></div>
         </div>
       )}
+
       {tab === 'staff' && (
         <div>
-          <div className="glass-card" style={{padding:'20px', marginBottom:'10px'}}>
-            <input placeholder="Name" style={ui.input} onChange={e=>setForm({...form, name:e.target.value})}/>
-            <input placeholder="ID" style={ui.input} onChange={e=>setForm({...form, id:e.target.value})}/>
-            <input placeholder="Pass" type="password" style={ui.input} onChange={e=>setForm({...form, pass:e.target.value})}/>
-            <button style={ui.primaryBtn} onClick={async()=>{ await supabase.from('faculties').insert([form]); loadData(); }}>SAVE</button>
+          <div className="glass-card" style={{padding:'20px', marginBottom:'15px'}}>
+            <input placeholder="Faculty Name" style={ui.input} onChange={e=>setForm({...form, name:e.target.value})}/>
+            <input placeholder="New ID" style={ui.input} onChange={e=>setForm({...form, id:e.target.value})}/>
+            <input placeholder="Password" style={ui.input} onChange={e=>setForm({...form, pass:e.target.value})}/>
+            <button style={ui.primaryBtn} onClick={async()=>{await supabase.from('faculties').insert([{id:form.id, name:form.name, password:form.pass}]); loadData();}}>ADD FACULTY</button>
           </div>
-          {db.facs.map(f => (<div key={f.id} style={ui.feedRow} className="glass-card">{f.name} <button onClick={async()=>{await supabase.from('faculties').delete().eq('id', f.id); loadData();}} style={ui.delBtn}><Trash2 size={16}/></button></div>))}
+          {db.facs.map(f => (<div key={f.id} style={ui.feedRow} className="glass-card">{f.name} ({f.id}) <button onClick={async()=>{await supabase.from('faculties').delete().eq('id', f.id); loadData();}} style={ui.delBtn}><Trash2 size={16}/></button></div>))}
+        </div>
+      )}
+
+      {tab === 'mapping' && (
+        <div>
+          <div className="glass-card" style={{padding:'20px', marginBottom:'15px'}}>
+            <select style={ui.input} onChange={e=>setForm({...form, fId:e.target.value})}><option>Select Faculty</option>{db.facs.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select>
+            <select style={ui.input} onChange={e=>setForm({...form, cls:e.target.value})}><option>Select Class Sheet</option>{excelSheets.map(s=><option key={s}>{s}</option>)}</select>
+            <input placeholder="Subject" style={ui.input} onChange={e=>setForm({...form, sub:e.target.value})}/>
+            <button style={ui.primaryBtn} onClick={async()=>{await supabase.from('assignments').insert([{fac_id:form.fId, class_name:form.cls, subject_name:form.sub}]); loadData();}}>ASSIGN CLASS</button>
+          </div>
+          {db.maps.map(m => (<div key={m.id} style={ui.feedRow} className="glass-card">{m.class_name} - {m.subject_name} <button onClick={async()=>{await supabase.from('assignments').delete().eq('id', m.id); loadData();}} style={ui.delBtn}><Trash2 size={16}/></button></div>))}
+        </div>
+      )}
+
+      {tab === 'logs' && (
+        <div>
+          <button style={{...ui.primaryBtn, marginBottom:'15px', background:'#10b981'}} onClick={()=>{
+            const ws = XLSX.utils.json_to_sheet(db.logs);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+            XLSX.writeFile(wb, "Master_Report.xlsx");
+          }}>DOWNLOAD MASTER REPORT</button>
+          {db.logs.map(log => (<div key={log.id} style={ui.feedRow} className="glass-card"><div><b>{log.class} | {log.sub}</b><br/><small>{log.faculty}</small></div><b>{log.present}/{log.total}</b></div>))}
         </div>
       )}
     </div>
   );
 }
 
-function FacultyPanel({ user, setView }) {
+// --- FACULTY PORTAL COMPONENT ---
+function FacultyPanel({ user, setView, excelSheets }) {
   const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', start: '', end: '' });
   const [active, setActive] = useState(false);
   const [students, setStudents] = useState([]);
@@ -133,8 +161,16 @@ function FacultyPanel({ user, setView }) {
     if(!setup.cl || !setup.sub) return alert("Select Class & Subject");
     fetch('/students_list.xlsx').then(r => r.arrayBuffer()).then(ab => {
       const wb = XLSX.read(ab, { type: 'array' });
-      const sh = XLSX.utils.sheet_to_json(wb.Sheets[setup.cl]);
-      setStudents(sh.map(s => ({ id: String(s['ROLL NO'] || s['Roll No']) })).filter(s => s.id));
+      const sheetName = wb.SheetNames.find(s => s.toLowerCase() === setup.cl.toLowerCase());
+      if(!sheetName) return alert("Class sheet not found in Excel");
+      
+      const sh = XLSX.utils.sheet_to_json(wb.Sheets[sheetName]);
+      const list = sh.map(s => {
+        const id = s['ROLL NO'] || s['Roll No'] || s['roll no'] || s['ID'];
+        return id ? { id: String(id).trim() } : null;
+      }).filter(s => s !== null);
+      
+      setStudents(list);
       setActive(true);
     });
   };
@@ -143,7 +179,7 @@ function FacultyPanel({ user, setView }) {
     setLoading(true);
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const dist = Math.sqrt(Math.pow(pos.coords.latitude-CAMPUS_LAT,2)+Math.pow(pos.coords.longitude-CAMPUS_LON,2));
-      if(dist > RADIUS_LIMIT) { setLoading(false); return alert("❌ OUTSIDE CAMPUS"); }
+      if(dist > RADIUS_LIMIT) { setLoading(false); return alert("❌ ACCESS DENIED: Outside Campus"); }
       
       const { data: att } = await supabase.from('attendance').insert([{ 
         faculty: user.name, sub: setup.sub, class: setup.cl, type: setup.ty, 
@@ -154,24 +190,29 @@ function FacultyPanel({ user, setView }) {
       const abs = students.filter(s => !marked.includes(s.id)).map(s => ({ attendance_id: att.id, student_roll: s.id, class_name: setup.cl }));
       if(abs.length > 0) await supabase.from('absentee_records').insert(abs);
       
-      alert("✅ Saved!");
+      alert("✅ Data Synced Successfully");
       setLoading(false); setActive(false); setMarked([]);
-    }, () => { setLoading(false); alert("GPS Failed"); });
+    }, () => { setLoading(false); alert("GPS Access Required"); });
   };
 
   if (!active) return (
     <div style={ui.mobileWrap}>
       <div style={ui.header}><h3>Prof. {user.name}</h3><button onClick={()=>setView('login')} style={ui.exitBtn}><LogOut/></button></div>
+      <p style={ui.label}>SELECT CLASS</p>
       <div style={ui.tileGrid}>{[...new Set(myJobs.map(j=>j.class_name))].map(c => (<div key={c} onClick={()=>setSetup({...setup, cl:c})} style={{...ui.tile, background: setup.cl===c?'#0891b2':'#1e293b'}}>{c}</div>))}</div>
+      
       {setup.cl && (
         <div style={{marginTop: '20px'}}>
+          <p style={ui.label}>SELECT SUBJECT</p>
           <div style={ui.subList}>{myJobs.filter(j=>j.class_name===setup.cl).map(j => (<div key={j.id} onClick={()=>setSetup({...setup, sub:j.subject_name})} style={{...ui.subRow, background: setup.sub===j.subject_name?'#0891b2':'#1e293b'}}>{j.subject_name}</div>))}</div>
+          
+          <p style={ui.label}>SESSION TYPE</p>
           <div style={{display:'flex', gap:'10px', marginBottom: '15px'}}>
              <button onClick={()=>setSetup({...setup, ty:'Theory'})} style={{...ui.typeBtn, background: setup.ty==='Theory'?'#06b6d4':'#1e293b'}}><GraduationCap size={16}/> Theory</button>
              <button onClick={()=>setSetup({...setup, ty:'Practical'})} style={{...ui.typeBtn, background: setup.ty==='Practical'?'#10b981':'#1e293b'}}><FlaskConical size={16}/> Practical</button>
           </div>
-          <div style={{display:'flex', gap:'10px', marginBottom: '15px'}}><input type="time" onChange={e=>setSetup({...setup, start:e.target.value})} style={ui.input}/><input type="time" onChange={e=>setSetup({...setup, end:e.target.value})} style={ui.input}/></div>
-          <button onClick={launch} style={ui.primaryBtn}>START</button>
+          <div style={{display:'flex', gap:'10px', marginBottom: '20px'}}><input type="time" onChange={e=>setSetup({...setup, start:e.target.value})} style={ui.input}/><input type="time" onChange={e=>setSetup({...setup, end:e.target.value})} style={ui.input}/></div>
+          <button onClick={launch} style={ui.primaryBtn}>START ROLL CALL</button>
         </div>
       )}
     </div>
@@ -181,36 +222,38 @@ function FacultyPanel({ user, setView }) {
     <div style={ui.mobileWrap}>
       <div style={ui.stickyHeader}><button onClick={()=>setActive(false)} style={ui.circleBtn}><ArrowLeft/></button><h3>{setup.cl}</h3><div style={ui.badge}>{marked.length}/{students.length}</div></div>
       <div style={ui.rollArea}>{students.map(s => (<div key={s.id} onClick={() => setMarked(p=>p.includes(s.id)?p.filter(x=>x!==s.id):[...p, s.id])} style={{...ui.rollChip, background: marked.includes(s.id)?'#10b981':'#1e293b'}}>{s.id}</div>))}</div>
-      <button disabled={loading} onClick={submit} style={ui.submitBtn}>{loading ? "GEOTAGGING..." : "SYNC TO CLOUD"}</button>
+      <button disabled={loading} onClick={submit} style={ui.submitBtn}>{loading ? "VERIFYING GPS..." : "SYNC TO SERVER"}</button>
     </div>
   );
 }
 
+// --- UI STYLE OBJECT ---
 const ui = {
   loginWrap: { height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#020617' },
-  loginCard: { padding: '50px 40px', width: '300px', textAlign: 'center' },
-  logoCircle: { width: '90px', height: '90px', margin: '0 auto 20px' },
-  container: { maxWidth: '800px', margin: '0 auto', padding: '20px' },
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
-  tabRow: { display: 'flex', gap: '10px', marginBottom: '20px', overflowX: 'auto' },
-  tabBtn: { padding: '10px 15px', borderRadius: '12px', border: 'none', fontWeight: 'bold', fontSize: '11px' },
-  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' },
+  loginCard: { padding: '50px 40px', width: '320px', textAlign: 'center' },
+  logoCircle: { width: '100px', height: '100px', margin: '0 auto 20px' },
+  container: { maxWidth: '800px', margin: '0 auto', padding: '30px 20px' },
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' },
+  tabRow: { display: 'flex', gap: '8px', marginBottom: '25px', overflowX: 'auto' },
+  tabBtn: { padding: '12px 18px', borderRadius: '14px', border: 'none', fontWeight: 'bold', fontSize: '11px', flexShrink: 0 },
+  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' },
   statCard: { padding: '20px', textAlign: 'center' },
-  input: { width: '100%', padding: '12px', marginBottom: '10px', borderRadius: '10px', background: '#020617', border: '1px solid #1e293b', color: '#fff', boxSizing: 'border-box' },
-  primaryBtn: { width: '100%', padding: '15px', background: '#0891b2', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 'bold' },
-  exitBtn: { background: 'none', color: '#f43f5e', border: 'none' },
+  input: { width: '100%', padding: '14px', marginBottom: '12px', borderRadius: '12px', background: '#0f172a', border: '1px solid #1e293b', color: '#fff', boxSizing: 'border-box' },
+  primaryBtn: { width: '100%', padding: '16px', background: '#0891b2', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' },
+  exitBtn: { background: 'none', color: '#f43f5e', border: 'none', cursor: 'pointer' },
   mobileWrap: { padding: '20px' },
   tileGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' },
-  tile: { padding: '20px', borderRadius: '15px', textAlign: 'center', fontWeight: 'bold' },
-  subList: { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '10px' },
-  subRow: { padding: '12px', borderRadius: '10px', textAlign: 'center', fontWeight: 'bold' },
-  typeBtn: { flex: 1, padding: '12px', color: '#fff', borderRadius: '12px', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', fontWeight: 'bold' },
-  stickyHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
-  rollArea: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', paddingBottom: '80px' },
-  rollChip: { padding: '15px', borderRadius: '12px', textAlign: 'center', fontWeight: 'bold' },
-  submitBtn: { position: 'fixed', bottom: '20px', left: '20px', right: '20px', padding: '18px', borderRadius: '15px', background: '#10b981', color: '#fff', border: 'none', fontWeight: 'bold' },
-  badge: { background: '#10b981', padding: '5px 10px', borderRadius: '8px' },
-  circleBtn: { width: '35px', height: '35px', borderRadius: '50%', background: '#1e293b', border: 'none', color: '#fff' },
-  delBtn: { background: 'none', border: 'none', color: '#f43f5e' },
-  feedRow: { display: 'flex', justifyContent: 'space-between', padding: '15px', marginBottom: '5px' }
+  tile: { padding: '25px 10px', borderRadius: '18px', textAlign: 'center', fontWeight: 'bold', cursor: 'pointer' },
+  subList: { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '15px' },
+  subRow: { padding: '15px', borderRadius: '12px', textAlign: 'center', fontWeight: 'bold', cursor: 'pointer' },
+  typeBtn: { flex: 1, padding: '12px', color: '#fff', borderRadius: '12px', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: 'bold' },
+  label: { fontSize: '11px', color: '#64748b', fontWeight: 'bold', marginBottom: '8px' },
+  stickyHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' },
+  rollArea: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', paddingBottom: '100px' },
+  rollChip: { padding: '20px 10px', borderRadius: '15px', textAlign: 'center', fontWeight: 'bold', fontSize: '14px' },
+  submitBtn: { position: 'fixed', bottom: '20px', left: '20px', right: '20px', padding: '20px', borderRadius: '18px', background: '#10b981', color: '#fff', border: 'none', fontWeight: 'bold', zIndex: 100 },
+  badge: { background: '#10b981', padding: '6px 12px', borderRadius: '10px', fontWeight: 'bold' },
+  circleBtn: { width: '40px', height: '40px', borderRadius: '50%', background: '#1e293b', border: 'none', color: '#fff' },
+  delBtn: { background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer' },
+  feedRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px', marginBottom: '8px' }
 };
