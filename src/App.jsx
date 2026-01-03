@@ -1,67 +1,27 @@
 import React, { useEffect, useState } from 'react';
 import { 
-  LogOut, ArrowLeft, Clock, Trash2, Edit3, UserPlus, 
-  Database, Download, ShieldCheck, User, CheckCircle, 
-  ChevronRight, Zap, MapPin, Calendar, PlusCircle, BarChart3, Users, Search,
-  LayoutDashboard, BookOpen, Fingerprint, GraduationCap, Settings
+  LogOut, ArrowLeft, Clock, Trash2, Edit3, Download, Search, 
+  User, Users, BarChart3, Plus, RefreshCw, BookOpen, Fingerprint, MapPin, CheckCircle2
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from "./supabaseClient";
 
-// --- Configuration & High-End Theme ---
+// --- Configuration ---
 const CAMPUS_LAT = 19.7042; 
 const CAMPUS_LON = 72.7645;
-
-const theme = {
-  primary: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-  accent: '#10b981', // Emerald Green
-  danger: '#ef4444', // Rose Red
-  bg: '#020617',     // Deep Space Blue
-  card: 'rgba(30, 41, 59, 0.5)', 
-  border: 'rgba(255, 255, 255, 0.08)',
-  textMain: '#f8fafc',
-  textMuted: '#94a3b8'
-};
-
-const styles = {
-  wrapper: {
-    minHeight: '100vh', width: '100vw', background: theme.bg, color: theme.textMain, 
-    fontFamily: "'Plus Jakarta Sans', sans-serif", overflowX: 'hidden',
-    backgroundImage: `radial-gradient(circle at 0% 0%, rgba(79, 70, 229, 0.15) 0, transparent 40%), radial-gradient(circle at 100% 100%, rgba(124, 58, 237, 0.15) 0, transparent 40%)`,
-    display: 'flex', flexDirection: 'column'
-  },
-  nav: {
-    background: 'rgba(2, 6, 23, 0.8)', backdropFilter: 'blur(12px)', padding: '15px 5%',
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-    borderBottom: `1px solid ${theme.border}`, position: 'sticky', top: 0, zIndex: 100
-  },
-  card: {
-    background: theme.card, backdropFilter: 'blur(16px)', borderRadius: '28px', padding: '28px',
-    border: `1px solid ${theme.border}`, marginBottom: '20px', width: '100%', boxSizing: 'border-box',
-    boxShadow: '0 10px 30px -10px rgba(0,0,0,0.5)'
-  },
-  input: {
-    width: '100%', padding: '15px 20px', borderRadius: '16px', border: `1px solid ${theme.border}`,
-    background: 'rgba(15, 23, 42, 0.6)', color: 'white', fontSize: '15px', marginBottom: '18px', 
-    outline: 'none', transition: '0.3s border'
-  },
-  btn: {
-    padding: '14px 24px', borderRadius: '16px', border: 'none', fontWeight: '700', cursor: 'pointer',
-    display: 'flex', alignItems: 'center', gap: '10px', transition: '0.3s transform, 0.3s opacity',
-    fontSize: '15px'
-  }
-};
+const RADIUS_LIMIT = 0.005; // Geofence radius
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [view, setView] = useState('login');
-  const [excelClasses, setExcelClasses] = useState([]);
+  const [excelSheets, setExcelSheets] = useState([]);
 
   useEffect(() => {
+    // Fetch sheet names from students_list.xlsx in the public folder
     fetch('/students_list.xlsx').then(res => res.arrayBuffer()).then(ab => {
       const wb = XLSX.read(ab, { type: 'array' });
-      setExcelClasses(wb.SheetNames);
-    });
+      setExcelSheets(wb.SheetNames);
+    }).catch(e => console.error("Excel file not found. Place students_list.xlsx in public folder."));
   }, []);
 
   const handleLogin = async (u, p) => {
@@ -71,188 +31,124 @@ export default function App() {
     } else {
       const { data } = await supabase.from('faculties').select('*').eq('id', u).eq('password', p).single();
       if (data) { setUser({ ...data, role: 'faculty' }); setView('faculty'); }
-      else alert("Authentication Failed!");
+      else alert("Invalid ID or Password!");
     }
   };
 
-  // --- HOME / LOGIN UI (PIMPED UP) ---
   if (view === 'login') return (
-    <div style={{ ...styles.wrapper, justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
-       <div style={{ ...styles.card, maxWidth: '420px', textAlign: 'center' }}>
-          <div style={{ background: 'white', display: 'inline-block', padding: '15px', borderRadius: '24px', marginBottom: '20px', boxShadow: '0 0 30px rgba(79, 70, 229, 0.3)' }}>
-            <img src="/logo.png" style={{ width: '65px' }} alt="logo" />
-          </div>
-          <h1 style={{ fontSize: '32px', fontWeight: '900', marginBottom: '4px', letterSpacing: '-1.5px', background: theme.primary, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>AMRIT</h1>
-          <p style={{ color: theme.textMuted, fontSize: '12px', fontWeight: '700', letterSpacing: '2px', marginBottom: '35px' }}>ATTENDANCE SYSTEM</p>
-          
-          <div style={{ position: 'relative' }}>
-             <User size={18} style={{ position: 'absolute', left: '18px', top: '16px', color: theme.textMuted }} />
-             <input id="u" style={{ ...styles.input, paddingLeft: '50px' }} placeholder="Faculty ID" />
-          </div>
-          <div style={{ position: 'relative' }}>
-             <Fingerprint size={18} style={{ position: 'absolute', left: '18px', top: '16px', color: theme.textMuted }} />
-             <input id="p" type="password" style={{ ...styles.input, paddingLeft: '50px' }} placeholder="Password" />
-          </div>
-          
-          <button style={{ ...styles.btn, background: theme.primary, color: 'white', width: '100%', justifyContent: 'center', marginTop: '10px' }} 
-            onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)}>
-            SECURE ACCESS <ShieldCheck size={18}/>
-          </button>
-       </div>
+    <div style={styles.loginPage}>
+      <div style={styles.glassCard}>
+        <div style={styles.logoWrap}><img src="/logo.png" style={{width:'50px'}} alt="logo" /></div>
+        <h1 style={styles.title}>AMRIT ERP</h1>
+        <p style={styles.badge}>SECURE INSTITUTIONAL PORTAL</p>
+        <div style={styles.inputGroup}><User size={18} style={styles.iconIn} /><input id="u" placeholder="Faculty/Admin ID" style={styles.inputField} /></div>
+        <div style={styles.inputGroup}><Fingerprint size={18} style={styles.iconIn} /><input id="p" type="password" placeholder="Password" style={styles.inputField} /></div>
+        <button onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)} style={styles.btnPrimary}>AUTHENTICATE</button>
+      </div>
     </div>
   );
 
   return (
-    <div style={styles.wrapper}>
-      <nav style={styles.nav}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <div style={{ background: theme.primary, padding: '10px', borderRadius: '14px', boxShadow: '0 4px 15px rgba(0,0,0,0.3)' }}>
-            <User size={20} color="white"/>
+    <div style={styles.appContainer}>
+      <nav style={styles.navbar}>
+        <div style={styles.navContent}>
+          <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+            <div style={styles.userCircle}>{user.name[0]}</div>
+            <div className="hide-mobile">
+              <div style={{fontWeight:'bold', fontSize:'14px'}}>{user.name}</div>
+              <div style={{fontSize:'10px', color:'#818cf8'}}>{user.role.toUpperCase()}</div>
+            </div>
           </div>
-          <div><b style={{fontSize: '15px'}}>{user.name}</b><br/><small style={{color: '#818cf8', fontWeight:'700'}}>{user.role.toUpperCase()}</small></div>
+          <button onClick={() => setView('login')} style={styles.logoutBtn}><LogOut size={16}/> LOGOUT</button>
         </div>
-        <button onClick={() => setView('login')} style={{ ...styles.btn, background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '10px 16px' }}>
-          <LogOut size={16}/> 
-          <span className="hide-mobile">LOGOUT</span>
-        </button>
       </nav>
-      <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
-        {view === 'hod' ? <HODPanel excelClasses={excelClasses} /> : <FacultyPanel user={user} />}
-      </div>
+      <main style={styles.mainArea}>
+        {view === 'hod' ? <HODPanel excelSheets={excelSheets} /> : <FacultyPanel user={user} />}
+      </main>
+      <style>{`
+        @media (max-width: 768px) {
+          .hide-mobile { display: none; }
+          .grid-2 { grid-template-columns: 1fr !important; }
+          .roll-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 8px !important; }
+        }
+      `}</style>
     </div>
   );
 }
 
-// --- HOD PANEL (ICON & COLOR UPDATE) ---
-function HODPanel({ excelClasses }) {
+// --- HOD PANEL (FULLY IN ENGLISH) ---
+function HODPanel({ excelSheets }) {
   const [tab, setTab] = useState('logs');
-  const [list, setList] = useState({ faculties: [], attendance: [], assignments: [] });
+  const [db, setDb] = useState({ facs: [], logs: [], assigns: [] });
   const [search, setSearch] = useState('');
-  const [f, setF] = useState({ name: '', id: '', pass: '', sFac: '', sClass: '', sSub: '' });
-  const [editMode, setEditMode] = useState(false);
+  const [form, setForm] = useState({ n: '', i: '', p: '', fId: '', cl: '', sub: '' });
 
-  const refresh = async () => {
-    const { data: facs } = await supabase.from('faculties').select('*').order('name');
-    const { data: att } = await supabase.from('attendance').select('*').order('created_at', { ascending: false });
-    const { data: asgn } = await supabase.from('assignments').select('*');
-    setList({ faculties: facs || [], attendance: att || [], assignments: asgn || [] });
+  const loadData = async () => {
+    const { data: f } = await supabase.from('faculties').select('*').order('name');
+    const { data: l } = await supabase.from('attendance').select('*').order('created_at', { ascending: false });
+    const { data: a } = await supabase.from('assignments').select('*');
+    setDb({ facs: f || [], logs: l || [], assigns: a || [] });
+  };
+  useEffect(() => { loadData(); }, []);
+
+  const downloadMasterSheet = () => {
+    const ws = XLSX.utils.json_to_sheet(db.logs);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "FullReport");
+    XLSX.writeFile(wb, "Amrit_ERP_Master_Report.xlsx");
   };
 
-  useEffect(() => { refresh(); }, []);
-
-  const filteredLogs = list.attendance.filter(l => l.faculty.toLowerCase().includes(search.toLowerCase()) || l.class.toLowerCase().includes(search.toLowerCase()));
-
   return (
-    <div style={{ animation: 'fadeIn 0.6s ease' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '30px' }}>
-        <div style={{ ...styles.card, margin: 0, padding: '25px', display: 'flex', alignItems: 'center', gap: '20px', borderLeft: '4px solid #6366f1' }}>
-          <div style={{ background: 'rgba(99, 102, 241, 0.1)', padding: '14px', borderRadius: '18px' }}><Users color="#6366f1" size={28}/></div>
-          <div><p style={{color: theme.textMuted, fontSize:'13px', margin:0}}>Total Faculty</p><b style={{fontSize:'26px'}}>{list.faculties.length}</b></div>
-        </div>
-        <div style={{ ...styles.card, margin: 0, padding: '25px', display: 'flex', alignItems: 'center', gap: '20px', borderLeft: '4px solid #10b981' }}>
-          <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '14px', borderRadius: '18px' }}><BarChart3 color="#10b981" size={28}/></div>
-          <div><p style={{color: theme.textMuted, fontSize:'13px', margin:0}}>Total Sessions</p><b style={{fontSize:'26px'}}>{list.attendance.length}</b></div>
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '30px', background: 'rgba(255,255,255,0.03)', padding: '8px', borderRadius: '20px' }}>
+    <div>
+      <div style={styles.tabContainer}>
         {['logs', 'faculties', 'manage'].map(t => (
-          <button key={t} onClick={() => {setTab(t); setEditMode(false);}} 
-            style={{ flex: 1, ...styles.btn, background: tab === t ? theme.primary : 'transparent', color: 'white', justifyContent: 'center' }}>
-            {t === 'logs' && <LayoutDashboard size={18}/>}
-            {t === 'faculties' && <GraduationCap size={18}/>}
-            {t === 'manage' && <Settings size={18}/>}
-            <span style={{fontSize: '12px'}}>{t.toUpperCase()}</span>
-          </button>
+          <button key={t} onClick={() => setTab(t)} style={{...styles.tabLink, background: tab === t ? '#6366f1' : 'transparent'}}>{t.toUpperCase()}</button>
         ))}
       </div>
 
       {tab === 'logs' && (
-        <>
-          <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
-            <div style={{ position: 'relative', flex: 1 }}>
-              <Search size={18} style={{ position: 'absolute', left: '18px', top: '16px', color: theme.textMuted }} />
-              <input style={{ ...styles.input, paddingLeft: '50px', marginBottom: 0 }} placeholder="Search Class or Teacher..." onChange={e => setSearch(e.target.value)} />
+        <div className="fade-in">
+          <div style={styles.inputGroup}><Search size={18} style={styles.iconIn} /><input style={styles.inputField} placeholder="Search by teacher, subject, or class..." onChange={e=>setSearch(e.target.value.toLowerCase())} /></div>
+          <button onClick={downloadMasterSheet} style={styles.downloadBtn}><Download size={18}/> DOWNLOAD MASTER SHEET (EXCEL)</button>
+          {db.logs.filter(l => (l.faculty+l.class+l.sub).toLowerCase().includes(search)).map(log => (
+            <div key={log.id} style={styles.itemRow}>
+              <div><b>{log.class}</b><br/><small>{log.sub} ({log.type}) | {log.faculty}</small></div>
+              <div style={{textAlign:'right'}}><b style={{color:'#10b981'}}>{log.present}/{log.total}</b><br/><small style={{fontSize:'10px'}}>{log.duration}</small></div>
             </div>
-            <button style={{ ...styles.btn, background: theme.accent, color: 'white' }} onClick={() => {
-                const ws = XLSX.utils.json_to_sheet(list.attendance);
-                const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "AttendanceLogs");
-                XLSX.writeFile(wb, "Amrit_Attendance_Report.xlsx");
-            }}><Download size={20}/></button>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '15px' }}>
-            {filteredLogs.map(log => (
-              <div key={log.id} style={{ ...styles.card, margin: 0, transition: '0.3s' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                  <b style={{ fontSize: '20px', letterSpacing: '-0.5px' }}>{log.class}</b>
-                  <div style={{ background: 'rgba(16, 185, 129, 0.1)', color: theme.accent, padding: '4px 10px', borderRadius: '8px', fontWeight: '900', fontSize: '14px' }}>{log.present}/{log.total}</div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: theme.textMuted, fontSize: '14px' }}>
-                  <BookOpen size={14}/> {log.sub}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: theme.textMuted, fontSize: '14px', marginTop: '4px' }}>
-                  <User size={14}/> {log.faculty}
-                </div>
-                <div style={{ marginTop: '15px', paddingTop: '12px', borderTop: `1px solid ${theme.border}`, fontSize: '11px', display: 'flex', justifyContent: 'space-between', color: '#6366f1', fontWeight: '800' }}>
-                  <span>{log.time_str}</span>
-                  <span>{log.type.toUpperCase()}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      {tab === 'faculties' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          {list.faculties.map(fac => {
-            const tCount = list.attendance.filter(a => a.faculty === fac.name && a.type === 'Theory Lecture').length;
-            const pCount = list.attendance.filter(a => a.faculty === fac.name && a.type === 'Practical').length;
-            return (
-              <div key={fac.id} style={{ ...styles.card, margin: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                  <div style={{ width: '50px', height: '50px', background: theme.primary, borderRadius: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: '900', fontSize: '20px' }}>{fac.name[0]}</div>
-                  <div>
-                    <b style={{ fontSize: '18px' }}>{fac.name}</b>
-                    <div style={{ fontSize: '12px', color: theme.textMuted, marginTop: '2px' }}>ID: {fac.id} • Key: {fac.password}</div>
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                       <span style={{ fontSize: '10px', fontWeight: '800', color: '#818cf8' }}>THEORY: {tCount}</span>
-                       <span style={{ fontSize: '10px', fontWeight: '800', color: theme.accent }}>PRACTICAL: {pCount}</span>
-                    </div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={() => {setF(fac); setEditMode(true); setTab('manage');}} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', padding: '12px', borderRadius: '14px', color: '#f8fafc' }}><Edit3 size={18}/></button>
-                  <button onClick={async () => { if(window.confirm(`Remove ${fac.name}?`)) { await supabase.from('faculties').delete().eq('id', fac.id); refresh(); } }} style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', padding: '12px', borderRadius: '14px', color: '#ef4444' }}><Trash2 size={18}/></button>
-                </div>
-              </div>
-            );
-          })}
+          ))}
         </div>
       )}
 
-      {tab === 'manage' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '25px' }}>
-          <div style={styles.card}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}><UserPlus color="#6366f1"/> <h3>Faculty Onboarding</h3></div>
-            <input style={styles.input} value={f.name} onChange={e => setF({...f, name: e.target.value})} placeholder="Full Name (e.g. Prof. Patil)" />
-            <input style={styles.input} value={f.id} disabled={editMode} onChange={e => setF({...f, id: e.target.value})} placeholder="System ID (Unique)" />
-            <input style={styles.input} value={f.pass} onChange={e => setF({...f, pass: e.target.value})} placeholder="Security Password" />
-            <button style={{ ...styles.btn, background: theme.primary, color: 'white', width: '100%', justifyContent: 'center' }} onClick={async () => {
-              if(editMode) await supabase.from('faculties').update({name: f.name, password: f.pass}).eq('id', f.id);
-              else await supabase.from('faculties').insert([{id: f.id, name: f.name, password: f.pass}]);
-              setF({name:'', id:'', pass:''}); setEditMode(false); refresh(); setTab('faculties');
-            }}>{editMode ? 'UPDATE FACULTY' : 'REGISTER FACULTY'}</button>
+      {tab === 'faculties' && db.facs.map(f => {
+        const tCount = db.logs.filter(l => l.faculty === f.name && l.type === 'Theory').length;
+        const pCount = db.logs.filter(l => l.faculty === f.name && l.type === 'Practical').length;
+        return (
+          <div key={f.id} style={styles.itemRow}>
+            <div><b>{f.name}</b><br/><small>UID: {f.id}</small></div>
+            <div style={{display:'flex', gap:'8px', alignItems:'center'}}>
+              <div style={styles.countTag}>Theory: {tCount}</div>
+              <div style={{...styles.countTag, color:'#a855f7'}}>Practical: {pCount}</div>
+              <button onClick={async ()=>{if(window.confirm("Delete User?")){await supabase.from('faculties').delete().eq('id', f.id); loadData();}}} style={{...styles.iconBtn, color:'#f43f5e'}}><Trash2 size={18}/></button>
+            </div>
           </div>
-          <div style={styles.card}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}><Zap color="#10b981"/> <h3>Quick Workload Allot</h3></div>
-            <select style={styles.input} onChange={e => setF({...f, sFac: e.target.value})}><option>Select Faculty</option>{list.faculties.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
-            <select style={styles.input} onChange={e => setF({...f, sClass: e.target.value})}><option>Select Class</option>{excelClasses.map(c => <option key={c} value={c}>{c}</option>)}</select>
-            <input style={styles.input} placeholder="Subject Title" onChange={e => setF({...f, sSub: e.target.value})} />
-            <button style={{ ...styles.btn, background: theme.accent, color: 'white', width: '100%', justifyContent: 'center' }} onClick={async () => {
-              await supabase.from('assignments').insert([{ fac_id: f.sFac, class_name: f.sClass, subject_name: f.sSub }]);
-              alert("Assignment Linked Successfully!"); refresh();
-            }}>SYNC WORKLOAD</button>
+        );
+      })}
+
+      {tab === 'manage' && (
+        <div className="grid-2" style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'20px'}}>
+          <div style={styles.formCard}>
+            <h3><Plus size={18}/> Register Faculty</h3>
+            <input placeholder="Full Name" style={styles.inputSml} value={form.n} onChange={e=>setForm({...form, n:e.target.value})} />
+            <input placeholder="Employee ID" style={styles.inputSml} value={form.i} onChange={e=>setForm({...form, i:e.target.value})} />
+            <input placeholder="Password" style={styles.inputSml} value={form.p} onChange={e=>setForm({...form, p:e.target.value})} />
+            <button style={styles.btnAction} onClick={async ()=>{await supabase.from('faculties').insert([{id:form.i, name:form.n, password:form.p}]); loadData(); alert("Faculty Registered!");}}>CREATE ACCOUNT</button>
+          </div>
+          <div style={styles.formCard}>
+            <h3><RefreshCw size={18}/> Workload Assignment</h3>
+            <select style={styles.inputSml} onChange={e=>setForm({...form, fId:e.target.value})}><option>Select Faculty</option>{db.facs.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select>
+            <select style={styles.inputSml} onChange={e=>setForm({...form, cl:e.target.value})}><option>Select Class</option>{excelSheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
+            <input placeholder="Subject Title" style={styles.inputSml} onChange={e=>setForm({...form, sub:e.target.value})} />
+            <button style={{...styles.btnAction, background:'#10b981'}} onClick={async ()=>{await supabase.from('assignments').insert([{fac_id:form.fId, class_name:form.cl, subject_name:form.sub}]); alert("Workload Mapped!");}}>LINK SUBJECT</button>
           </div>
         </div>
       )}
@@ -260,63 +156,104 @@ function HODPanel({ excelClasses }) {
   );
 }
 
-// --- FACULTY PANEL (PREMIUM INTERFACE) ---
+// --- FACULTY PANEL (FULLY IN ENGLISH) ---
 function FacultyPanel({ user }) {
-  const [sel, setSel] = useState({ class: '', sub: '', type: 'Theory Lecture', startTime: '', endTime: '' });
-  const [isReady, setIsReady] = useState(false);
+  const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', start: '', end: '' });
+  const [active, setActive] = useState(false);
   const [students, setStudents] = useState([]);
-  const [present, setPresent] = useState([]);
-  const [myAssigns, setMyAssigns] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [marked, setMarked] = useState([]);
+  const [myJobs, setMyJobs] = useState([]);
 
   useEffect(() => {
-    supabase.from('assignments').select('*').eq('fac_id', user.id).then(res => setMyAssigns(res.data || []));
+    supabase.from('assignments').select('*').eq('fac_id', user.id).then(res => setMyJobs(res.data || []));
   }, [user.id]);
 
-  useEffect(() => {
-    if (sel.class) {
-      fetch('/students_list.xlsx').then(r => r.arrayBuffer()).then(ab => {
-        const wb = XLSX.read(ab, { type: 'array' });
-        const data = XLSX.utils.sheet_to_json(wb.Sheets[sel.class]);
-        setStudents(data.map(s => ({ id: String(s['ROLL NO'] || s['Roll No'] || ''), name: s['STUDENT NAME'] })).filter(s => s.id));
-      });
-    }
-  }, [sel.class]);
-
-  const submitAttendance = async () => {
-    if(present.length === 0) return alert("Please select students!");
-    setLoading(true);
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const R = 6371e3; 
-      const dLat = (CAMPUS_LAT - pos.coords.latitude) * Math.PI/180;
-      const dLon = (CAMPUS_LON - pos.coords.longitude) * Math.PI/180;
-      const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(pos.coords.latitude * Math.PI/180) * Math.cos(CAMPUS_LAT * Math.PI/180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-      if ((R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))) > 200) { setLoading(false); return alert("Out of Campus Boundaries!"); }
-      await supabase.from('attendance').insert([{ 
-        faculty: user.name, sub: sel.sub, class: sel.class, type: sel.type, 
-        start_time: sel.startTime, end_time: sel.endTime, present: present.length, 
-        total: students.length, time_str: new Date().toLocaleDateString('en-GB') 
-      }]);
-      alert("Attendance Submitted!"); setIsReady(false); setPresent([]); setLoading(false);
-    }, () => { setLoading(false); alert("GPS Error: Location Required!"); });
+  const startAttendance = () => {
+    if(!setup.cl || !setup.start || !setup.end) return alert("Please fill all details!");
+    fetch('/students_list.xlsx').then(r => r.arrayBuffer()).then(ab => {
+      const wb = XLSX.read(ab, { type: 'array' });
+      const sheet = XLSX.utils.sheet_to_json(wb.Sheets[setup.cl]);
+      setStudents(sheet.map(s => ({ id: String(s['ROLL NO'] || s['Roll No']) })).filter(s => s.id));
+      setActive(true);
+    });
   };
 
-  if (!isReady) return (
-    <div style={{ ...styles.card, maxWidth: '500px', margin: '40px auto', animation: 'slideUp 0.5s' }}>
-      <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-        <div style={{ background: 'rgba(79, 70, 229, 0.1)', display: 'inline-block', padding: '18px', borderRadius: '24px', marginBottom: '15px' }}><Clock size={32} color="#6366f1"/></div>
-        <h3 style={{ margin: 0 }}>Configure Session</h3>
-        <p style={{ color: theme.textMuted, fontSize: '13px' }}>Set lecture details to start roll call</p>
-      </div>
+  const submitAttendance = () => {
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const dist = Math.sqrt(Math.pow(pos.coords.latitude-CAMPUS_LAT,2)+Math.pow(pos.coords.longitude-CAMPUS_LON,2));
+      if(dist > RADIUS_LIMIT) return alert("Geofence Alert: You must be on campus to submit attendance.");
 
-      <label style={{ fontSize: '11px', color: '#6366f1', fontWeight: '800', marginLeft: '5px' }}>TARGET CLASS</label>
-      <select style={styles.input} onChange={e => setSel({...sel, class: e.target.value})}><option value="">Select Class</option>{[...new Set(myAssigns.map(a => a.class_name))].map(c => <option key={c} value={c}>{c}</option>)}</select>
-      
-      <label style={{ fontSize: '11px', color: '#6366f1', fontWeight: '800', marginLeft: '5px' }}>SUBJECT TITLE</label>
-      <select style={styles.input} onChange={e => setSel({...sel, sub: e.target.value})}><option value="">Select Subject</option>{myAssigns.filter(a => a.class_name === sel.class).map(a => <option key={a.id} value={a.subject_name}>{a.subject_name}</option>)}</select>
-      
-      <label style={{ fontSize: '11px', color: '#6366f1', fontWeight: '800', marginLeft: '5px' }}>SESSION TYPE</label>
-      <select style={styles.input} onChange={e => setSel({...sel, type: e.target.value})}><option>Theory Lecture</option><option>Practical</option></select>
-      
-      <div style={{ display: 'flex', gap: '15px' }}>
-        <div style={{ flex: 1 }}><label style={{ fontSize: '10px', color: theme.textMuted }}>START</label><input type="time" style={styles.input} onChange={e => setSel({...sel, startTime: e.tar
+      await supabase.from('attendance').insert([{ 
+        faculty: user.name, sub: setup.sub, class: setup.cl, type: setup.ty, 
+        duration: `${setup.start}-${setup.end}`, present: marked.length, total: students.length, 
+        time_str: new Date().toLocaleDateString('en-GB') 
+      }]);
+      alert("Attendance Submitted Successfully!"); setActive(false); setMarked([]);
+    }, () => alert("GPS Permission is required for verification."));
+  };
+
+  if (!active) return (
+    <div style={styles.setupCard}>
+      <h2 style={{textAlign:'center'}}><Clock color="#6366f1"/> Setup Session</h2>
+      <select style={styles.inputSml} onChange={e=>setSetup({...setup, cl:e.target.value})}><option>Choose Class</option>{[...new Set(myJobs.map(j=>j.class_name))].map(c=><option key={c} value={c}>{c}</option>)}</select>
+      <select style={styles.inputSml} onChange={e=>setSetup({...setup, sub:e.target.value})}><option>Choose Subject</option>{myJobs.filter(j=>j.class_name===setup.cl).map(j=><option key={j.id} value={j.subject_name}>{j.subject_name}</option>)}</select>
+      <select style={styles.inputSml} value={setup.ty} onChange={e=>setSetup({...setup, ty:e.target.value})}><option value="Theory">Theory</option><option value="Practical">Practical</option></select>
+      <div style={{display:'flex', gap:'10px', marginBottom:'10px'}}>
+        <div style={{flex:1}}><small>Start Time</small><input type="time" style={styles.inputSml} onChange={e=>setSetup({...setup, start:e.target.value})} /></div>
+        <div style={{flex:1}}><small>End Time</small><input type="time" style={styles.inputSml} onChange={e=>setSetup({...setup, end:e.target.value})} /></div>
+      </div>
+      <button style={styles.btnPrimary} onClick={startAttendance}>START ROLL CALL</button>
+    </div>
+  );
+
+  return (
+    <div className="fade-in">
+      <div style={styles.stickyHeader}>
+        <button onClick={()=>setActive(false)} style={styles.backBtn}><ArrowLeft/></button>
+        <div style={{textAlign:'right'}}><b>{setup.cl}</b><br/><small>{setup.ty} | {setup.start}-{setup.end}</small></div>
+      </div>
+      <div className="roll-grid" style={styles.rollGrid}>
+        {students.map(s => (
+          <div key={s.id} onClick={() => setMarked(p => p.includes(s.id) ? p.filter(x=>x!==s.id) : [...p, s.id])}
+               style={{...styles.rollChip, background: marked.includes(s.id) ? '#6366f1' : '#1e293b'}}>{s.id}</div>
+        ))}
+      </div>
+      <div style={styles.floatingAction}><button onClick={submitAttendance} style={styles.submitLarge}>SUBMIT ATTENDANCE ({marked.length}/{students.length})</button></div>
+    </div>
+  );
+}
+
+// --- DESIGN SYSTEM (Professional Theme) ---
+const styles = {
+  loginPage: { minHeight:'100vh', background:'#020617', display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' },
+  glassCard: { background:'rgba(30, 41, 59, 0.7)', backdropFilter:'blur(12px)', padding:'30px', borderRadius:'20px', width:'100%', maxWidth:'360px', textAlign:'center', border:'1px solid #334155' },
+  logoWrap: { background:'#fff', padding:'10px', borderRadius:'15px', display:'inline-block', marginBottom:'15px' },
+  title: { color:'#fff', fontSize:'24px', margin:0, fontWeight:'bold' },
+  badge: { color:'#6366f1', fontSize:'10px', letterSpacing:'2px', marginBottom:'20px' },
+  inputGroup: { position:'relative', marginBottom:'15px' },
+  iconIn: { position:'absolute', left:'12px', top:'12px', color:'#94a3b8' },
+  inputField: { width:'100%', padding:'12px 12px 12px 40px', borderRadius:'10px', border:'1px solid #334155', background:'#0f172a', color:'#fff', boxSizing:'border-box' },
+  btnPrimary: { width:'100%', padding:'15px', borderRadius:'10px', background:'#6366f1', color:'#fff', border:'none', fontWeight:'bold', cursor:'pointer' },
+  appContainer: { minHeight:'100vh', background:'#020617', color:'#fff' },
+  navbar: { background:'rgba(15, 23, 42, 0.95)', padding:'12px 20px', borderBottom:'1px solid #334155', position:'sticky', top:0, zIndex:100 },
+  navContent: { maxWidth:'1000px', margin:'0 auto', display:'flex', justifyContent:'space-between', alignItems:'center' },
+  userCircle: { width:'35px', height:'35px', background:'#6366f1', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'bold' },
+  logoutBtn: { background:'rgba(244, 63, 94, 0.1)', color:'#f43f5e', border:'none', padding:'8px 15px', borderRadius:'10px', cursor:'pointer', fontSize:'12px', fontWeight:'bold' },
+  mainArea: { padding:'20px', maxWidth:'1000px', margin:'0 auto' },
+  tabContainer: { display:'flex', background:'#0f172a', padding:'5px', borderRadius:'10px', marginBottom:'20px' },
+  tabLink: { flex:1, border:'none', color:'#fff', padding:'10px', borderRadius:'8px', cursor:'pointer', fontWeight:'bold', fontSize:'12px' },
+  itemRow: { background:'rgba(30, 41, 59, 0.4)', padding:'15px', borderRadius:'15px', marginBottom:'10px', display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid rgba(255,255,255,0.03)' },
+  countTag: { background:'#0f172a', padding:'4px 8px', borderRadius:'6px', fontSize:'12px', color:'#10b981', fontWeight:'bold' },
+  iconBtn: { background:'none', border:'none', cursor:'pointer', color:'#94a3b8' },
+  formCard: { background:'rgba(30, 41, 59, 0.4)', padding:'20px', borderRadius:'15px', border:'1px solid #334155' },
+  inputSml: { width:'100%', padding:'10px', borderRadius:'8px', border:'1px solid #334155', background:'#0f172a', color:'#fff', marginBottom:'10px', boxSizing:'border-box' },
+  btnAction: { width:'100%', padding:'12px', borderRadius:'8px', border:'none', background:'#6366f1', color:'#fff', fontWeight:'bold', cursor:'pointer' },
+  setupCard: { background:'rgba(30, 41, 59, 0.5)', padding:'30px', borderRadius:'25px', maxWidth:'400px', margin:'40px auto' },
+  stickyHeader: { display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px', background:'#1e293b', padding:'15px', borderRadius:'15px' },
+  backBtn: { background:'none', border:'none', color:'#fff', cursor:'pointer' },
+  rollGrid: { display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(65px, 1fr))', gap:'10px', paddingBottom:'100px' },
+  rollChip: { height:'65px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'15px', fontWeight:'bold', cursor:'pointer' },
+  floatingAction: { position:'fixed', bottom:0, left:0, width:'100%', padding:'20px', background:'rgba(15, 23, 42, 0.95)', borderTop:'1px solid #334155', display:'flex', justifyContent:'center' },
+  submitLarge: { width:'100%', maxWidth:'500px', height:'55px', background:'#10b981', color:'#fff', border:'none', borderRadius:'15px', fontWeight:'bold', cursor:'pointer' },
+  downloadBtn: { width:'100%', background:'#10b981', color:'white', padding:'15px', borderRadius:'12px', border:'none', marginBottom:'15px', cursor:'pointer', fontWeight:'bold' }
+};
