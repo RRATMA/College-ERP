@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { 
   LogOut, ArrowLeft, Trash2, Search, BookOpen, Layers, 
   FileSpreadsheet, ChevronRight, LayoutGrid, Users, 
-  Download, Zap, FlaskConical, GraduationCap 
+  Download, Zap, FlaskConical, GraduationCap, PlusCircle, 
+  ClipboardList, Settings, Database
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from "./supabaseClient";
@@ -70,7 +71,7 @@ export default function App() {
   return <div style={{minHeight: '100vh'}}>{view === 'hod' ? <HODPanel excelSheets={excelSheets} setView={setView} /> : <FacultyPanel user={user} setView={setView} excelSheets={excelSheets} />}</div>;
 }
 
-// --- HOD DASHBOARD ---
+// --- HOD DASHBOARD COMPONENT ---
 function HODPanel({ excelSheets, setView }) {
   const [tab, setTab] = useState('dashboard');
   const [db, setDb] = useState({ facs: [], logs: [], maps: [] });
@@ -85,66 +86,93 @@ function HODPanel({ excelSheets, setView }) {
 
   useEffect(() => { loadData(); }, []);
 
+  const getTabIcon = (t) => {
+    if (t === 'dashboard') return <LayoutGrid size={16} />;
+    if (t === 'staff') return <Users size={16} />;
+    if (t === 'mapping') return <Layers size={16} />;
+    if (t === 'logs') return <ClipboardList size={16} />;
+    return null;
+  };
+
   return (
     <div style={ui.container}>
       <div style={ui.header}>
-        <h3>HOD Management</h3>
+        <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
+           <div style={{padding:'8px', background:'#0891b2', borderRadius:'10px'}}><Settings size={20} color="white"/></div>
+           <h3 style={{margin:0}}>HOD Management</h3>
+        </div>
         <button onClick={()=>setView('login')} style={ui.exitBtn}><LogOut size={20}/></button>
       </div>
+      
       <div className="scroll-hide" style={ui.tabRow}>
         {['dashboard', 'staff', 'mapping', 'logs'].map(t => (
-          <button key={t} onClick={()=>setTab(t)} style={{...ui.tabBtn, background: tab===t?'#0891b2':'#1e293b', color:'#fff'}}>{t.toUpperCase()}</button>
+          <button key={t} onClick={()=>setTab(t)} style={{...ui.tabBtn, background: tab===t?'#0891b2':'#1e293b', color:'#fff', display:'flex', alignItems:'center', gap:'6px'}}>
+            {getTabIcon(t)} {t.toUpperCase()}
+          </button>
         ))}
       </div>
 
       {tab === 'dashboard' && (
         <div style={ui.statsGrid}>
-          <div className="glass-card" style={ui.statCard}><h2>{db.logs.length}</h2><p>Sessions</p></div>
-          <div className="glass-card" style={ui.statCard}><h2>{db.facs.length}</h2><p>Faculties</p></div>
-          <div className="glass-card" style={ui.statCard}><h2>{excelSheets.length}</h2><p>Classes</p></div>
+          <div className="glass-card" style={ui.statCard}><div style={{color:'#06b6d4', marginBottom:'10px'}}><Database size={24}/></div><h2>{db.logs.length}</h2><p>Sessions</p></div>
+          <div className="glass-card" style={ui.statCard}><div style={{color:'#a855f7', marginBottom:'10px'}}><Users size={24}/></div><h2>{db.facs.length}</h2><p>Faculties</p></div>
+          <div className="glass-card" style={ui.statCard}><div style={{color:'#10b981', marginBottom:'10px'}}><BookOpen size={24}/></div><h2>{excelSheets.length}</h2><p>Classes</p></div>
         </div>
       )}
 
       {tab === 'staff' && (
         <div>
           <div className="glass-card" style={{padding:'20px', marginBottom:'15px'}}>
+            <div style={{display:'flex', alignItems:'center', gap:'8px', marginBottom:'15px', color:'#06b6d4'}}><PlusCircle size={18}/> <b>Add New Faculty</b></div>
             <input placeholder="Faculty Name" style={ui.input} onChange={e=>setForm({...form, name:e.target.value})}/>
             <input placeholder="New ID" style={ui.input} onChange={e=>setForm({...form, id:e.target.value})}/>
             <input placeholder="Password" style={ui.input} onChange={e=>setForm({...form, pass:e.target.value})}/>
             <button style={ui.primaryBtn} onClick={async()=>{await supabase.from('faculties').insert([{id:form.id, name:form.name, password:form.pass}]); loadData();}}>ADD FACULTY</button>
           </div>
-          {db.facs.map(f => (<div key={f.id} style={ui.feedRow} className="glass-card">{f.name} ({f.id}) <button onClick={async()=>{await supabase.from('faculties').delete().eq('id', f.id); loadData();}} style={ui.delBtn}><Trash2 size={16}/></button></div>))}
+          {db.facs.map(f => (<div key={f.id} style={ui.feedRow} className="glass-card"><div><Users size={16} style={{marginRight:'10px', verticalAlign:'middle', color:'#64748b'}}/>{f.name} ({f.id})</div> <button onClick={async()=>{await supabase.from('faculties').delete().eq('id', f.id); loadData();}} style={ui.delBtn}><Trash2 size={16}/></button></div>))}
         </div>
       )}
 
       {tab === 'mapping' && (
         <div>
           <div className="glass-card" style={{padding:'20px', marginBottom:'15px'}}>
+            <div style={{display:'flex', alignItems:'center', gap:'8px', marginBottom:'15px', color:'#06b6d4'}}><Layers size={18}/> <b>Class Assignment</b></div>
             <select style={ui.input} onChange={e=>setForm({...form, fId:e.target.value})}><option>Select Faculty</option>{db.facs.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select>
             <select style={ui.input} onChange={e=>setForm({...form, cls:e.target.value})}><option>Select Class Sheet</option>{excelSheets.map(s=><option key={s}>{s}</option>)}</select>
             <input placeholder="Subject" style={ui.input} onChange={e=>setForm({...form, sub:e.target.value})}/>
             <button style={ui.primaryBtn} onClick={async()=>{await supabase.from('assignments').insert([{fac_id:form.fId, class_name:form.cls, subject_name:form.sub}]); loadData();}}>ASSIGN CLASS</button>
           </div>
-          {db.maps.map(m => (<div key={m.id} style={ui.feedRow} className="glass-card">{m.class_name} - {m.subject_name} <button onClick={async()=>{await supabase.from('assignments').delete().eq('id', m.id); loadData();}} style={ui.delBtn}><Trash2 size={16}/></button></div>))}
+          {db.maps.map(m => (<div key={m.id} style={ui.feedRow} className="glass-card"><div><BookOpen size={16} style={{marginRight:'10px', verticalAlign:'middle', color:'#64748b'}}/>{m.class_name} - {m.subject_name}</div> <button onClick={async()=>{await supabase.from('assignments').delete().eq('id', m.id); loadData();}} style={ui.delBtn}><Trash2 size={16}/></button></div>))}
         </div>
       )}
 
       {tab === 'logs' && (
         <div>
-          <button style={{...ui.primaryBtn, marginBottom:'15px', background:'#10b981'}} onClick={()=>{
+          <button style={{...ui.primaryBtn, marginBottom:'15px', background:'#10b981', display:'flex', alignItems:'center', justifyContent:'center', gap:'10px'}} onClick={()=>{
             const ws = XLSX.utils.json_to_sheet(db.logs);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Attendance");
             XLSX.writeFile(wb, "Master_Report.xlsx");
-          }}>DOWNLOAD MASTER REPORT</button>
-          {db.logs.map(log => (<div key={log.id} style={ui.feedRow} className="glass-card"><div><b>{log.class} | {log.sub}</b><br/><small>{log.faculty}</small></div><b>{log.present}/{log.total}</b></div>))}
+          }}><Download size={18}/> DOWNLOAD MASTER REPORT</button>
+          {db.logs.map(log => (
+            <div key={log.id} style={ui.feedRow} className="glass-card">
+              <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                <div style={{padding:'10px', background:'rgba(6, 182, 212, 0.1)', borderRadius:'10px'}}><FileSpreadsheet size={18} color="#06b6d4"/></div>
+                <div><b>{log.class} | {log.sub}</b><br/><small style={{color:'#64748b'}}>{log.faculty}</small></div>
+              </div>
+              <div style={{textAlign:'right'}}>
+                 <div style={{color:'#10b981', fontWeight:'bold'}}>{log.present}/{log.total}</div>
+                 <small style={{fontSize:'10px', color:'#64748b'}}>{log.time_str}</small>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-// --- FACULTY PANEL ---
+// --- FACULTY PANEL COMPONENT ---
 function FacultyPanel({ user, setView, excelSheets }) {
   const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', start: '', end: '' });
   const [active, setActive] = useState(false);
@@ -177,16 +205,13 @@ function FacultyPanel({ user, setView, excelSheets }) {
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const dist = Math.sqrt(Math.pow(pos.coords.latitude-CAMPUS_LAT,2)+Math.pow(pos.coords.longitude-CAMPUS_LON,2));
       if(dist > RADIUS_LIMIT) { setLoading(false); return alert("❌ ACCESS DENIED: Outside Campus"); }
-      
       const { data: att } = await supabase.from('attendance').insert([{ 
         faculty: user.name, sub: setup.sub, class: setup.cl, type: setup.ty, 
         duration: `${setup.start}-${setup.end}`, present: marked.length, 
         total: students.length, time_str: new Date().toLocaleDateString('en-GB') 
       }]).select().single();
-      
       const abs = students.filter(s => !marked.includes(s.id)).map(s => ({ attendance_id: att.id, student_roll: s.id, class_name: setup.cl }));
       if(abs.length > 0) await supabase.from('absentee_records').insert(abs);
-      
       alert("✅ Data Synced Successfully");
       setLoading(false); setActive(false); setMarked([]);
     }, () => { setLoading(false); alert("GPS Access Required"); }, { enableHighAccuracy: true });
@@ -195,13 +220,13 @@ function FacultyPanel({ user, setView, excelSheets }) {
   if (!active) return (
     <div style={ui.mobileWrap}>
       <div style={ui.header}><h3>Prof. {user.name}</h3><button onClick={()=>setView('login')} style={ui.exitBtn}><LogOut/></button></div>
-      <p style={ui.label}>SELECT CLASS</p>
+      <p style={ui.label}><LayoutGrid size={12}/> SELECT CLASS</p>
       <div style={ui.tileGrid}>{[...new Set(myJobs.map(j=>j.class_name))].map(c => (<div key={c} onClick={()=>setSetup({...setup, cl:c})} style={{...ui.tile, background: setup.cl===c?'#0891b2':'#1e293b'}}>{c}</div>))}</div>
       {setup.cl && (
         <div style={{marginTop: '20px'}}>
-          <p style={ui.label}>SELECT SUBJECT</p>
+          <p style={ui.label}><BookOpen size={12}/> SELECT SUBJECT</p>
           <div style={ui.subList}>{myJobs.filter(j=>j.class_name===setup.cl).map(j => (<div key={j.id} onClick={()=>setSetup({...setup, sub:j.subject_name})} style={{...ui.subRow, background: setup.sub===j.subject_name?'#0891b2':'#1e293b'}}>{j.subject_name}</div>))}</div>
-          <p style={ui.label}>SESSION TYPE</p>
+          <p style={ui.label}><Zap size={12}/> SESSION TYPE</p>
           <div style={{display:'flex', gap:'10px', marginBottom: '15px'}}>
              <button onClick={()=>setSetup({...setup, ty:'Theory'})} style={{...ui.typeBtn, background: setup.ty==='Theory'?'#06b6d4':'#1e293b'}}><GraduationCap size={16}/> Theory</button>
              <button onClick={()=>setSetup({...setup, ty:'Practical'})} style={{...ui.typeBtn, background: setup.ty==='Practical'?'#10b981':'#1e293b'}}><FlaskConical size={16}/> Practical</button>
@@ -242,7 +267,7 @@ const ui = {
   subList: { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '15px' },
   subRow: { padding: '15px', borderRadius: '12px', textAlign: 'center', fontWeight: 'bold', cursor: 'pointer' },
   typeBtn: { flex: 1, padding: '12px', color: '#fff', borderRadius: '12px', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: 'bold' },
-  label: { fontSize: '11px', color: '#64748b', fontWeight: 'bold', marginBottom: '8px' },
+  label: { fontSize: '11px', color: '#64748b', fontWeight: 'bold', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '5px' },
   stickyHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' },
   rollArea: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', paddingBottom: '100px' },
   rollChip: { padding: '20px 10px', borderRadius: '15px', textAlign: 'center', fontWeight: 'bold', fontSize: '14px' },
