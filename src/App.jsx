@@ -2,10 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { 
   LogOut, ArrowLeft, Trash2, Search, User, Fingerprint, 
   BookOpen, Layers, FileSpreadsheet, ChevronRight, 
-  CheckCircle2, LayoutGrid, Clock, Users, Calendar, Download, UserPlus, PlusCircle, ShieldCheck
+  CheckCircle2, LayoutGrid, Clock, Users, Calendar, Download, UserPlus, PlusCircle
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from "./supabaseClient";
+import emailjs from '@emailjs/browser';
 
 // 📍 CAMPUS SETTINGS
 const CAMPUS_LAT = 19.7042; 
@@ -16,10 +17,10 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [view, setView] = useState('login');
   const [excelSheets, setExcelSheets] = useState([]);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     fetch('/students_list.xlsx').then(res => res.arrayBuffer()).then(ab => {
       const wb = XLSX.read(ab, { type: 'array' });
@@ -39,38 +40,16 @@ export default function App() {
     }
   };
 
-  // --- 🎨 PREMIUM LOGIN DESIGN (DESKTOP OPTIMIZED) ---
   if (view === 'login') return (
-    <div style={dStyles.heroWrapper}>
-      <div style={dStyles.bgGlow}></div>
-      <div style={dStyles.mainContainer}>
-        {/* Left Section: Branding */}
-        {!isMobile && (
-          <div style={dStyles.leftSection}>
-            <div style={dStyles.logoShield}><img src="/logo.png" style={dStyles.mainLogo} alt="Logo" /></div>
-            <p style={dStyles.heroSubtitle}>Next-Gen Academic ERP</p>
-            <h1 style={dStyles.heroTitle}>AMRIT <br/>ERP SYSTEM</h1>
-            <p style={dStyles.heroDesc}>Secure, centralized attendance and faculty management portal for Amrit Institutions.</p>
-          </div>
-        )}
-
-        {/* Right Section: Login Card */}
-        <div style={dStyles.rightSection}>
-          <div style={dStyles.glassCard}>
-            {isMobile && <div style={{...dStyles.logoShield, margin:'0 auto 20px'}}><img src="/logo.png" style={{width:'40px'}} alt="Logo" /></div>}
-            <h2 style={{fontSize:'24px', fontWeight:'900', marginBottom:'5px'}}>Welcome Back</h2>
-            <p style={{fontSize:'12px', color:'#64748b', marginBottom:'30px'}}>Please enter your credentials to access portal</p>
-            
-            <div style={dStyles.inputBox}><User size={18} style={dStyles.inIcon}/><input id="u" placeholder="User ID" style={dStyles.inputF}/></div>
-            <div style={dStyles.inputBox}><Fingerprint size={18} style={dStyles.inIcon}/><input id="p" type="password" placeholder="Passcode" style={dStyles.inputF}/></div>
-            
-            <button onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)} style={dStyles.btnMain}>
-              SIGN IN <ChevronRight size={18}/>
-            </button>
-          </div>
-        </div>
+    <div style={styles.loginPage}>
+      <div style={{...styles.glassCard, width: isMobile ? '95%' : '400px'}}>
+        <div style={styles.logoBox}><img src="/logo.png" style={styles.mainLogo} alt="Logo" /></div>
+        <h1 style={styles.title}>AMRIT ERP</h1>
+        <p style={styles.badge}>INSTITUTIONAL GATEWAY</p>
+        <div style={styles.inputBox}><User size={18} style={styles.inIcon}/><input id="u" placeholder="User ID" style={styles.inputF}/></div>
+        <div style={styles.inputBox}><Fingerprint size={18} style={styles.inIcon}/><input id="p" type="password" placeholder="Passcode" style={styles.inputF}/></div>
+        <button onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)} style={styles.btnMain}>LOGIN <ChevronRight size={18}/></button>
       </div>
-      <div style={dStyles.footer}>© 2026 AMRIT ERP • VERSION 2.0</div>
     </div>
   );
 
@@ -83,7 +62,7 @@ export default function App() {
   );
 }
 
-// --- 🏛️ HOD PANEL (ORIGINAL LOGIC + NEW UI) ---
+// --- 🏛️ HOD PANEL (Your exact original code) ---
 function HODPanel({ excelSheets, setView }) {
   const [tab, setTab] = useState('dashboard');
   const [db, setDb] = useState({ facs: [], logs: [], maps: [] });
@@ -106,11 +85,7 @@ function HODPanel({ excelSheets, setView }) {
 
   return (
     <div style={hStyles.wrapper}>
-      <div style={hStyles.header}>
-        <div><h2 style={{margin:0}}>HOD Console</h2><small style={{color:'#6366f1'}}>Amrit IT Department</small></div>
-        <button onClick={()=>setView('login')} style={fStyles.exitBtn}><LogOut size={18}/></button>
-      </div>
-      
+      <div style={hStyles.header}><h2>HOD Console</h2><button onClick={()=>setView('login')} style={fStyles.exitBtn}><LogOut size={18}/></button></div>
       <div style={hStyles.tabs}>
         {['dashboard','master','faculty','mapping'].map(t => (
           <button key={t} onClick={()=>setTab(t)} style={{...hStyles.tabBtn, background: tab===t?'#6366f1':'#1e293b'}}>{t.toUpperCase()}</button>
@@ -134,7 +109,7 @@ function HODPanel({ excelSheets, setView }) {
 
       {tab === 'master' && (
         <div style={hStyles.fade}>
-          <div style={hStyles.searchBox}><Search size={18} color="#475569"/><input placeholder="Search faculty, class, sub..." style={hStyles.searchIn} onChange={e=>setSearchTerm(e.target.value)}/></div>
+          <div style={hStyles.searchBox}><Search size={18}/><input placeholder="Search faculty, class, sub..." style={hStyles.searchIn} onChange={e=>setSearchTerm(e.target.value)}/></div>
           <button onClick={() => { const ws = XLSX.utils.json_to_sheet(filteredLogs); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Master"); XLSX.writeFile(wb, "Master_Report.xlsx"); }} style={hStyles.actionBtn}><Download size={18}/> DOWNLOAD EXCEL</button>
           {filteredLogs.map(log => (<div key={log.id} style={hStyles.recordCard}><div><b>{log.class} | {log.sub}</b><br/><small>{log.faculty} • {log.time_str}</small></div><div style={{color:'#10b981'}}><b>{log.present}/{log.total}</b></div></div>))}
         </div>
@@ -143,7 +118,7 @@ function HODPanel({ excelSheets, setView }) {
       {tab === 'faculty' && (
         <div style={hStyles.fade}>
           <div style={hStyles.formCard}>
-            <h4 style={{marginTop:0}}><UserPlus size={18}/> New Faculty</h4>
+            <h4><UserPlus size={18}/> New Faculty</h4>
             <input placeholder="Name" style={hStyles.input} onChange={e=>setForm({...form, name:e.target.value})}/>
             <input placeholder="Employee ID" style={hStyles.input} onChange={e=>setForm({...form, id:e.target.value})}/>
             <input placeholder="Password" type="password" style={hStyles.input} onChange={e=>setForm({...form, pass:e.target.value})}/>
@@ -160,7 +135,7 @@ function HODPanel({ excelSheets, setView }) {
       {tab === 'mapping' && (
         <div style={hStyles.fade}>
           <div style={hStyles.formCard}>
-            <h4 style={{marginTop:0}}><PlusCircle size={18}/> Mapping Sub/Class</h4>
+            <h4><PlusCircle size={18}/> Mapping Sub/Class</h4>
             <select style={hStyles.input} onChange={e=>setForm({...form, fId:e.target.value})}><option>Select Faculty</option>{db.facs.map(f=><option value={f.id}>{f.name}</option>)}</select>
             <select style={hStyles.input} onChange={e=>setForm({...form, cls:e.target.value})}><option>Select Class</option>{excelSheets.map(s=><option value={s}>{s}</option>)}</select>
             <input placeholder="Subject Name" style={hStyles.input} onChange={e=>setForm({...form, sub:e.target.value})}/>
@@ -173,7 +148,7 @@ function HODPanel({ excelSheets, setView }) {
   );
 }
 
-// --- 👨‍🏫 FACULTY PANEL (ALL FEATURES PRESERVED) ---
+// --- 👨‍🏫 FACULTY PANEL (With exact logic for 3-day absent email) ---
 function FacultyPanel({ user, setView }) {
   const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', start: '', end: '' });
   const [active, setActive] = useState(false);
@@ -189,7 +164,8 @@ function FacultyPanel({ user, setView }) {
     fetch('/students_list.xlsx').then(r => r.arrayBuffer()).then(ab => {
       const wb = XLSX.read(ab, { type: 'array' });
       const sh = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames.find(s=>s.toLowerCase()===setup.cl.toLowerCase())]);
-      setStudents(sh.map(s => ({ id: String(s['ROLL NO'] || s['Roll No']) })).filter(s => s.id));
+      // ROLL NO आणि EMAIL मॅप करणे
+      setStudents(sh.map(s => ({ id: String(s['ROLL NO'] || s['Roll No']), email: s['EMAIL'] || s['Email'] })).filter(s => s.id));
       setActive(true);
     });
   };
@@ -199,9 +175,35 @@ function FacultyPanel({ user, setView }) {
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const dist = Math.sqrt(Math.pow(pos.coords.latitude-CAMPUS_LAT,2)+Math.pow(pos.coords.longitude-CAMPUS_LON,2));
       if(dist > RADIUS_LIMIT) { setLoading(false); return alert("❌ कॅम्पस बाहेरून अटेंडन्स घेता येणार नाही!"); }
+      
       const { data: att } = await supabase.from('attendance').insert([{ faculty: user.name, sub: setup.sub, class: setup.cl, type: setup.ty, duration: `${setup.start} - ${setup.end}`, present: marked.length, total: students.length, time_str: new Date().toLocaleDateString('en-GB') }]).select().single();
-      const abs = students.filter(s => !marked.includes(s.id)).map(s => ({ attendance_id: att.id, student_roll: s.id, class_name: setup.cl }));
-      if(abs.length > 0) await supabase.from('absentee_records').insert(abs);
+      
+      const absentees = students.filter(s => !marked.includes(s.id));
+      const abs = absentees.map(s => ({ attendance_id: att.id, student_roll: s.id, class_name: setup.cl }));
+      
+      if(abs.length > 0) {
+        await supabase.from('absentee_records').insert(abs);
+
+        // --- 📧 ३ दिवस गैरहजर असलेल्या विद्यार्थ्यांसाठी ईमेल ---
+        absentees.forEach(async (student) => {
+          const { data: logs } = await supabase
+            .from('absentee_records')
+            .select('id')
+            .eq('student_roll', student.id)
+            .eq('class_name', setup.cl)
+            .limit(3);
+
+          if (logs && logs.length >= 3 && student.email) {
+            emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', {
+              to_email: student.email,
+              roll: student.id,
+              subject: setup.sub,
+              class: setup.cl
+            }, 'YOUR_PUBLIC_KEY');
+          }
+        });
+      }
+      
       alert("✅ अटेंडन्स यशस्वीरित्या सबमिट झाली!"); setLoading(false); setActive(false); setMarked([]);
     }, () => { setLoading(false); alert("GPS Error! लोकेशन ऑन करा."); });
   };
@@ -226,38 +228,23 @@ function FacultyPanel({ user, setView }) {
   );
 }
 
-// --- 💎 STYLES (MATCHING YOUR FEATURES) ---
-const dStyles = {
-  heroWrapper: { minHeight:'100vh', background:'#020617', display:'flex', alignItems:'center', justifyContent:'center', position:'relative', overflow:'hidden', fontFamily:'sans-serif' },
-  bgGlow: { position:'absolute', width:'100%', height:'100%', background:'radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 40%)', zIndex:0 },
-  mainContainer: { width:'100%', maxWidth:'1100px', display:'flex', alignItems:'center', gap:'80px', zIndex:1, padding:'20px' },
-  leftSection: { flex:1.2, color:'#fff' },
-  rightSection: { flex:1, width:'100%', maxWidth:'400px' },
-  logoShield: { width:'80px', height:'80px', background:'rgba(255,255,255,0.03)', borderRadius:'22px', border:'1px solid rgba(255,255,255,0.1)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'30px' },
-  mainLogo: { width:'50px' },
-  heroTitle: { fontSize:'64px', fontWeight:'900', margin:'0 0 20px 0', lineHeight:'1', letterSpacing:'-2px' },
-  heroSubtitle: { color:'#6366f1', letterSpacing:'3px', fontWeight:'800', fontSize:'12px', textTransform:'uppercase', marginBottom:'10px' },
-  heroDesc: { color:'#64748b', fontSize:'18px', lineHeight:'1.6' },
-  glassCard: { background:'rgba(15, 23, 42, 0.7)', backdropFilter:'blur(10px)', border:'1px solid rgba(255,255,255,0.08)', padding:'45px 40px', borderRadius:'35px', textAlign:'center', color:'#fff', boxShadow:'0 25px 50px -12px rgba(0,0,0,0.5)' },
-  inputBox: { position:'relative', marginBottom:'15px' },
-  inputF: { width:'100%', padding:'16px 16px 16px 50px', borderRadius:'16px', background:'rgba(2, 6, 23, 0.5)', border:'1px solid #1e293b', color:'#fff', boxSizing:'border-box', outline:'none', transition:'0.3s' },
-  inIcon: { position:'absolute', left:'18px', top:'16px', color:'#475569' },
-  btnMain: { width:'100%', padding:'18px', borderRadius:'16px', background:'linear-gradient(135deg, #6366f1, #4f46e5)', color:'#fff', border:'none', fontWeight:'800', display:'flex', alignItems:'center', justifyContent:'center', gap:'10px', cursor:'pointer', boxShadow:'0 10px 20px rgba(99,102,241,0.3)' },
-  footer: { position:'absolute', bottom:'30px', color:'#1e293b', fontSize:'11px', fontWeight:'bold', letterSpacing:'1px' }
+// --- CSS STYLES (Your exact original styles) ---
+const hStyles = {
+  wrapper: { padding: '20px 15px 100px' },
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
+  tabs: { display: 'flex', gap: '8px', overflowX: 'auto', marginBottom: '20px', paddingBottom: '5px' },
+  tabBtn: { padding: '10px 15px', borderRadius: '10px', border: 'none', color: '#fff', fontSize: '11px', fontWeight: 'bold', whiteSpace: 'nowrap' },
+  statsGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' },
+  statCard: { background: '#0f172a', padding: '15px', borderRadius: '15px', border: '1px solid #1e293b', textAlign: 'center' },
+  row: { display: 'flex', justifyContent: 'space-between', padding: '15px', background: '#0f172a', borderRadius: '12px', marginBottom: '8px', border: '1px solid #1e293b' },
+  recordCard: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#0f172a', padding: '15px', borderRadius: '15px', marginBottom: '10px', border: '1px solid #1e293b' },
+  searchBox: { display: 'flex', alignItems: 'center', background: '#0f172a', padding: '12px', borderRadius: '12px', gap: '10px', marginBottom: '10px' },
+  searchIn: { background: 'none', border: 'none', color: '#fff', outline: 'none', width: '100%' },
+  actionBtn: { width: '100%', padding: '15px', background: '#6366f1', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '15px' },
+  formCard: { background: '#0f172a', padding: '18px', borderRadius: '15px', border: '1px solid #1e293b', marginBottom: '20px' },
+  input: { width: '100%', padding: '12px', background: '#020617', border: '1px solid #334155', borderRadius: '10px', color: '#fff', marginBottom: '10px', boxSizing: 'border-box' },
+  label: { fontSize: '11px', color: '#475569', letterSpacing: '1px', margin: '20px 0 10px' },
+  fade: { animation: 'fadeIn 0.3s ease' }
 };
 
-const hStyles = {
-  wrapper: { padding: '30px 20px 100px', maxWidth:'1200px', margin:'0 auto' },
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', borderBottom:'1px solid #1e293b', paddingBottom:'20px' },
-  tabs: { display: 'flex', gap: '8px', overflowX: 'auto', marginBottom: '30px', scrollbarWidth:'none' },
-  tabBtn: { padding: '12px 20px', borderRadius: '12px', border: 'none', color: '#fff', fontSize: '11px', fontWeight: 'bold', whiteSpace: 'nowrap', cursor:'pointer' },
-  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '15px', marginBottom:'30px' },
-  statCard: { background: '#0f172a', padding: '25px 15px', borderRadius: '24px', border: '1px solid #1e293b', textAlign: 'center' },
-  row: { display: 'flex', justifyContent: 'space-between', padding: '18px', background: '#0f172a', borderRadius: '18px', marginBottom: '10px', border: '1px solid #1e293b' },
-  recordCard: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#0f172a', padding: '20px', borderRadius: '20px', marginBottom: '12px', border: '1px solid #1e293b' },
-  searchBox: { display: 'flex', alignItems: 'center', background: '#0f172a', padding: '15px', borderRadius: '18px', gap: '12px', marginBottom: '15px', border:'1px solid #1e293b' },
-  searchIn: { background: 'none', border: 'none', color: '#fff', outline: 'none', width: '100%', fontSize:'14px' },
-  actionBtn: { width: '100%', padding: '18px', background: '#6366f1', color: '#fff', border: 'none', borderRadius: '18px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '20px', cursor:'pointer' },
-  formCard: { background: '#0f172a', padding: '25px', borderRadius: '24px', border: '1px solid #1e293b', marginBottom: '30px' },
-  input: { width: '100%', padding: '14px', background: '#020617', border: '1px solid #334155', borderRadius: '12px', color: '#fff', marginBottom: '12px', boxSizing: 'border-box', outline:'none' },
-  label: { fontSize: '11px', c
+const fStyles = { mobileWrapper: { padding:'20px 15px 120px', minHeight:'100vh', display:'flex', flexDirection:'column' }, topBar: { display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px' }, userPlate: { display:'flex', alignItems:'center', gap:'12px' }, miniAv: { width:'40px', height:'40px', background:'#6366f1', borderRadius:'10px', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'bold' }, exitBtn: { background:'rgba(244,63,94,0.1)', color:'#f43f5e', border:'none', padding:'8px', borderRadius:'10px' }, section: { marginBottom:'20px' }, label: { fontSize:'10px', fontWeight:'900', color:'#475569', marginBottom:'10px', display:'block' }, tileGrid: { display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px' }, tile: { height:'70px', borderRadius:'15px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', border:'2px solid transparent' }, subList: { display:'flex', flexDirection:'column', gap:'8px', marginBottom:'20px' }, subRow: { padding:'14px', borderRadius:'12px', display:'flex', alignItems:'center', gap:'10px' }, timeRow: { display:'flex', alignItems:'center', gap:'10px', marginBottom:'20px' }, timeInputWrap: { flex:1, display:'flex', alignItems:'center', gap:'8px', background:'#1e293b', padding:'10px', borderRadius:'10px' }, timeInput: { background:'none', border:'none', color:'#fff', width:'100%', outline:'none' }, toggleWrap: { background:'#1e293b', padding:'4px', borderRadius:'10px', display:'flex' }, toggleBtn: { flex:1, padding:'8px', border:'none', borderRadius:'8px', fontWeight:'bold' }, bottomAction: { position:'fixed', bottom:'20px', left:'20px', right:'20px', zIndex:100 }, launchBtn: { width:'100%', padding:'16px', borderRadius:'15px', background:'linear-gradient(135deg, #6366f1, #4f46e5)', color:'#fff', border:'none', fontWeight:'bold' }, stickyHeader: { position:'sticky', top:0, background:'rgba(2,6,23,0.9)', backdropFilter:'blur(10px)', padding:'10px 0', display:'flex', justifyContent:'space-between', alignItems:'center', zIndex:10 }, circleBtn: { background:'#1e293b', border:'none', color:'#fff', width:'35px', height:'35px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center' }, statsBadge: { background:'#10b981', padding:'5px 10px', borderRadius:'8px', fontWeight:'bold' }, rollArea: { display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'10px' }, rollChip: { height:'100px', borderRadius:'20px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', position:'relative' }, checkIcon: { position:'absolute', top:'5px', right:'5px' }, submitBtn: { width:'100%', padding:'18px', borderRadius:'15px', background:'#10b981', colo
