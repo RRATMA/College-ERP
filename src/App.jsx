@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { 
   LogOut, ArrowLeft, Trash2, Search, User, Fingerprint, 
   BookOpen, Layers, FileSpreadsheet, ChevronRight, 
-  CheckCircle2, LayoutGrid, Timer, MapPin
+  CheckCircle2, LayoutGrid, Clock, AlertTriangle, Users
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from "./supabaseClient";
@@ -54,15 +54,15 @@ export default function App() {
   return (
     <div style={styles.appWrap}>
       <main style={styles.container}>
-        {view === 'hod' ? <HODPanel excelSheets={excelSheets} isMobile={isMobile} setUser={setUser} setView={setView} /> : <FacultyPanel user={user} isMobile={isMobile} setView={setView} />}
+        {view === 'hod' ? <HODPanel excelSheets={excelSheets} isMobile={isMobile} setView={setView} /> : <FacultyPanel user={user} isMobile={isMobile} setView={setView} />}
       </main>
     </div>
   );
 }
 
-// --- REDESIGNED FACULTY PANEL ---
+// --- FACULTY PANEL (FIXED UI + LECTURE TIME) ---
 function FacultyPanel({ user, isMobile, setView }) {
-  const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory' });
+  const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', start: '', end: '' });
   const [active, setActive] = useState(false);
   const [students, setStudents] = useState([]);
   const [marked, setMarked] = useState([]);
@@ -74,7 +74,7 @@ function FacultyPanel({ user, isMobile, setView }) {
   }, [user.id]);
 
   const launch = () => {
-    if(!setup.cl || !setup.sub) return alert("Select Class & Subject");
+    if(!setup.cl || !setup.sub || !setup.start || !setup.end) return alert("Please fill all details including Time!");
     fetch('/students_list.xlsx').then(r => r.arrayBuffer()).then(ab => {
       const wb = XLSX.read(ab, { type: 'array' });
       const sh = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames.find(s=>s.toLowerCase()===setup.cl.toLowerCase())]);
@@ -91,12 +91,14 @@ function FacultyPanel({ user, isMobile, setView }) {
 
       const { data: att } = await supabase.from('attendance').insert([{ 
         faculty: user.name, sub: setup.sub, class: setup.cl, type: setup.ty, 
-        present: marked.length, total: students.length, time_str: new Date().toLocaleDateString('en-GB') 
+        duration: `${setup.start} - ${setup.end}`,
+        present: marked.length, total: students.length, 
+        time_str: new Date().toLocaleDateString('en-GB') 
       }]).select().single();
 
       const abs = students.filter(s => !marked.includes(s.id)).map(s => ({ attendance_id: att.id, student_roll: s.id, class_name: setup.cl }));
       if(abs.length > 0) await supabase.from('absentee_records').insert(abs);
-      alert("✅ Done!"); setLoading(false); setActive(false); setMarked([]);
+      alert("✅ Attendance Submitted!"); setLoading(false); setActive(false); setMarked([]);
     }, () => { setLoading(false); alert("GPS Error!"); });
   };
 
@@ -136,7 +138,14 @@ function FacultyPanel({ user, isMobile, setView }) {
             ))}
           </div>
 
-          <label style={fStyles.label}>LECTURE TYPE</label>
+          <label style={fStyles.label}>LECTURE TIME</label>
+          <div style={fStyles.timeRow}>
+            <div style={fStyles.timeInputWrap}><Clock size={14}/><input type="time" onChange={e=>setSetup({...setup, start:e.target.value})} style={fStyles.timeInput}/></div>
+            <span style={{color:'#475569'}}>to</span>
+            <div style={fStyles.timeInputWrap}><Clock size={14}/><input type="time" onChange={e=>setSetup({...setup, end:e.target.value})} style={fStyles.timeInput}/></div>
+          </div>
+
+          <label style={fStyles.label}>MODE</label>
           <div style={fStyles.toggleWrap}>
             <button onClick={()=>setSetup({...setup, ty:'Theory'})} style={{...fStyles.toggleBtn, background: setup.ty==='Theory'?'#fff':'transparent', color: setup.ty==='Theory'?'#000':'#fff'}}>Theory</button>
             <button onClick={()=>setSetup({...setup, ty:'Practical'})} style={{...fStyles.toggleBtn, background: setup.ty==='Practical'?'#fff':'transparent', color: setup.ty==='Practical'?'#000':'#fff'}}>Practical</button>
@@ -180,48 +189,67 @@ function FacultyPanel({ user, isMobile, setView }) {
   );
 }
 
-// --- HOD PANEL (MINIMAL) ---
-function HODPanel({ excelSheets, isMobile, setUser, setView }) {
+// --- HOD PANEL (RE-ADDED ALL TABS) ---
+function HODPanel({ excelSheets, isMobile, setView }) {
+  const [tab, setTab] = useState('analytics');
+  const [db, setDb] = useState({ facs: [], logs: [] });
+  useEffect(() => {
+    const load = async () => {
+      const { data: f } = await supabase.from('faculties').select('*');
+      const { data: l } = await supabase.from('attendance').select('*').order('created_at', { ascending: false });
+      setDb({ facs: f || [], logs: l || [] });
+    };
+    load();
+  }, []);
+
   return (
-    <div style={{textAlign:'center', padding:'50px 20px'}}>
-      <h2>HOD Dashboard</h2>
-      <p>Manage faculties and check reports.</p>
-      <button onClick={()=>setView('login')} style={styles.btnMain}>LOGOUT</button>
+    <div style={{padding:'20px'}}>
+      <div style={fStyles.topBar}><h3>HOD ADMIN</h3><button onClick={()=>setView('login')} style={fStyles.exitBtn}><LogOut size={18}/></button></div>
+      <div style={styles.tabGrid}>
+        {['analytics', 'logs', 'faculties'].map(t => (
+          <button key={t} onClick={()=>setTab(t)} style={{...styles.tabBtn, background: tab===t?'#6366f1':'#1e293b', color:'#fff'}}>{t.toUpperCase()}</button>
+        ))}
+      </div>
+      {tab === 'analytics' && <div style={{display:'grid', gap:'15px'}}><div style={styles.statC}><Users size={30}/><h3>{db.facs.length}</h3><p>Staff</p></div></div>}
+      {tab === 'logs' && db.logs.map(log => (
+        <div key={log.id} style={styles.listRow}>
+          <div><b>{log.class} | {log.sub}</b><br/><small>{log.faculty} ({log.duration})</small></div>
+          <b style={{color:'#10b981'}}>{log.present}/{log.total}</b>
+        </div>
+      ))}
+      {tab === 'faculties' && db.facs.map(f => <div key={f.id} style={styles.listRow}><b>{f.name}</b><small>ID: {f.id}</small></div>)}
     </div>
   );
 }
 
-// --- STYLING (THE PERFECT MOBILE UI) ---
+// --- FIXED STYLING ---
 const fStyles = {
   mobileWrapper: { padding:'20px 15px 120px 15px', minHeight:'100vh', display:'flex', flexDirection:'column' },
-  topBar: { display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'30px' },
+  topBar: { display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'25px' },
   userPlate: { display:'flex', alignItems:'center', gap:'12px' },
-  miniAv: { width:'40px', height:'40px', background:'linear-gradient(135deg, #6366f1, #a855f7)', borderRadius:'12px', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'900' },
+  miniAv: { width:'42px', height:'42px', background:'linear-gradient(135deg, #6366f1, #a855f7)', borderRadius:'12px', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'900' },
   exitBtn: { background:'rgba(244,63,94,0.1)', color:'#f43f5e', border:'none', padding:'10px', borderRadius:'12px' },
-  
   section: { marginBottom:'25px' },
-  label: { fontSize:'11px', fontWeight:'900', color:'#475569', letterSpacing:'1.5px', marginBottom:'15px', display:'block' },
-  tileGrid: { display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px' },
-  tile: { height:'80px', borderRadius:'20px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'8px', cursor:'pointer', border:'2px solid transparent', position:'relative', transition:'0.2s' },
-  activeDot: { position:'absolute', top:'10px', right:'10px', width:'6px', height:'6px', background:'#6366f1', borderRadius:'50%' },
-  
-  subList: { display:'flex', flexDirection:'column', gap:'10px', marginBottom:'25px' },
-  subRow: { padding:'18px', borderRadius:'15px', fontWeight:'700', fontSize:'14px', display:'flex', alignItems:'center', gap:'12px', transition:'0.2s' },
-  
-  toggleWrap: { background:'#1e293b', padding:'5px', borderRadius:'15px', display:'flex', gap:'5px' },
-  toggleBtn: { flex:1, padding:'12px', border:'none', borderRadius:'11px', fontWeight:'800', fontSize:'12px' },
-  
+  label: { fontSize:'10px', fontWeight:'900', color:'#475569', letterSpacing:'1.5px', marginBottom:'12px', display:'block' },
+  tileGrid: { display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px' },
+  tile: { height:'75px', borderRadius:'18px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'5px', border:'2px solid transparent', position:'relative' },
+  activeDot: { position:'absolute', top:'8px', right:'8px', width:'6px', height:'6px', background:'#6366f1', borderRadius:'50%' },
+  subList: { display:'flex', flexDirection:'column', gap:'8px', marginBottom:'20px' },
+  subRow: { padding:'16px', borderRadius:'15px', fontWeight:'700', fontSize:'13px', display:'flex', alignItems:'center', gap:'10px' },
+  timeRow: { display:'flex', alignItems:'center', gap:'10px', marginBottom:'20px' },
+  timeInputWrap: { flex:1, display:'flex', alignItems:'center', gap:'8px', background:'#1e293b', padding:'12px', borderRadius:'12px', color:'#94a3b8' },
+  timeInput: { background:'none', border:'none', color:'#fff', outline:'none', fontSize:'14px', width:'100%' },
+  toggleWrap: { background:'#1e293b', padding:'4px', borderRadius:'12px', display:'flex' },
+  toggleBtn: { flex:1, padding:'10px', border:'none', borderRadius:'9px', fontWeight:'800', fontSize:'11px' },
   bottomAction: { position:'fixed', bottom:'20px', left:'20px', right:'20px', zIndex:100 },
-  launchBtn: { width:'100%', padding:'20px', borderRadius:'20px', border:'none', background:'linear-gradient(135deg, #6366f1, #4f46e5)', color:'#fff', fontWeight:'900', fontSize:'16px', display:'flex', alignItems:'center', justifyContent:'center', gap:'10px', boxShadow:'0 15px 30px rgba(99,102,241,0.3)' },
-  
-  stickyHeader: { position:'sticky', top:'0', background:'rgba(2, 6, 23, 0.9)', backdropFilter:'blur(10px)', padding:'15px 0', display:'flex', justifyContent:'space-between', alignItems:'center', zIndex:100, marginBottom:'20px' },
-  circleBtn: { background:'#1e293b', border:'none', color:'#fff', width:'45px', height:'45px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center' },
-  statsBadge: { background:'#10b981', padding:'8px 15px', borderRadius:'15px', fontWeight:'900' },
-  
+  launchBtn: { width:'100%', padding:'18px', borderRadius:'18px', border:'none', background:'linear-gradient(135deg, #6366f1, #4f46e5)', color:'#fff', fontWeight:'900', fontSize:'15px', display:'flex', alignItems:'center', justifyContent:'center', gap:'10px' },
+  stickyHeader: { position:'sticky', top:'0', background:'rgba(2, 6, 23, 0.9)', backdropFilter:'blur(10px)', padding:'10px 0', display:'flex', justifyContent:'space-between', alignItems:'center', zIndex:100, marginBottom:'15px' },
+  circleBtn: { background:'#1e293b', border:'none', color:'#fff', width:'40px', height:'40px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center' },
+  statsBadge: { background:'#10b981', padding:'6px 12px', borderRadius:'10px', fontWeight:'900' },
   rollArea: { display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:'10px' },
-  rollChip: { height:'110px', borderRadius:'25px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', position:'relative' },
-  checkIcon: { position:'absolute', top:'10px', right:'10px', color:'#fff' },
-  submitBtn: { width:'100%', padding:'22px', borderRadius:'22px', border:'none', color:'#fff', fontWeight:'900', fontSize:'18px', boxShadow:'0 10px 30px rgba(0,0,0,0.5)' }
+  rollChip: { height:'105px', borderRadius:'22px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', position:'relative' },
+  checkIcon: { position:'absolute', top:'8px', right:'8px', color:'#fff' },
+  submitBtn: { width:'100%', padding:'20px', borderRadius:'20px', border:'none', color:'#fff', fontWeight:'900', fontSize:'17px' }
 };
 
 const styles = {
@@ -231,10 +259,14 @@ const styles = {
   logoBox: { width:'70px', height:'70px', background:'#000', borderRadius:'20px', margin:'0 auto 20px', border:'1px solid #6366f1', display:'flex', alignItems:'center', justifyContent:'center' },
   mainLogo: { width:'50px' },
   title: { fontSize:'26px', fontWeight:'900', color:'#fff', margin:0 },
-  badge: { fontSize:'10px', color:'#818cf8', fontWeight:'800', marginBottom:'30px', letterSpacing:'1.5px' },
+  badge: { fontSize:'10px', color:'#818cf8', fontWeight:'800', marginBottom:'30px' },
   inputBox: { position:'relative', marginBottom:'12px' },
   inIcon: { position:'absolute', left:'15px', top:'15px', color:'#475569' },
   inputF: { width:'100%', padding:'15px 15px 15px 45px', borderRadius:'15px', background:'#020617', border:'1px solid #1e293b', color:'#fff', boxSizing:'border-box' },
   btnMain: { width:'100%', padding:'18px', borderRadius:'15px', background:'linear-gradient(135deg, #6366f1, #4f46e5)', color:'#fff', border:'none', fontWeight:'800', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'10px' },
-  container: { maxWidth:'1200px', margin:'0 auto' }
+  container: { maxWidth:'1200px', margin:'0 auto' },
+  tabGrid: { display:'flex', gap:'10px', marginBottom:'20px' },
+  tabBtn: { flex:1, padding:'10px', borderRadius:'10px', border:'none' },
+  listRow: { background:'#0f172a', padding:'15px', borderRadius:'15px', marginBottom:'10px', display:'flex', justifyContent:'space-between' },
+  statC: { background:'#0f172a', padding:'20px', borderRadius:'20px', textAlign:'center' }
 };
