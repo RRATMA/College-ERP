@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { 
   LogOut, ArrowLeft, Trash2, Download, Search, 
   User, Users, BarChart3, Plus, Fingerprint, Mail, AlertTriangle, MapPin, 
-  Monitor, Calendar, Clock, BookOpen, Layers
+  Monitor, Calendar, Clock, BookOpen, Layers, FileSpreadsheet
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from "./supabaseClient";
@@ -67,7 +67,7 @@ export default function App() {
   );
 }
 
-// --- HOD PANEL: UPDATED WITH LECTURE/PRACTICAL COUNTS ---
+// --- HOD PANEL (MASTER SHEET FEATURE ADDED) ---
 function HODPanel({ excelSheets }) {
   const [tab, setTab] = useState('analytics');
   const [db, setDb] = useState({ facs: [], logs: [], assigns: [], critical: [] });
@@ -83,7 +83,30 @@ function HODPanel({ excelSheets }) {
   };
   useEffect(() => { loadData(); }, []);
 
-  // फॅकल्टीनुसार लेक्चर आणि प्रॅक्टिकल काउंट काढणे
+  // MASTER SHEET DOWNLOAD LOGIC
+  const downloadMasterSheet = () => {
+    if (db.logs.length === 0) return alert("No records found to export!");
+    
+    // Formatting data for Excel
+    const dataToExport = db.logs.map(log => ({
+        'Date': log.time_str,
+        'Class': log.class,
+        'Subject': log.sub,
+        'Type': log.type,
+        'Faculty': log.faculty,
+        'Present': log.present,
+        'Total': log.total,
+        'Percentage': ((log.present / log.total) * 100).toFixed(2) + '%'
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance_Master");
+    
+    // Download File
+    XLSX.writeFile(workbook, `Master_Attendance_Report_${new Date().toLocaleDateString()}.xlsx`);
+  };
+
   const getCounts = (facName) => {
     const facLogs = db.logs.filter(log => log.faculty === facName);
     const lectures = facLogs.filter(log => log.type === 'Theory').length;
@@ -99,6 +122,23 @@ function HODPanel({ excelSheets }) {
         ))}
       </div>
 
+      {tab === 'logs' && (
+        <div style={styles.fade}>
+          <div style={styles.actionRow}>
+            <input style={styles.searchInLog} placeholder="Search Logs..." onChange={e=>setSearch(e.target.value.toLowerCase())} />
+            <button onClick={downloadMasterSheet} style={styles.masterBtn}>
+                <FileSpreadsheet size={18}/> Master Sheet
+            </button>
+          </div>
+          {db.logs.filter(l => (l.faculty+l.class+l.sub).toLowerCase().includes(search)).map(log => (
+            <div key={log.id} style={styles.listRow}>
+              <div><b>{log.class} | {log.sub}</b><br/><small>{log.faculty} • {log.type}</small></div>
+              <div style={{color:'#10b981', fontWeight:'900'}}>{log.present}/{log.total}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {tab === 'faculties' && db.facs.map(f => {
         const counts = getCounts(f.name);
         return (
@@ -111,7 +151,7 @@ function HODPanel({ excelSheets }) {
                 <span style={{...styles.countBadge, background:'#10b98122', color:'#10b981'}}>Prac: {counts.practicals}</span>
               </div>
             </div>
-            <Trash2 color="#f43f5e" size={18} onClick={async() => { if(window.confirm("Delete Faculty?")){await supabase.from('faculties').delete().eq('id', f.id); loadData(); }}}/>
+            <Trash2 color="#f43f5e" size={18} style={{cursor:'pointer'}} onClick={async() => { if(window.confirm("Delete Faculty?")){await supabase.from('faculties').delete().eq('id', f.id); loadData(); }}}/>
           </div>
         );
       })}
@@ -126,18 +166,6 @@ function HODPanel({ excelSheets }) {
             <div key={c.student_roll} style={styles.listRow}>
               <span><b>{c.student_roll}</b> - {c.class_name}</span>
               <button onClick={() => alert("Email Alert Sent!")} style={styles.mailBtn}><Mail size={16}/></button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {tab === 'logs' && (
-        <div style={styles.fade}>
-          <input style={styles.searchInFull} placeholder="Search Logs..." onChange={e=>setSearch(e.target.value.toLowerCase())} />
-          {db.logs.filter(l => (l.faculty+l.class+l.sub).toLowerCase().includes(search)).map(log => (
-            <div key={log.id} style={styles.listRow}>
-              <div><b>{log.class} | {log.sub}</b><br/><small>{log.faculty} • {log.type}</small></div>
-              <div style={{color:'#10b981', fontWeight:'900'}}>{log.present}/{log.total}</div>
             </div>
           ))}
         </div>
@@ -165,7 +193,7 @@ function HODPanel({ excelSheets }) {
   );
 }
 
-// --- FACULTY PANEL: UPDATED WITH TYPE SELECTION ---
+// --- FACULTY PANEL ---
 function FacultyPanel({ user }) {
   const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', start: '', end: '' });
   const [active, setActive] = useState(false);
@@ -211,16 +239,13 @@ function FacultyPanel({ user }) {
       <h3><Clock size={20}/> Session Setup</h3>
       <label style={styles.label}>Select Class</label>
       <select style={styles.uiIn} onChange={e=>setSetup({...setup, cl:e.target.value})}><option>Choose...</option>{[...new Set(myJobs.map(j=>j.class_name))].map(c=><option key={c} value={c}>{c}</option>)}</select>
-      
       <label style={styles.label}>Select Subject</label>
       <select style={styles.uiIn} onChange={e=>setSetup({...setup, sub:e.target.value})}><option>Choose...</option>{myJobs.filter(j=>j.class_name===setup.cl).map(j=><option key={j.id} value={j.subject_name}>{j.subject_name}</option>)}</select>
-      
       <label style={styles.label}>Session Type</label>
       <div style={styles.typeRow}>
         <button onClick={()=>setSetup({...setup, ty:'Theory'})} style={{...styles.typeBtn, background:setup.ty==='Theory'?'#6366f1':'#0f172a', border:setup.ty==='Theory'?'1px solid #818cf8':'1px solid #334155'}}><BookOpen size={14}/> Theory</button>
         <button onClick={()=>setSetup({...setup, ty:'Practical'})} style={{...styles.typeBtn, background:setup.ty==='Practical'?'#6366f1':'#0f172a', border:setup.ty==='Practical'?'1px solid #818cf8':'1px solid #334155'}}><Layers size={14}/> Practical</button>
       </div>
-
       <div style={{display:'flex', gap:'10px', marginTop:'15px'}}>
         <div style={{flex:1}}><label style={styles.label}>Start</label><input type="time" style={styles.uiIn} onChange={e=>setSetup({...setup, start:e.target.value})}/></div>
         <div style={{flex:1}}><label style={styles.label}>End</label><input type="time" style={styles.uiIn} onChange={e=>setSetup({...setup, end:e.target.value})}/></div>
@@ -250,7 +275,6 @@ function FacultyPanel({ user }) {
   );
 }
 
-// --- UPDATED STYLES ---
 const styles = {
   loginPage: { height:'100vh', background:'#020617', display:'flex', justifyContent:'center', alignItems:'center', padding:'20px' },
   glassCard: { background:'#1e293b', padding:'40px', borderRadius:'32px', width:'100%', maxWidth:'360px', textAlign:'center', border:'1px solid #334155' },
@@ -271,13 +295,15 @@ const styles = {
   container: { padding:'25px', maxWidth:'1000px', margin:'0 auto' },
   tabGrid: { display:'flex', gap:'5px', background:'#0f172a', padding:'6px', borderRadius:'14px', marginBottom:'25px' },
   tabBtn: { flex:1, padding:'12px 2px', border:'none', borderRadius:'10px', color:'#fff', fontSize:'10px', fontWeight:'900', cursor:'pointer' },
+  actionRow: { display:'flex', gap:'10px', marginBottom:'15px' },
+  searchInLog: { flex: 2, padding:'14px', borderRadius:'14px', background:'#1e293b', border:'1px solid #334155', color:'#fff', boxSizing:'border-box' },
+  masterBtn: { flex: 1, display:'flex', alignItems:'center', justifyContent:'center', gap:'8px', background:'#10b981', color:'#fff', border:'none', borderRadius:'14px', fontWeight:'bold', cursor:'pointer' },
   statsRow: { display:'grid', gridTemplateColumns:'1fr 1fr', gap:'20px' },
   statC: { background:'#1e293b', padding:'25px', borderRadius:'24px', textAlign:'center', border:'1px solid #334155' },
   listRow: { background:'#0f172a', padding:'18px', borderRadius:'18px', marginBottom:'12px', display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid #1e293b' },
   countBadgeRow: { display:'flex', gap:'8px', marginTop:'8px' },
   countBadge: { fontSize:'10px', background:'#6366f122', color:'#6366f1', padding:'3px 8px', borderRadius:'6px', fontWeight:'800' },
   mailBtn: { background:'#10b981', border:'none', color:'#fff', padding:'8px', borderRadius:'10px' },
-  searchInFull: { width:'100%', padding:'14px', borderRadius:'14px', background:'#1e293b', border:'1px solid #334155', color:'#fff', marginBottom:'15px', boxSizing:'border-box' },
   manageGrid: { display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(300px, 1fr))', gap:'25px' },
   formCard: { background:'#1e293b', padding:'30px', borderRadius:'26px', border:'1px solid #334155' },
   uiIn: { width:'100%', padding:'14px', borderRadius:'12px', background:'#0f172a', border:'1px solid #334155', color:'#fff', marginBottom:'12px', boxSizing:'border-box' },
