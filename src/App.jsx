@@ -61,9 +61,9 @@ export default function AmritApp() {
   if (view === 'login') return (
     <div style={ui.loginWrap}>
       <div className="glass-card" style={ui.loginCard}>
-        {/* LOGO INTEGRATION ONLY */}
+        {/* LOGO ADDED HERE */}
         <div style={ui.logoCircle}>
-            <img src="/logo.png" alt="Logo" style={{width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%'}} />
+          <img src="/logo.png" alt="Amrit Logo" style={{width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover'}} />
         </div>
         <h1 style={{fontSize: '28px', margin: '0', fontWeight: 800}}>AMRIT</h1>
         <p style={{color: '#06b6d4', fontSize: '10px', fontWeight: '800', letterSpacing: '2px', marginBottom: '30px'}}>ADMINISTRATION</p>
@@ -104,9 +104,11 @@ function HODPanel({ excelSheets, setView }) {
     <div style={ui.container}>
       <div style={ui.header}>
         <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
-            {/* LOGO ADDED TO HOD HEADER */}
-            <img src="/logo.png" alt="Logo" style={{width: '32px', height: '32px', borderRadius: '50%'}} />
-            <h3 style={{margin:0}}>HOD Panel</h3>
+          {/* HEADER LOGO */}
+          <div style={{width:'35px', height:'35px', borderRadius:'10px', overflow:'hidden'}}>
+             <img src="/logo.png" alt="Logo" style={{width:'100%', height:'100%', objectFit:'cover'}} />
+          </div>
+          <h3 style={{margin:0}}>HOD Panel</h3>
         </div>
         <button onClick={()=>setView('login')} style={ui.exitBtn}><LogOut size={20}/></button>
       </div>
@@ -239,7 +241,10 @@ function FacultyPanel({ user, setView }) {
 
   if (!active) return (
     <div style={ui.mobileWrap}>
-      <div style={ui.header}><div><small>Welcome,</small><h4>Prof. {user.name}</h4></div><button onClick={()=>setView('login')} style={ui.exitBtn}><LogOut/></button></div>
+      <div style={ui.header}>
+        <div><small>Welcome,</small><h4>Prof. {user.name}</h4></div>
+        <button onClick={()=>setView('login')} style={ui.exitBtn}><LogOut/></button>
+      </div>
       <p style={ui.label}><LayoutGrid size={12}/> CLASSES</p>
       <div style={ui.tileGrid}>{[...new Set(myJobs.map(j=>j.class_name))].map(c => (<div key={c} onClick={()=>setSetup({...setup, cl:c})} style={{...ui.tile, background: setup.cl===c?'#0891b2':'#1e293b'}}>{c}</div>))}</div>
       {setup.cl && (
