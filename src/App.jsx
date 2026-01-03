@@ -39,8 +39,8 @@ export default function App() {
     <div style={styles.loginPage}>
       <div style={styles.glassCard}>
         <div style={styles.logoWrap}><img src="/logo.png" style={{width:'50px'}} alt="logo" /></div>
-        <h1 style={styles.title}>AMRIT ERP</h1>
-        <p style={styles.badge}>SECURE INSTITUTIONAL PORTAL</p>
+        <h1 style={styles.title}>AMRIT</h1>
+        <p style={styles.badge}>SECURE ATTENDANCE PORTAL</p>
         <div style={styles.inputGroup}><User size={18} style={styles.iconIn} /><input id="u" placeholder="Faculty/Admin ID" style={styles.inputField} /></div>
         <div style={styles.inputGroup}><Fingerprint size={18} style={styles.iconIn} /><input id="p" type="password" placeholder="Password" style={styles.inputField} /></div>
         <button onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)} style={styles.btnPrimary}>AUTHENTICATE</button>
