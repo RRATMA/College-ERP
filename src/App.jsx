@@ -1,10 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { 
-  LogOut, ArrowLeft, Trash2, Search, BookOpen, Layers, 
-  ChevronRight, LayoutGrid, Users, Download, Zap, 
-  FlaskConical, GraduationCap, PlusCircle, ClipboardList, 
-  Settings, Database, Activity, BookOpenCheck, UserCheck, 
-  Monitor, Clock, CheckCircle2, AlertCircle, BarChart3, TrendingUp, FileWarning
+  LogOut, ArrowLeft, Trash2, Search, Download, Zap, 
+  Database, BookOpenCheck, UserCheck, TrendingUp, FileWarning, ChevronRight
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from "./supabaseClient";
@@ -18,16 +15,15 @@ const injectStyles = () => {
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
     body { font-family: 'Inter', sans-serif; background: #020617; margin: 0; color: #f1f5f9; }
     .glass-card { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; transition: 0.3s ease; }
-    .glass-card:hover { border-color: rgba(6, 182, 212, 0.4); transform: translateY(-5px); }
-    .stat-card-new { padding: 22px; display: flex; flex-direction: column; justify-content: space-between; min-height: 140px; }
-    .defaulter-alert { grid-column: span 2; border: 1px solid rgba(244, 63, 94, 0.4) !important; background: linear-gradient(to right, rgba(244, 63, 94, 0.1), transparent) !important; }
+    .glass-card:hover { border-color: rgba(6, 182, 212, 0.4); transform: translateY(-3px); }
+    .stat-card { padding: 22px; display: flex; flex-direction: column; justify-content: space-between; min-height: 140px; }
+    .defaulter-btn { grid-column: span 2; border: 1px solid rgba(244, 63, 94, 0.3) !important; background: linear-gradient(90deg, rgba(244, 63, 94, 0.1), transparent) !important; cursor: pointer; }
     .icon-box { width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
     .scroll-hide::-webkit-scrollbar { display: none; }
-    input, select { background: #0f172a !important; border: 1px solid #1e293b !important; color: #fff !important; outline: none; border-radius: 12px; padding: 12px; transition: 0.2s; }
-    input:focus { border-color: #06b6d4 !important; }
-    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 30px; }
-    .roll-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 10px; }
-    @media (max-width: 600px) { .defaulter-alert { grid-column: span 1; } }
+    input, select { background: #0f172a !important; border: 1px solid #1e293b !important; color: #fff !important; outline: none; border-radius: 12px; padding: 12px; transition: 0.2s; width: 100%; box-sizing: border-box; }
+    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 30px; }
+    .roll-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 10px; padding-bottom: 100px; }
+    @media (max-width: 600px) { .defaulter-btn { grid-column: span 1; } }
   `;
   document.head.appendChild(styleTag);
 };
@@ -46,7 +42,7 @@ export default function AmritApp() {
     fetch('/students_list.xlsx').then(res => res.arrayBuffer()).then(ab => {
       const wb = XLSX.read(ab, { type: 'array' });
       setExcelSheets(wb.SheetNames);
-    }).catch(() => console.error("Excel mapping source missing"));
+    }).catch(() => console.error("Missing students_list.xlsx in public folder"));
   }, []);
 
   const handleLogin = async (u, p) => {
@@ -63,11 +59,11 @@ export default function AmritApp() {
   if (view === 'login') return (
     <div style={ui.loginWrap}>
       <div className="glass-card" style={ui.loginCard}>
-        <div style={ui.logoCircle}><img src="/logo.png" style={{width:'100%', height:'100%', objectFit:'cover', borderRadius:'50%'}} /></div>
-        <h1 style={{fontSize: '28px', margin: '0', fontWeight: 800}}>AMRIT</h1>
+        <div style={ui.logoCircle}><img src="/logo.png" style={{width:'100%', borderRadius:'50%'}} /></div>
+        <h1 style={{fontSize: '28px', fontWeight: 800, margin: '0 0 10px'}}>AMRIT</h1>
         <p style={{color: '#06b6d4', fontSize: '10px', fontWeight: '800', letterSpacing: '2px', marginBottom: '30px'}}>ADMINISTRATION</p>
-        <input id="u" placeholder="User ID" style={ui.input} />
-        <input id="p" type="password" placeholder="Passcode" style={ui.input} />
+        <input id="u" placeholder="User ID" style={{marginBottom: '10px'}} />
+        <input id="p" type="password" placeholder="Passcode" style={{marginBottom: '20px'}} />
         <button onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)} style={ui.primaryBtn}>
           ENTER SYSTEM <ChevronRight size={18}/>
         </button>
@@ -75,9 +71,10 @@ export default function AmritApp() {
     </div>
   );
 
-  return <div style={{minHeight: '100vh'}}>{view === 'hod' ? <HODPanel excelSheets={excelSheets} setView={setView} /> : <FacultyPanel user={user} setView={setView} />}</div>;
+  return view === 'hod' ? <HODPanel excelSheets={excelSheets} setView={setView} /> : <FacultyPanel user={user} setView={setView} />;
 }
 
+// --- HOD PANEL ---
 function HODPanel({ excelSheets, setView }) {
   const [tab, setTab] = useState('dashboard');
   const [db, setDb] = useState({ facs: [], logs: [], maps: [] });
@@ -85,7 +82,7 @@ function HODPanel({ excelSheets, setView }) {
   const [form, setForm] = useState({ name:'', id:'', pass:'', fId:'', cls:'', sub:'' });
 
   const loadData = async () => {
-    const { data: f } = await supabase.from('faculties').select('*').order('name');
+    const { data: f } = await supabase.from('faculties').select('*');
     const { data: l } = await supabase.from('attendance').select('*').order('created_at', { ascending: false });
     const { data: m } = await supabase.from('assignments').select('*');
     setDb({ facs: f || [], logs: l || [], maps: m || [] });
@@ -93,69 +90,46 @@ function HODPanel({ excelSheets, setView }) {
 
   useEffect(() => { loadData(); }, []);
 
-  // --- DEFAULTER ENGINE LOGIC ---
-  const downloadDefaulterList = async () => {
-    const { data: allAbsent } = await supabase.from('absentee_records').select('student_roll, class_name');
-    if(!allAbsent) return alert("No records found");
+  const downloadDefaulters = async () => {
+    const { data: absRecords } = await supabase.from('absentee_records').select('*');
+    if(!absRecords) return alert("No data");
 
-    // Count sessions per class
-    const sessionCount = db.logs.reduce((acc, log) => {
-      acc[log.class] = (acc[log.class] || 0) + 1;
-      return acc;
-    }, {});
-
-    // Count absents per student
-    const studentAbsents = allAbsent.reduce((acc, rec) => {
-      const key = `${rec.class_name}_${rec.student_roll}`;
-      acc[key] = (acc[key] || 0) + 1;
+    const classTotalLec = db.logs.reduce((acc, log) => { acc[log.class] = (acc[log.class] || 0) + 1; return acc; }, {});
+    const studentAbsents = absRecords.reduce((acc, r) => {
+      const k = `${r.class_name}_${r.student_roll}`;
+      acc[k] = (acc[k] || 0) + 1;
       return acc;
     }, {});
 
     const report = [];
-    const uniqueKeys = [...new Set(allAbsent.map(a => `${a.class_name}_${a.student_roll}`))];
+    const uniqueStudents = [...new Set(absRecords.map(r => `${r.class_name}_${r.student_roll}`))];
 
-    uniqueKeys.forEach(key => {
+    uniqueStudents.forEach(key => {
       const [cls, roll] = key.split('_');
-      const totalLectures = sessionCount[cls] || 0;
-      const absents = studentAbsents[key] || 0;
-      const present = totalLectures - absents;
-      const percentage = totalLectures > 0 ? ((present / totalLectures) * 100).toFixed(2) : 0;
+      const total = classTotalLec[cls] || 0;
+      const abs = studentAbsents[key] || 0;
+      const pres = total - abs;
+      const perc = total > 0 ? ((pres / total) * 100).toFixed(2) : 0;
 
-      if(parseFloat(percentage) < 75) {
-        report.push({ 
-          "Class": cls, 
-          "Roll Number": roll, 
-          "Total Lectures": totalLectures, 
-          "Attended": present, 
-          "Percentage": percentage + "%",
-          "Status": "DEFAULTER"
-        });
+      if(parseFloat(perc) < 75) {
+        report.push({ Class: cls, Roll: roll, Total: total, Present: pres, Percentage: perc + "%" });
       }
     });
 
     const ws = XLSX.utils.json_to_sheet(report);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Defaulters");
-    XLSX.writeFile(wb, "Defaulter_List_Below_75.xlsx");
+    XLSX.writeFile(wb, "Amrit_Defaulter_List.xlsx");
   };
-
-  const todayStr = new Date().toLocaleDateString('en-GB');
-  const todayLogs = db.logs.filter(log => log.time_str === todayStr);
-  const totalPresent = db.logs.reduce((a, c) => a + (c.present || 0), 0);
-  const totalPossible = db.logs.reduce((a, c) => a + (c.total || 0), 0);
-  const avgAttendance = totalPossible > 0 ? ((totalPresent / totalPossible) * 100).toFixed(1) : 0;
 
   return (
     <div style={ui.container}>
       <div style={ui.header}>
-        <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
-          <img src="/logo.png" style={{width:'38px', height:'38px', borderRadius:'50%', border:'2px solid #06b6d4'}} />
-          <h3 style={{margin:0}}>HOD Panel</h3>
-        </div>
-        <button onClick={()=>setView('login')} style={ui.exitBtn}><LogOut size={20}/></button>
+        <h3>HOD Panel</h3>
+        <button onClick={()=>setView('login')} style={ui.exitBtn}><LogOut/></button>
       </div>
 
-      <div className="scroll-hide" style={ui.tabRow}>
+      <div style={ui.tabRow} className="scroll-hide">
         {['dashboard', 'staff', 'mapping', 'logs'].map(t => (
           <button key={t} onClick={()=>setTab(t)} style={{...ui.tabBtn, background: tab===t?'#0891b2':'#1e293b'}}>{t.toUpperCase()}</button>
         ))}
@@ -163,46 +137,13 @@ function HODPanel({ excelSheets, setView }) {
 
       {tab === 'dashboard' && (
         <div className="dashboard-grid">
-          <div className="glass-card stat-card-new">
-            <div className="icon-box" style={{background:'rgba(6,182,212,0.1)', color:'#06b6d4'}}><Database size={22}/></div>
-            <div><h2 style={{margin:0}}>{db.logs.length}</h2><p style={ui.dashLabel}>TOTAL LOGS</p></div>
-          </div>
-          <div className="glass-card stat-card-new">
-            <div className="icon-box" style={{background:'rgba(168,85,247,0.1)', color:'#a855f7'}}><UserCheck size={22}/></div>
-            <div><h2 style={{margin:0}}>{db.facs.length}</h2><p style={ui.dashLabel}>STAFF</p></div>
-          </div>
-          <div className="glass-card stat-card-new">
-            <div className="icon-box" style={{background:'rgba(16,185,129,0.1)', color:'#10b981'}}><BookOpenCheck size={22}/></div>
-            <div><h2 style={{margin:0}}>{excelSheets.length}</h2><p style={ui.dashLabel}>CLASSES</p></div>
-          </div>
-          <div className="glass-card stat-card-new">
-            <div className="icon-box" style={{background:'rgba(245,158,11,0.1)', color:'#f59e0b'}}><TrendingUp size={22}/></div>
-            <div><h2 style={{margin:0}}>{avgAttendance}%</h2><p style={ui.dashLabel}>AVG ATTENDANCE</p></div>
-          </div>
-          
-          {/* DEFAULTER FEATURE CARD */}
-          <div className="glass-card stat-card-new defaulter-alert" onClick={downloadDefaulterList} style={{cursor:'pointer'}}>
+          <div className="glass-card stat-card"><div className="icon-box" style={{color:'#06b6d4'}}><Database/></div><div><h2>{db.logs.length}</h2><p style={ui.dashLabel}>TOTAL LOGS</p></div></div>
+          <div className="glass-card stat-card"><div className="icon-box" style={{color:'#a855f7'}}><UserCheck/></div><div><h2>{db.facs.length}</h2><p style={ui.dashLabel}>FACULTY</p></div></div>
+          <div className="glass-card stat-card defaulter-btn" onClick={downloadDefaulters}>
             <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
-               <div className="icon-box" style={{background:'rgba(244,63,94,0.2)', color:'#f43f5e', marginBottom:0}}><FileWarning size={24}/></div>
-               <div>
-                  <h3 style={{margin:0, color:'#f43f5e'}}>Download Defaulter List</h3>
-                  <p style={{margin:0, fontSize:'12px', opacity:0.7}}>Get list of students below 75% attendance</p>
-               </div>
+              <div className="icon-box" style={{background:'#f43f5e', color:'#fff', marginBottom:0}}><FileWarning/></div>
+              <div><h3 style={{margin:0, color:'#f43f5e'}}>Download Defaulters</h3><p style={{margin:0, fontSize:'12px', opacity:0.6}}>Students below 75% attendance</p></div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {tab === 'logs' && (
-        <div>
-          <input placeholder="Search logs..." style={ui.input} onChange={e=>setSearchTerm(e.target.value)}/>
-          <div style={{marginTop:'20px'}}>
-            {db.logs.filter(l=>(l.class+l.sub).toLowerCase().includes(searchTerm.toLowerCase())).map(log=>(
-              <div key={log.id} style={ui.feedRow} className="glass-card">
-                <div><b>{log.class} | {log.sub}</b><br/><small>{log.faculty} • {log.type}</small></div>
-                <div style={{textAlign:'right'}}><b style={{color:'#10b981'}}>{log.present}/{log.total}</b><br/><small>{log.time_str}</small></div>
-              </div>
-            ))}
           </div>
         </div>
       )}
@@ -210,17 +151,13 @@ function HODPanel({ excelSheets, setView }) {
       {tab === 'staff' && (
         <div>
           <div className="glass-card" style={{padding:'20px', marginBottom:'20px'}}>
-            <p style={ui.label}>ADD NEW FACULTY</p>
-            <input placeholder="Name" style={ui.input} onChange={e=>setForm({...form, name:e.target.value})}/>
-            <div style={{display:'flex', gap:'10px', marginTop:'10px'}}>
-              <input placeholder="ID" style={ui.input} onChange={e=>setForm({...form, id:e.target.value})}/>
-              <input placeholder="Password" type="password" style={ui.input} onChange={e=>setForm({...form, pass:e.target.value})}/>
-            </div>
-            <button style={{...ui.primaryBtn, marginTop:'15px'}} onClick={async()=>{await supabase.from('faculties').insert([{id:form.id, name:form.name, password:form.pass}]); loadData();}}>REGISTER</button>
+            <input placeholder="Name" style={{marginBottom:'10px'}} onChange={e=>setForm({...form, name:e.target.value})}/>
+            <div style={{display:'flex', gap:'10px'}}><input placeholder="ID" onChange={e=>setForm({...form, id:e.target.value})}/><input placeholder="Pass" type="password" onChange={e=>setForm({...form, pass:e.target.value})}/></div>
+            <button style={{...ui.primaryBtn, marginTop:'15px'}} onClick={async()=>{await supabase.from('faculties').insert([{id:form.id, name:form.name, password:form.pass}]); loadData();}}>SAVE STAFF</button>
           </div>
           {db.facs.map(f => (
-            <div key={f.id} style={ui.feedRow} className="glass-card">
-              <div><b>{f.name}</b><br/><small>ID: {f.id}</small></div>
+            <div key={f.id} className="glass-card" style={ui.feedRow}>
+              <span>{f.name} ({f.id})</span>
               <button onClick={async()=>{await supabase.from('faculties').delete().eq('id', f.id); loadData();}} style={ui.delBtn}><Trash2 size={18}/></button>
             </div>
           ))}
@@ -229,17 +166,31 @@ function HODPanel({ excelSheets, setView }) {
 
       {tab === 'mapping' && (
         <div className="glass-card" style={{padding:'20px'}}>
-          <p style={ui.label}>ASSIGN LOAD</p>
-          <select style={ui.input} onChange={e=>setForm({...form, fId:e.target.value})}><option>Faculty</option>{db.facs.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select>
-          <select style={{...ui.input, marginTop:'10px'}} onChange={e=>setForm({...form, cls:e.target.value})}><option>Class</option>{excelSheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
-          <input placeholder="Subject" style={{...ui.input, marginTop:'10px'}} onChange={e=>setForm({...form, sub:e.target.value})}/>
-          <button style={{...ui.primaryBtn, marginTop:'20px'}} onClick={async()=>{await supabase.from('assignments').insert([{fac_id:form.fId, class_name:form.cls, subject_name:form.sub}]); loadData();}}>ASSIGN</button>
+          <select style={{marginBottom:'10px'}} onChange={e=>setForm({...form, fId:e.target.value})}><option>Select Faculty</option>{db.facs.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select>
+          <select style={{marginBottom:'10px'}} onChange={e=>setForm({...form, cls:e.target.value})}><option>Select Class</option>{excelSheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
+          <input placeholder="Subject" style={{marginBottom:'15px'}} onChange={e=>setForm({...form, sub:e.target.value})}/>
+          <button style={{...ui.primaryBtn, background:'#a855f7'}} onClick={async()=>{await supabase.from('assignments').insert([{fac_id:form.fId, class_name:form.cls, subject_name:form.sub}]); loadData();}}>ASSIGN LOAD</button>
+        </div>
+      )}
+
+      {tab === 'logs' && (
+        <div>
+          <input placeholder="Search logs..." onChange={e=>setSearchTerm(e.target.value)}/>
+          <div style={{marginTop:'20px'}}>
+            {db.logs.filter(l=>(l.class+l.sub).toLowerCase().includes(searchTerm.toLowerCase())).map(log=>(
+              <div key={log.id} className="glass-card" style={ui.feedRow}>
+                <div><b>{log.class} - {log.sub}</b><br/><small>{log.faculty} | {log.type}</small></div>
+                <div style={{textAlign:'right'}}><b>{log.present}/{log.total}</b><br/><small>{log.time_str}</small></div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
   );
 }
 
+// --- FACULTY PANEL ---
 function FacultyPanel({ user, setView }) {
   const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', start: '', end: '' });
   const [active, setActive] = useState(false);
@@ -266,15 +217,18 @@ function FacultyPanel({ user, setView }) {
     setLoading(true);
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const dist = Math.sqrt(Math.pow(pos.coords.latitude-CAMPUS_LAT,2)+Math.pow(pos.coords.longitude-CAMPUS_LON,2));
-      if(dist > RADIUS_LIMIT) { setLoading(false); return alert("Out of Campus Radius"); }
+      if(dist > RADIUS_LIMIT) { setLoading(false); return alert("Outside Campus!"); }
+      
       const { data: att } = await supabase.from('attendance').insert([{ 
         faculty: user.name, sub: setup.sub, class: setup.cl, type: setup.ty, 
         duration: `${setup.start}-${setup.end}`, present: marked.length, total: students.length, 
         time_str: new Date().toLocaleDateString('en-GB') 
       }]).select().single();
+
       const abs = students.filter(s => !marked.includes(s.id)).map(s => ({ attendance_id: att.id, student_roll: s.id, class_name: setup.cl }));
       if(abs.length > 0) await supabase.from('absentee_records').insert(abs);
-      alert("Success"); setView('login');
+      
+      alert("Synced Successfully"); setView('login');
     }, () => { setLoading(false); alert("GPS Required"); });
   };
 
@@ -287,12 +241,8 @@ function FacultyPanel({ user, setView }) {
         <div style={{marginTop: '20px'}}>
           <p style={ui.label}>SUBJECT</p>
           <div style={ui.subList}>{myJobs.filter(j=>j.class_name===setup.cl).map(j => (<div key={j.id} onClick={()=>setSetup({...setup, sub:j.subject_name})} style={{...ui.subRow, background: setup.sub===j.subject_name?'#0891b2':'#1e293b'}}>{j.subject_name}</div>))}</div>
-          <div style={{display:'flex', gap:'10px', marginTop:'15px'}}><input type="time" style={ui.input} onChange={e=>setSetup({...setup, start:e.target.value})}/><input type="time" style={ui.input} onChange={e=>setSetup({...setup, end:e.target.value})}/></div>
-          <div style={{display:'flex', gap:'10px', marginTop: '15px'}}>
-             <button onClick={()=>setSetup({...setup, ty:'Theory'})} style={{...ui.typeBtn, background: setup.ty==='Theory'?'#06b6d4':'#1e293b'}}>Theory</button>
-             <button onClick={()=>setSetup({...setup, ty:'Practical'})} style={{...ui.typeBtn, background: setup.ty==='Practical'?'#10b981':'#1e293b'}}>Practical</button>
-          </div>
-          <button onClick={launch} style={{...ui.primaryBtn, marginTop:'25px'}}><Zap size={18}/> START</button>
+          <div style={{display:'flex', gap:'10px', marginTop:'10px'}}><input type="time" onChange={e=>setSetup({...setup, start:e.target.value})}/><input type="time" onChange={e=>setSetup({...setup, end:e.target.value})}/></div>
+          <button onClick={launch} style={{...ui.primaryBtn, marginTop:'20px'}}><Zap size={18}/> START SESSION</button>
         </div>
       )}
     </div>
@@ -302,7 +252,7 @@ function FacultyPanel({ user, setView }) {
     <div style={ui.mobileWrap}>
       <div style={ui.stickyHeader}><button onClick={()=>setActive(false)} style={ui.circleBtn}><ArrowLeft/></button><h3>{setup.cl}</h3><div style={ui.badge}>{marked.length}/{students.length}</div></div>
       <div className="roll-grid">{students.map(s => (<div key={s.id} onClick={() => setMarked(p=>p.includes(s.id)?p.filter(x=>x!==s.id):[...p, s.id])} style={{...ui.rollChip, background: marked.includes(s.id)?'#10b981':'#1e293b'}}>{s.id}</div>))}</div>
-      <button disabled={loading} onClick={submit} style={ui.submitBtn}>{loading ? "WAIT..." : "SAVE ATTENDANCE"}</button>
+      <button disabled={loading} onClick={submit} style={ui.submitBtn}>{loading ? "VERIFYING GPS..." : "SYNC TO SERVER"}</button>
     </div>
   );
 }
@@ -310,27 +260,25 @@ function FacultyPanel({ user, setView }) {
 const ui = {
   loginWrap: { height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#020617' },
   loginCard: { padding: '40px', width: '280px', textAlign: 'center' },
-  logoCircle: { width: '80px', height: '80px', background: 'rgba(6,182,212,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', border: '1px solid #06b6d4', overflow:'hidden' },
+  logoCircle: { width: '80px', height: '80px', background: 'rgba(6,182,212,0.1)', borderRadius: '50%', margin: '0 auto 20px', display:'flex', alignItems:'center', justifyContent:'center', border:'1px solid #06b6d4', overflow:'hidden' },
   container: { maxWidth: '1000px', margin: '0 auto', padding: '20px' },
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' },
-  tabRow: { display: 'flex', gap: '8px', marginBottom: '30px', overflowX: 'auto', paddingBottom: '5px' },
-  tabBtn: { padding: '10px 18px', borderRadius: '14px', border: 'none', fontWeight: 'bold', fontSize: '11px', color: '#fff', cursor: 'pointer', flexShrink: 0 },
-  input: { width: '100%', padding: '14px', borderRadius: '12px', boxSizing: 'border-box' },
-  primaryBtn: { width: '100%', padding: '16px', background: '#0891b2', color: '#fff', border: 'none', borderRadius: '14px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' },
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
+  tabRow: { display: 'flex', gap: '8px', marginBottom: '30px', overflowX: 'auto', paddingBottom: '10px' },
+  tabBtn: { padding: '10px 20px', borderRadius: '12px', border: 'none', color: '#fff', fontWeight: 'bold', fontSize: '11px', cursor: 'pointer' },
+  primaryBtn: { width: '100%', padding: '16px', background: '#0891b2', color: '#fff', border: 'none', borderRadius: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer' },
   exitBtn: { background: 'none', color: '#f43f5e', border: 'none', cursor: 'pointer' },
   mobileWrap: { padding: '20px' },
   tileGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' },
   tile: { padding: '20px', borderRadius: '18px', textAlign: 'center', fontWeight: 'bold', color: '#fff', cursor: 'pointer' },
   subList: { display: 'flex', flexDirection: 'column', gap: '8px' },
   subRow: { padding: '15px', borderRadius: '12px', textAlign: 'center', fontWeight: 'bold', color: '#fff', cursor: 'pointer' },
-  typeBtn: { flex: 1, padding: '12px', color: '#fff', borderRadius: '12px', border: 'none', fontWeight: 'bold', cursor: 'pointer' },
   label: { fontSize: '10px', color: '#64748b', fontWeight: 'bold', marginBottom: '8px' },
-  dashLabel: { fontSize: '10px', fontWeight: 'bold', color: '#64748b', letterSpacing: '1px', marginTop: '5px' },
-  stickyHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' },
-  rollChip: { padding: '15px 5px', borderRadius: '12px', textAlign: 'center', fontWeight: 'bold', fontSize: '14px', color: '#fff', cursor: 'pointer' },
-  submitBtn: { position: 'fixed', bottom: '20px', left: '20px', right: '20px', padding: '18px', borderRadius: '18px', background: '#10b981', color: '#fff', border: 'none', fontWeight: 'bold', zIndex: 10, cursor: 'pointer' },
+  dashLabel: { fontSize: '10px', fontWeight: 'bold', color: '#64748b', marginTop: '5px' },
+  stickyHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
+  rollChip: { padding: '15px 5px', borderRadius: '12px', textAlign: 'center', fontWeight: 'bold', color: '#fff', cursor: 'pointer' },
+  submitBtn: { position: 'fixed', bottom: '20px', left: '20px', right: '20px', padding: '18px', borderRadius: '18px', background: '#10b981', color: '#fff', border: 'none', fontWeight: 'bold', cursor: 'pointer' },
   badge: { background: '#10b981', padding: '5px 12px', borderRadius: '10px', fontWeight: 'bold' },
   circleBtn: { width: '40px', height: '40px', borderRadius: '50%', background: '#1e293b', border: 'none', color: '#fff', cursor: 'pointer' },
   delBtn: { background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer' },
-  feedRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px', borderRadius:'18px', marginBottom:'10px' }
+  feedRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', marginBottom: '10px' }
 };
