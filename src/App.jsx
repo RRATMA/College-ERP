@@ -21,7 +21,7 @@ export default function App() {
     fetch('/students_list.xlsx').then(res => res.arrayBuffer()).then(ab => {
       const wb = XLSX.read(ab, { type: 'array' });
       setExcelSheets(wb.SheetNames);
-    }).catch(e => console.error("Excel file missing."));
+    }).catch(e => console.error("Excel file missing. Place it in public folder."));
   }, []);
 
   const handleLogin = async (u, p) => {
@@ -76,7 +76,7 @@ export default function App() {
   );
 }
 
-// --- HOD PANEL (Restored All Features) ---
+// --- HOD PANEL ---
 function HODPanel({ excelSheets }) {
   const [tab, setTab] = useState('analytics');
   const [db, setDb] = useState({ facs: [], logs: [], assigns: [], critical: [] });
@@ -125,11 +125,11 @@ function HODPanel({ excelSheets }) {
       {tab === 'analytics' && (
         <div className="fade-in">
           <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap:'15px', marginBottom:'25px'}}>
-            <div style={styles.statsCard}><BarChart3 color="#6366f1"/><h3>{db.logs.length}</h3><p>Sessions</p></div>
+            <div style={styles.statsCard}><BarChart3 color="#6366f1"/><h3>{db.logs.length}</h3><p>Total Sessions</p></div>
             <div style={styles.statsCard}><Users color="#10b981"/><h3>{db.facs.length}</h3><p>Faculties</p></div>
-            <div style={{...styles.statsCard, border:'1px solid #f43f5e'}}><AlertTriangle color="#f43f5e"/><h3>{db.critical.length}</h3><p>Critical Absentees</p></div>
+            <div style={{...styles.statsCard, border:'1px solid #f43f5e'}}><AlertTriangle color="#f43f5e"/><h3>{db.critical.length}</h3><p>Alerts (3+ Days)</p></div>
           </div>
-          <h3 style={{marginBottom:'15px'}}>Critical Attendance Alerts (3+ Days)</h3>
+          <h3 style={{marginBottom:'15px'}}>Critical Absentees</h3>
           {db.critical.map(c => (
             <div key={c.student_roll} style={{...styles.itemRow, borderLeft:'4px solid #f43f5e'}}>
               <div><b>Roll: {c.student_roll}</b><br/><small>{c.class_name}</small></div>
@@ -141,7 +141,7 @@ function HODPanel({ excelSheets }) {
 
       {tab === 'logs' && (
         <div className="fade-in">
-          <div style={styles.inputGroup}><Search size={18} style={styles.iconIn} /><input style={styles.inputField} placeholder="Search by Teacher, Subject, Class..." onChange={e=>setSearch(e.target.value.toLowerCase())} /></div>
+          <div style={styles.inputGroup}><Search size={18} style={styles.iconIn} /><input style={styles.inputField} placeholder="Search Teacher, Subject, Class..." onChange={e=>setSearch(e.target.value.toLowerCase())} /></div>
           <button onClick={downloadMasterSheet} style={styles.downloadBtn}><Download size={18}/> DOWNLOAD MASTER SHEET</button>
           {db.logs.filter(l => (l.faculty+l.class+l.sub).toLowerCase().includes(search)).map(log => (
             <div key={log.id} style={styles.itemRow}>
@@ -176,8 +176,8 @@ function HODPanel({ excelSheets }) {
             <h3><RefreshCw size={18}/> Workload Map</h3>
             <select style={styles.inputSml} onChange={e=>setForm({...form, fId:e.target.value})}><option>Select Faculty</option>{db.facs.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select>
             <select style={styles.inputSml} onChange={e=>setForm({...form, cl:e.target.value})}><option>Select Class</option>{excelSheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
-            <input placeholder="Subject" style={styles.inputSml} onChange={e=>setForm({...form, sub:e.target.value})} />
-            <button style={{...styles.btnAction, background:'#10b981'}} onClick={async ()=>{await supabase.from('assignments').insert([{fac_id:form.fId, class_name:form.cl, subject_name:form.sub}]); alert("Mapped!");}}>LINK</button>
+            <input placeholder="Subject Name" style={styles.inputSml} onChange={e=>setForm({...form, sub:e.target.value})} />
+            <button style={{...styles.btnAction, background:'#10b981'}} onClick={async ()=>{await supabase.from('assignments').insert([{fac_id:form.fId, class_name:form.cl, subject_name:form.sub}]); alert("Mapped Successfully!");}}>LINK SUBJECT</button>
           </div>
         </div>
       )}
@@ -185,20 +185,21 @@ function HODPanel({ excelSheets }) {
   );
 }
 
-// --- FACULTY PANEL (Restored Type & Time Features) ---
+// --- FACULTY PANEL ---
 function FacultyPanel({ user }) {
   const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', start: '', end: '' });
   const [active, setActive] = useState(false);
   const [students, setStudents] = useState([]);
   const [marked, setMarked] = useState([]);
   const [myJobs, setMyJobs] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     supabase.from('assignments').select('*').eq('fac_id', user.id).then(res => setMyJobs(res.data || []));
   }, [user.id]);
 
   const startAttendance = () => {
-    if(!setup.cl || !setup.sub || !setup.start || !setup.end) return alert("Please fill all details (Class, Subject, Type, Time)!");
+    if(!setup.cl || !setup.sub || !setup.start || !setup.end) return alert("Fill all details!");
     fetch('/students_list.xlsx').then(r => r.arrayBuffer()).then(ab => {
       const wb = XLSX.read(ab, { type: 'array' });
       const sheet = XLSX.utils.sheet_to_json(wb.Sheets[setup.cl]);
@@ -208,30 +209,45 @@ function FacultyPanel({ user }) {
   };
 
   const submitAttendance = () => {
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const dist = Math.sqrt(Math.pow(pos.coords.latitude-CAMPUS_LAT,2)+Math.pow(pos.coords.longitude-CAMPUS_LON,2));
-      if(dist > RADIUS_LIMIT) return alert("Geofence Alert: Must be on campus!");
+    setLoading(true);
+    const options = { enableHighAccuracy: true, timeout: 10000 };
 
-      const { data: att } = await supabase.from('attendance').insert([{ 
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const dist = Math.sqrt(Math.pow(pos.coords.latitude - CAMPUS_LAT, 2) + Math.pow(pos.coords.longitude - CAMPUS_LON, 2));
+      
+      if (dist > RADIUS_LIMIT) {
+        setLoading(false);
+        return alert("Geofence Alert: You must be on campus to submit attendance.");
+      }
+
+      const { data: att, error: attErr } = await supabase.from('attendance').insert([{ 
         faculty: user.name, sub: setup.sub, class: setup.cl, type: setup.ty, 
         duration: `${setup.start}-${setup.end}`, present: marked.length, total: students.length, 
         time_str: new Date().toLocaleDateString('en-GB') 
       }]).select().single();
 
-      const abs = students.filter(s => !marked.includes(s.id)).map(s => ({
-        attendance_id: att.id, student_roll: s.id, class_name: setup.cl
-      }));
-      if(abs.length > 0) await supabase.from('absentee_records').insert(abs);
-
-      alert("Attendance Submitted Successfully!"); setActive(false); setMarked([]);
-    });
+      if (!attErr) {
+        const absents = students.filter(s => !marked.includes(s.id)).map(s => ({
+          attendance_id: att.id, student_roll: s.id, class_name: setup.cl
+        }));
+        if (absents.length > 0) await supabase.from('absentee_records').insert(absents);
+        alert("✅ Submitted Successfully!");
+        setActive(false); setMarked([]);
+      } else {
+        alert("Error: " + attErr.message);
+      }
+      setLoading(false);
+    }, (err) => {
+      setLoading(false);
+      alert("Location Error: " + err.message + ". Check GPS Permissions.");
+    }, options);
   };
 
   if (!active) return (
     <div style={styles.setupCard}>
       <h2 style={{textAlign:'center'}}><Clock color="#6366f1"/> Setup Session</h2>
-      <select style={styles.inputSml} onChange={e=>setSetup({...setup, cl:e.target.value})}><option>Choose Class</option>{[...new Set(myJobs.map(j=>j.class_name))].map(c=><option key={c} value={c}>{c}</option>)}</select>
-      <select style={styles.inputSml} onChange={e=>setSetup({...setup, sub:e.target.value})}><option>Choose Subject</option>{myJobs.filter(j=>j.class_name===setup.cl).map(j=><option key={j.id} value={j.subject_name}>{j.subject_name}</option>)}</select>
+      <select style={styles.inputSml} onChange={e=>setSetup({...setup, cl:e.target.value})}><option>Select Class</option>{[...new Set(myJobs.map(j=>j.class_name))].map(c=><option key={c} value={c}>{c}</option>)}</select>
+      <select style={styles.inputSml} onChange={e=>setSetup({...setup, sub:e.target.value})}><option>Select Subject</option>{myJobs.filter(j=>j.class_name===setup.cl).map(j=><option key={j.id} value={j.subject_name}>{j.subject_name}</option>)}</select>
       <select style={styles.inputSml} value={setup.ty} onChange={e=>setSetup({...setup, ty:e.target.value})}><option value="Theory">Theory</option><option value="Practical">Practical</option></select>
       <div style={{display:'flex', gap:'10px', marginBottom:'10px'}}>
         <div style={{flex:1}}><small>Start Time</small><input type="time" style={styles.inputSml} onChange={e=>setSetup({...setup, start:e.target.value})} /></div>
@@ -253,12 +269,16 @@ function FacultyPanel({ user }) {
                style={{...styles.rollChip, background: marked.includes(s.id) ? '#6366f1' : '#1e293b'}}>{s.id}</div>
         ))}
       </div>
-      <div style={styles.floatingAction}><button onClick={submitAttendance} style={styles.submitLarge}>SUBMIT ({marked.length}/{students.length})</button></div>
+      <div style={styles.floatingAction}>
+        <button disabled={loading} onClick={submitAttendance} style={{...styles.submitLarge, background: loading ? '#94a3b8' : '#10b981'}}>
+          {loading ? "VERIFYING..." : `SUBMIT (${marked.length}/${students.length})`}
+        </button>
+      </div>
     </div>
   );
 }
 
-// --- DESIGN SYSTEM (Professional Theme) ---
+// --- STYLES ---
 const styles = {
   loginPage: { minHeight:'100vh', background:'#020617', display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' },
   glassCard: { background:'rgba(30, 41, 59, 0.7)', backdropFilter:'blur(12px)', padding:'30px', borderRadius:'20px', width:'100%', maxWidth:'360px', textAlign:'center', border:'1px solid #334155' },
@@ -290,6 +310,6 @@ const styles = {
   rollGrid: { display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(65px, 1fr))', gap:'10px', paddingBottom:'100px' },
   rollChip: { height:'65px', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'15px', fontWeight:'bold', cursor:'pointer' },
   floatingAction: { position:'fixed', bottom:0, left:0, width:'100%', padding:'20px', background:'rgba(15, 23, 42, 0.95)', borderTop:'1px solid #334155', display:'flex', justifyContent:'center' },
-  submitLarge: { width:'100%', maxWidth:'500px', height:'55px', background:'#10b981', color:'white', border:'none', borderRadius:'15px', fontWeight:'bold', cursor:'pointer' },
+  submitLarge: { width:'100%', maxWidth:'500px', height:'55px', color:'white', border:'none', borderRadius:'15px', fontWeight:'bold', cursor:'pointer' },
   downloadBtn: { width:'100%', background:'#10b981', color:'white', padding:'15px', borderRadius:'12px', border:'none', marginBottom:'15px', cursor:'pointer', fontWeight:'bold' }
 };
