@@ -11,9 +11,9 @@ import { supabase } from "./supabaseClient";
 
 // --- GLOBAL STYLING ---
 const injectStyles = () => {
-  if (document.getElementById('amrit-v-final-fix')) return;
+  if (document.getElementById('amrit-v5-final')) return;
   const styleTag = document.createElement("style");
-  styleTag.id = 'amrit-v-final-fix';
+  styleTag.id = 'amrit-v5-final';
   styleTag.innerHTML = `
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
     body { font-family: 'Inter', sans-serif; background: #020617; margin: 0; color: #f1f5f9; }
@@ -44,7 +44,7 @@ export default function AmritApp() {
     fetch('/students_list.xlsx').then(res => res.arrayBuffer()).then(ab => {
       const wb = XLSX.read(ab, { type: 'array' });
       setExcelSheets(wb.SheetNames);
-    }).catch(() => console.error("Excel not found"));
+    }).catch(() => console.error("Critical: students_list.xlsx not found in public folder"));
   }, []);
 
   const handleLogin = async (u, p) => {
@@ -61,9 +61,9 @@ export default function AmritApp() {
   if (view === 'login') return (
     <div style={ui.loginWrap}>
       <div className="glass-card" style={ui.loginCard}>
-        {/* LOGO ADDED HERE */}
+        {/* LOGO INTEGRATION ONLY */}
         <div style={ui.logoCircle}>
-          <img src="/logo.png" alt="L" style={{width:'100%', height:'100%', objectFit:'cover', borderRadius:'50%'}} />
+            <img src="/logo.png" alt="Logo" style={{width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%'}} />
         </div>
         <h1 style={{fontSize: '28px', margin: '0', fontWeight: 800}}>AMRIT</h1>
         <p style={{color: '#06b6d4', fontSize: '10px', fontWeight: '800', letterSpacing: '2px', marginBottom: '30px'}}>ADMINISTRATION</p>
@@ -79,7 +79,7 @@ export default function AmritApp() {
   return <div style={{minHeight: '100vh'}}>{view === 'hod' ? <HODPanel excelSheets={excelSheets} setView={setView} /> : <FacultyPanel user={user} setView={setView} />}</div>;
 }
 
-// --- HOD PANEL (RE-RESTORED FROM 99.1%) ---
+// --- HOD PANEL ---
 function HODPanel({ excelSheets, setView }) {
   const [tab, setTab] = useState('dashboard');
   const [db, setDb] = useState({ facs: [], logs: [], maps: [] });
@@ -104,8 +104,9 @@ function HODPanel({ excelSheets, setView }) {
     <div style={ui.container}>
       <div style={ui.header}>
         <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
-          <img src="/logo.png" style={{width:'35px', height:'35px', borderRadius:'50%'}} />
-          <h3 style={{margin:0}}>HOD Panel</h3>
+            {/* LOGO ADDED TO HOD HEADER */}
+            <img src="/logo.png" alt="Logo" style={{width: '32px', height: '32px', borderRadius: '50%'}} />
+            <h3 style={{margin:0}}>HOD Panel</h3>
         </div>
         <button onClick={()=>setView('login')} style={ui.exitBtn}><LogOut size={20}/></button>
       </div>
@@ -150,7 +151,7 @@ function HODPanel({ excelSheets, setView }) {
               XLSX.writeFile(wb, "Attendance_Report.xlsx");
             }}><Download size={20}/></button>
           </div>
-          <div className="scroll-hide" style={{maxHeight:'60vh', overflowY:'auto', display:'flex', flexDirection:'column', gap:'10px'}}>
+          <div className="scroll-hide" style={{maxHeight:'60vh', overflowY:'auto'}}>
             {db.logs.filter(l=>(l.class+l.sub+l.faculty).toLowerCase().includes(searchTerm.toLowerCase())).map(log=>(
               <div key={log.id} style={ui.feedRow} className="glass-card">
                 <div><b>{log.class} | {log.sub}</b><br/><small style={{color:'#64748b'}}>{log.faculty} • {log.type}</small></div>
@@ -190,14 +191,14 @@ function HODPanel({ excelSheets, setView }) {
           <select style={ui.input} onChange={e=>setForm({...form, fId:e.target.value})}><option>Select Faculty</option>{db.facs.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select>
           <select style={ui.input} onChange={e=>setForm({...form, cls:e.target.value})}><option>Select Class</option>{excelSheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
           <input placeholder="Subject Name" style={ui.input} onChange={e=>setForm({...form, sub:e.target.value})}/>
-          <button style={{...ui.primaryBtn, background:'#a855f7'}} onClick={async()=>{await supabase.from('assignments').insert([{fac_id:form.fId, class_name:form.cls, subject_name:form.sub}]); loadData(); alert("Mapping Done!");}}>CONFIRM MAPPING</button>
+          <button style={{...ui.primaryBtn, background:'#a855f7'}} onClick={async()=>{await supabase.from('assignments').insert([{fac_id:form.fId, class_name:form.cls, subject_name:form.sub}]); loadData();}}>CONFIRM MAPPING</button>
         </div>
       )}
     </div>
   );
 }
 
-// --- FACULTY PANEL (FROM 99.1%) ---
+// --- FACULTY PANEL ---
 function FacultyPanel({ user, setView }) {
   const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', start: '', end: '' });
   const [active, setActive] = useState(false);
@@ -214,9 +215,7 @@ function FacultyPanel({ user, setView }) {
     if(!setup.cl || !setup.sub || !setup.start || !setup.end) return alert("Please fill all details including Time");
     fetch('/students_list.xlsx').then(r => r.arrayBuffer()).then(ab => {
       const wb = XLSX.read(ab, { type: 'array' });
-      const shName = wb.SheetNames.find(s=>s.toLowerCase()===setup.cl.toLowerCase());
-      if(!shName) return alert("Class not found in Excel!");
-      const sh = XLSX.utils.sheet_to_json(wb.Sheets[shName]);
+      const sh = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames.find(s=>s.toLowerCase()===setup.cl.toLowerCase())]);
       setStudents(sh.map(s => ({ id: String(s['ROLL NO'] || s['ID']).trim() })));
       setActive(true);
     });
@@ -274,7 +273,7 @@ function FacultyPanel({ user, setView }) {
 const ui = {
   loginWrap: { height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#020617' },
   loginCard: { padding: '40px', width: '280px', textAlign: 'center' },
-  logoCircle: { width: '80px', height: '80px', background: 'rgba(6,182,212,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', border: '1px solid #06b6d4', overflow:'hidden' },
+  logoCircle: { width: '80px', height: '80px', background: 'rgba(6,182,212,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', border: '1px solid #06b6d4', overflow: 'hidden' },
   container: { maxWidth: '800px', margin: '0 auto', padding: '20px' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' },
   tabRow: { display: 'flex', gap: '8px', marginBottom: '25px', overflowX: 'auto', paddingBottom: '5px' },
@@ -296,5 +295,5 @@ const ui = {
   badge: { background: '#10b981', padding: '5px 12px', borderRadius: '10px', fontWeight: 'bold' },
   circleBtn: { width: '40px', height: '40px', borderRadius: '50%', background: '#1e293b', border: 'none', color: '#fff' },
   delBtn: { background: 'none', border: 'none', color: '#f43f5e' },
-  feedRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px', borderRadius:'18px' }
+  feedRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px', marginBottom: '10px' }
 };
