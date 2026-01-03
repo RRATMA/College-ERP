@@ -43,11 +43,11 @@ export default function App() {
     <div style={styles.loginPage}>
       <div style={{...styles.glassCard, width: isMobile ? '90%' : '400px'}}>
         <div style={styles.logoBox}><img src="/logo.png" style={styles.mainLogo} alt="Logo" /></div>
-        <h1 style={styles.title}>AMRIT ERP</h1>
-        <p style={styles.badge}>INSTITUTIONAL GATEWAY</p>
+        <h1 style={styles.title}>AMRIT</h1>
+        <p style={styles.badge}>ATTENDANCE SYSTEM</p>
         <div style={styles.inputBox}><User size={18} style={styles.inIcon}/><input id="u" placeholder="User ID" style={styles.inputF}/></div>
         <div style={styles.inputBox}><Fingerprint size={18} style={styles.inIcon}/><input id="p" type="password" placeholder="Passcode" style={styles.inputF}/></div>
-        <button onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)} style={styles.btnMain}>ACCESS SYSTEM <ChevronRight size={18}/></button>
+        <button onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)} style={styles.btnMain}>LOGIN <ChevronRight size={18}/></button>
       </div>
     </div>
   );
