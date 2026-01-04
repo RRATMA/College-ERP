@@ -53,26 +53,37 @@ export default function AmritApp() {
       setView('hod');
     } else {
       const { data } = await supabase.from('faculties').select('*').eq('id', u).eq('password', p).single();
-      if (data) { setUser({ ...data, role: 'faculty' }); setView('faculty'); }
-      else alert("Access Denied: Invalid Credentials");
+      if (data) { 
+        setUser({ ...data, role: 'faculty' }); 
+        setView('faculty'); 
+      } else {
+        alert("Access Denied: Invalid Credentials");
+      }
     }
   };
 
-  // --- HOME PAGE (MAZA CODE MODEL) ---
   if (view === 'login') return (
     <div style={ui.loginWrap}>
       <div className="glass-card" style={ui.loginCard}>
-        <div style={ui.logoCircle}><img src="/logo.png" style={{width:'100%', height:'100%', objectFit:'cover', borderRadius:'50%'}} alt="Logo" /></div>
+        <div style={ui.logoCircle}>
+          <img src="/logo.png" style={{width:'100%', height:'100%', objectFit:'cover', borderRadius:'50%'}} alt="Logo" />
+        </div>
         <h1 style={{fontSize: '32px', margin: '0', fontWeight: 800, letterSpacing: '-1px'}}>AMRIT</h1>
         <p style={{color: '#06b6d4', fontSize: '10px', fontWeight: '800', letterSpacing: '3px', marginBottom: '30px', opacity: 0.8}}>VIRTUAL CAMPUS</p>
         <input id="u" placeholder="Admin/Faculty ID" />
         <input id="p" type="password" placeholder="Secure Passcode" style={{marginTop:'12px'}} />
-        <button onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)} style={{...ui.primaryBtn, marginTop:'24px'}}>LOGIN TO SYSTEM <ChevronRight size={18}/></button>
+        <button onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)} style={{...ui.primaryBtn, marginTop:'24px'}}>
+          LOGIN TO SYSTEM <ChevronRight size={18}/>
+        </button>
       </div>
     </div>
   );
 
-  return <div style={{minHeight: '100vh'}}>{view === 'hod' ? <HODPanel excelSheets={excelSheets} setView={setView} /> : <FacultyPanel user={user} setView={setView} />}</div>;
+  return (
+    <div style={{minHeight: '100vh'}}>
+      {view === 'hod' ? <HODPanel excelSheets={excelSheets} setView={setView} /> : <FacultyPanel user={user} setView={setView} />}
+    </div>
+  );
 }
 
 // --- HOD PANEL ---
@@ -184,7 +195,7 @@ function HODPanel({ excelSheets, setView }) {
 
       {tab === 'logs' && (
         <div>
-          <button style={{background:'#10b981', color:'#fff', padding:'10px 15px', borderRadius:'10px', border:'none', marginBottom:'15px'}} onClick={()=>{
+          <button style={{background:'#10b981', color:'#fff', padding:'10px 15px', borderRadius:'10px', border:'none', marginBottom:'15px', cursor:'pointer'}} onClick={()=>{
              const ws = XLSX.utils.json_to_sheet(db.logs);
              const wb = XLSX.utils.book_new();
              XLSX.utils.book_append_sheet(wb, ws, "Logs");
@@ -202,7 +213,7 @@ function HODPanel({ excelSheets, setView }) {
   );
 }
 
-// --- FACULTY PANEL (TIME & TILES INCLUDED) ---
+// --- FACULTY PANEL ---
 function FacultyPanel({ user, setView }) {
   const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', start: '', end: '' });
   const [active, setActive] = useState(false);
@@ -219,7 +230,8 @@ function FacultyPanel({ user, setView }) {
     if(!setup.cl || !setup.sub || !setup.start || !setup.end) return alert("Please fill all details including Time.");
     fetch('/students_list.xlsx').then(r => r.arrayBuffer()).then(ab => {
       const wb = XLSX.read(ab, { type: 'array' });
-      const sh = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames.find(s=>s.toLowerCase()===setup.cl.toLowerCase())]);
+      const shName = wb.SheetNames.find(s=>s.toLowerCase()===setup.cl.toLowerCase());
+      const sh = XLSX.utils.sheet_to_json(wb.Sheets[shName]);
       setStudents(sh.map(s => ({ id: String(s['ROLL NO'] || s['ID']).trim() })));
       setActive(true);
     });
@@ -230,16 +242,29 @@ function FacultyPanel({ user, setView }) {
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const dist = Math.sqrt(Math.pow(pos.coords.latitude-CAMPUS_LAT,2)+Math.pow(pos.coords.longitude-CAMPUS_LON,2));
       if(dist > RADIUS_LIMIT) { setLoading(false); return alert("GPS Error: Not in Campus."); }
+      
       const tStr = new Date().toLocaleDateString('en-GB');
       const { data: att } = await supabase.from('attendance').insert([{ 
         faculty: user.name, sub: setup.sub, class: setup.cl, type: setup.ty, 
         duration: `${setup.start}-${setup.end}`, present: marked.length, total: students.length, 
         time_str: tStr 
       }]).select().single();
-      const abs = students.filter(s => !marked.includes(s.id)).map(s => ({ attendance_id: att.id, student_roll: s.id, class_name: setup.cl, subject: setup.sub, date: tStr }));
+
+      const abs = students.filter(s => !marked.includes(s.id)).map(s => ({ 
+        attendance_id: att.id, 
+        student_roll: s.id, 
+        class_name: setup.cl, 
+        subject: setup.sub, 
+        date: tStr 
+      }));
+
       if(abs.length > 0) await supabase.from('absentee_records').insert(abs);
-      alert("Attendance Saved!"); setView('login');
-    }, () => { setLoading(false); alert("GPS Required!"); });
+      alert("Attendance Saved!"); 
+      setView('login');
+    }, () => { 
+      setLoading(false); 
+      alert("GPS Required!"); 
+    });
   };
 
   if (!active) return (
@@ -290,13 +315,14 @@ const ui = {
   mobileWrap: { padding: '24px', maxWidth: '500px', margin: '0 auto' },
   tileGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' },
   tile: { padding: '30px 10px', borderRadius: '20px', textAlign: 'center', fontWeight: '800', color: '#fff', cursor: 'pointer' },
-  subRow: { padding: '18px', borderRadius: '14px', textAlign: 'center', fontWeight: 'bold', color: '#fff', marginBottom: '10px' },
+  subRow: { padding: '18px', borderRadius: '14px', textAlign: 'center', fontWeight: 'bold', color: '#fff', marginBottom: '10px', cursor:'pointer' },
   label: { fontSize: '11px', color: '#64748b', fontWeight: '800', marginBottom: '8px' },
   stickyHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' },
   rollChip: { padding: '20px 0', borderRadius: '15px', textAlign: 'center', fontWeight: 'bold', color: '#fff', cursor:'pointer' },
-  submitBtn: { position: 'fixed', bottom: '24px', left: '24px', right: '24px', padding: '20px', borderRadius: '20px', background: '#10b981', color: '#fff', border: 'none', fontWeight: '800' },
+  submitBtn: { position: 'fixed', bottom: '24px', left: '24px', right: '24px', padding: '20px', borderRadius: '20px', background: '#10b981', color: '#fff', border: 'none', fontWeight: '800', cursor:'pointer' },
   badge: { background: '#10b981', padding: '6px 14px', borderRadius: '12px', fontWeight: '900' },
-  circleBtn: { width: '45px', height: '45px', borderRadius: '50%', background: '#1e293b', border: 'none', color: '#fff' },
+  circleBtn: { width: '45px', height: '45px', borderRadius: '50%', background: '#1e293b', border: 'none', color: '#fff', cursor:'pointer' },
   delBtn: { background: 'none', border: 'none', color: '#f43f5e', cursor:'pointer' },
-  feedRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', borderRadius:'20px', marginBottom:'12px' }
+  feedRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', borderRadius:'20px', marginBottom:'12px' },
+  tabBtn: { padding: '14px', border: 'none', borderRadius: '12px', color: '#fff', fontWeight: 'bold', cursor:'pointer' }
 };
