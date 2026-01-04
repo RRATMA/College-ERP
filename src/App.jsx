@@ -9,7 +9,7 @@ import {
 import * as XLSX from 'xlsx';
 import { supabase } from "./supabaseClient";
 
-// --- GLOBAL STYLING (Tu dilya pramane exact style) ---
+// --- GLOBAL STYLING ---
 const injectStyles = () => {
   if (document.getElementById('amrit-v-final-pro')) return;
   const styleTag = document.createElement("style");
@@ -30,7 +30,6 @@ const injectStyles = () => {
   document.head.appendChild(styleTag);
 };
 
-// --- CONFIGURATION ---
 const CAMPUS_LAT = 19.7042; 
 const CAMPUS_LON = 72.7645;
 const RADIUS_LIMIT = 0.0008;
@@ -45,7 +44,7 @@ export default function AmritApp() {
     fetch('/students_list.xlsx').then(res => res.arrayBuffer()).then(ab => {
       const wb = XLSX.read(ab, { type: 'array' });
       setExcelSheets(wb.SheetNames);
-    }).catch(() => console.error("Excel file not found in public folder"));
+    }).catch(() => console.error("Excel mapping source missing"));
   }, []);
 
   const handleLogin = async (u, p) => {
@@ -55,14 +54,14 @@ export default function AmritApp() {
     } else {
       const { data } = await supabase.from('faculties').select('*').eq('id', u).eq('password', p).single();
       if (data) { setUser({ ...data, role: 'faculty' }); setView('faculty'); }
-      else alert("Login Failed: Invalid Credentials");
+      else alert("Invalid Credentials");
     }
   };
 
   if (view === 'login') return (
     <div style={ui.loginWrap}>
       <div className="glass-card" style={ui.loginCard}>
-        <div style={ui.logoCircle}><img src="/logo.png" style={{width:'100%', height:'100%', objectFit:'cover', borderRadius:'50%'}} /></div>
+        <div style={ui.logoCircle}><img src="/logo.png" style={{width:'100%', height:'100%', objectFit:'cover', borderRadius:'50%'}} alt="Logo" /></div>
         <h1 style={{fontSize: '28px', margin: '0', fontWeight: 800}}>AMRIT</h1>
         <p style={{color: '#06b6d4', fontSize: '10px', fontWeight: '800', letterSpacing: '2px', marginBottom: '30px'}}>ADMINISTRATION</p>
         <input id="u" placeholder="User ID" />
@@ -72,7 +71,7 @@ export default function AmritApp() {
     </div>
   );
 
-  return <div style={{minHeight: '100vh'}}>{view === 'hod' ? <HODPanel excelSheets={excelSheets} setView={setView} /> : <FacultyPanel user={user} setView={setView} excelSheets={excelSheets} />}</div>;
+  return <div style={{minHeight: '100vh'}}>{view === 'hod' ? <HODPanel excelSheets={excelSheets} setView={setView} /> : <FacultyPanel user={user} setView={setView} />}</div>;
 }
 
 // --- HOD PANEL ---
@@ -92,31 +91,18 @@ function HODPanel({ excelSheets, setView }) {
 
   useEffect(() => { loadData(); }, []);
 
-  // --- DOWNLOAD REPORTS ---
-  const downloadAttendance = () => {
-    const ws = XLSX.utils.json_to_sheet(db.logs);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Master_Attendance");
-    XLSX.writeFile(wb, "Amrit_Full_Attendance.xlsx");
-  };
-
-  const downloadDefaulters = () => {
-    const defCounts = db.abs.reduce((acc, curr) => {
-      acc[curr.student_roll] = (acc[curr.student_roll] || 0) + 1;
-      return acc;
-    }, {});
-    const defData = Object.entries(defCounts).map(([roll, count]) => ({
-      "Roll No": roll, "Total Absences": count, "Defaulter Status": count > 4 ? "CRITICAL" : "NORMAL"
-    })).sort((a,b) => b["Total Absences"] - a["Total Absences"]);
-    const ws = XLSX.utils.json_to_sheet(defData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Defaulter_List");
-    XLSX.writeFile(wb, "Amrit_Defaulters.xlsx");
-  };
+  // ANALYTICS (6 Dashboard Cards)
+  const todayStr = new Date().toLocaleDateString('en-GB');
+  const todayLogs = db.logs.filter(log => log.time_str === todayStr);
+  const totalP = db.logs.reduce((acc, curr) => acc + (curr.present || 0), 0);
+  const totalT = db.logs.reduce((acc, curr) => acc + (curr.total || 0), 0);
+  const attendancePercentage = totalT > 0 ? ((totalP / totalT) * 100).toFixed(1) : 0;
+  const tToday = todayLogs.filter(l => l.type === 'Theory').length;
+  const pToday = todayLogs.filter(l => l.type === 'Practical').length;
 
   return (
     <div style={ui.container}>
-      <div style={ui.header}><h3>HOD Dashboard</h3><button onClick={()=>setView('login')} style={ui.exitBtn}><LogOut/></button></div>
+      <div style={ui.header}><h3>HOD Panel</h3><button onClick={()=>setView('login')} style={ui.exitBtn}><LogOut/></button></div>
       
       <div className="scroll-hide" style={ui.tabRow}>
         {['dashboard', 'staff', 'mapping', 'logs'].map(t => (
@@ -126,19 +112,61 @@ function HODPanel({ excelSheets, setView }) {
 
       {tab === 'dashboard' && (
         <div className="dashboard-grid">
-          <div className="glass-card stat-card-new"><div className="icon-box" style={{background:'rgba(6,182,212,0.1)', color:'#06b6d4'}}><Database/></div><div><h2>{db.logs.length}</h2><p style={ui.label}>TOTAL LECTURES</p></div></div>
+          <div className="glass-card stat-card-new"><div className="icon-box" style={{background:'rgba(6,182,212,0.1)', color:'#06b6d4'}}><Database/></div><div><h2>{db.logs.length}</h2><p style={ui.label}>TOTAL LOGS</p></div></div>
           <div className="glass-card stat-card-new"><div className="icon-box" style={{background:'rgba(168,85,247,0.1)', color:'#a855f7'}}><UserCheck/></div><div><h2>{db.facs.length}</h2><p style={ui.label}>STAFF COUNT</p></div></div>
+          <div className="glass-card stat-card-new"><div className="icon-box" style={{background:'rgba(16,185,129,0.1)', color:'#10b981'}}><BookOpenCheck/></div><div><h2>{excelSheets.length}</h2><p style={ui.label}>TOTAL CLASSES</p></div></div>
+          <div className="glass-card stat-card-new"><div className="icon-box" style={{background:'rgba(245,158,11,0.1)', color:'#f59e0b'}}><TrendingUp/></div><div><h2>{attendancePercentage}%</h2><p style={ui.label}>AVG ATTENDANCE</p></div></div>
+          <div className="glass-card stat-card-new"><div className="icon-box" style={{background:'rgba(236,72,153,0.1)', color:'#ec4899'}}><Zap/></div><div><h2>{todayLogs.length}</h2><p style={ui.label}>TODAY'S WORK</p></div></div>
+          <div className="glass-card stat-card-new"><div className="icon-box" style={{background:'rgba(99,102,241,0.1)', color:'#6366f1'}}><BarChart3/></div><div><h2>{tToday}T | {pToday}P</h2><p style={ui.label}>DAILY LOAD</p></div></div>
+        </div>
+      )}
+
+      {tab === 'staff' && (
+        <div>
+          <div className="glass-card" style={{padding:'20px', marginBottom:'20px'}}>
+            <p style={ui.label}>FACULTY REGISTRATION</p>
+            <input placeholder="Faculty Full Name" onChange={e=>setForm({...form, name:e.target.value})}/>
+            <div style={{display:'flex', gap:'10px', marginTop:'10px'}}>
+                <input placeholder="New User ID" onChange={e=>setForm({...form, id:e.target.value})}/>
+                <input placeholder="Assign Passcode" type="password" onChange={e=>setForm({...form, pass:e.target.value})}/>
+            </div>
+            <button style={{...ui.primaryBtn, marginTop:'15px'}} onClick={async()=>{await supabase.from('faculties').insert([{id:form.id, name:form.name, password:form.pass}]); loadData(); alert("Faculty Added!");}}>SAVE FACULTY</button>
+          </div>
+          {db.facs.map(f => {
+            const sT = db.logs.filter(x => x.faculty === f.name && x.type === 'Theory').length;
+            const sP = db.logs.filter(x => x.faculty === f.name && x.type === 'Practical').length;
+            return (
+              <div key={f.id} style={ui.feedRow} className="glass-card">
+                <div><b>{f.name}</b><br/><small>ID: {f.id} | Theory: <span style={{color:'#06b6d4'}}>{sT}</span> | Practical: <span style={{color:'#10b981'}}>{sP}</span></small></div>
+                <button onClick={async()=>{if(window.confirm('Remove Faculty?')){await supabase.from('faculties').delete().eq('id', f.id); loadData();}}} style={ui.delBtn}><Trash2/></button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {tab === 'mapping' && (
+        <div className="glass-card" style={{padding:'20px'}}>
+          <p style={ui.label}>ACADEMIC ASSIGNMENT</p>
+          <select onChange={e=>setForm({...form, fId:e.target.value})}><option>Select Teacher</option>{db.facs.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select>
+          <select style={{marginTop:'10px'}} onChange={e=>setForm({...form, cls:e.target.value})}><option>Select Class</option>{excelSheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
+          <input placeholder="Subject Name" style={{marginTop:'10px'}} onChange={e=>setForm({...form, sub:e.target.value})}/>
+          <button style={{...ui.primaryBtn, marginTop:'15px', background:'#a855f7'}} onClick={async()=>{await supabase.from('assignments').insert([{fac_id:form.fId, class_name:form.cls, subject_name:form.sub}]); loadData(); alert("Mapping Saved");}}>MAP LOAD</button>
         </div>
       )}
 
       {tab === 'logs' && (
         <div>
           <div style={{display:'flex', gap:'10px', marginBottom:'20px'}}>
-            <input placeholder="Filter logs..." style={{flex:1}} onChange={e=>setSearchTerm(e.target.value)}/>
-            <button style={{background:'#10b981', color:'#fff', padding:'12px', borderRadius:'12px', border:'none'}} onClick={downloadAttendance}><Download size={20}/></button>
-            <button style={{background:'#f59e0b', color:'#fff', padding:'12px', borderRadius:'12px', border:'none'}} onClick={downloadDefaulters}><FileDown size={20}/></button>
+            <input placeholder="Search records..." style={{flex:1}} onChange={e=>setSearchTerm(e.target.value)}/>
+            <button style={{background:'#10b981', color:'#fff', padding:'12px', borderRadius:'12px', border:'none'}} onClick={()=>{
+                 const ws = XLSX.utils.json_to_sheet(db.logs);
+                 const wb = XLSX.utils.book_new();
+                 XLSX.utils.book_append_sheet(wb, ws, "MasterLogs");
+                 XLSX.writeFile(wb, "Amrit_Master_Attendance.xlsx");
+            }}><Download size={20}/></button>
           </div>
-          <div style={{maxHeight:'60vh', overflowY:'auto'}} className="scroll-hide">
+          <div className="scroll-hide" style={{maxHeight:'60vh', overflowY:'auto'}}>
             {db.logs.filter(l=>(l.class+l.sub+l.faculty).toLowerCase().includes(searchTerm.toLowerCase())).map(log=>(
               <div key={log.id} style={ui.feedRow} className="glass-card">
                 <div><b>{log.class} | {log.sub}</b><br/><small>{log.faculty} • {log.type}</small></div>
@@ -148,40 +176,12 @@ function HODPanel({ excelSheets, setView }) {
           </div>
         </div>
       )}
-
-      {tab === 'staff' && (
-        <div>
-          <div className="glass-card" style={{padding:'20px', marginBottom:'20px'}}>
-            <p style={ui.label}>NEW FACULTY</p>
-            <input placeholder="Name" onChange={e=>setForm({...form, name:e.target.value})}/>
-            <input placeholder="ID" style={{marginTop:'10px'}} onChange={e=>setForm({...form, id:e.target.value})}/>
-            <input placeholder="Pass" type="password" style={{marginTop:'10px'}} onChange={e=>setForm({...form, pass:e.target.value})}/>
-            <button style={{...ui.primaryBtn, marginTop:'15px'}} onClick={async()=>{await supabase.from('faculties').insert([{id:form.id, name:form.name, password:form.pass}]); loadData();}}>REGISTER</button>
-          </div>
-          {db.facs.map(f => (
-            <div key={f.id} style={ui.feedRow} className="glass-card">
-              <span>{f.name} (ID: {f.id})</span>
-              <button onClick={async()=>{if(window.confirm('Remove Faculty?')){await supabase.from('faculties').delete().eq('id', f.id); loadData();}}} style={ui.delBtn}><Trash2/></button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {tab === 'mapping' && (
-        <div className="glass-card" style={{padding:'20px'}}>
-          <p style={ui.label}>ASSIGN CLASS & SUBJECT</p>
-          <select onChange={e=>setForm({...form, fId:e.target.value})}><option>Select Teacher</option>{db.facs.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select>
-          <select style={{marginTop:'10px'}} onChange={e=>setForm({...form, cls:e.target.value})}><option>Select Class</option>{excelSheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
-          <input placeholder="Subject" style={{marginTop:'10px'}} onChange={e=>setForm({...form, sub:e.target.value})}/>
-          <button style={{...ui.primaryBtn, marginTop:'15px', background:'#a855f7'}} onClick={async()=>{await supabase.from('assignments').insert([{fac_id:form.fId, class_name:form.cls, subject_name:form.sub}]); loadData(); alert("Mapped!");}}>MAP SUBJECT</button>
-        </div>
-      )}
     </div>
   );
 }
 
 // --- FACULTY PANEL ---
-function FacultyPanel({ user, setView, excelSheets }) {
+function FacultyPanel({ user, setView }) {
   const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', start: '', end: '' });
   const [active, setActive] = useState(false);
   const [students, setStudents] = useState([]);
@@ -193,21 +193,21 @@ function FacultyPanel({ user, setView, excelSheets }) {
     supabase.from('assignments').select('*').eq('fac_id', user.id).then(res => setMyJobs(res.data || [])); 
   }, [user.id]);
 
-  const startSession = () => {
-    if(!setup.cl || !setup.sub) return alert("Select Class & Subject");
+  const launch = () => {
+    if(!setup.cl || !setup.sub) return alert("Please select Class and Subject");
     fetch('/students_list.xlsx').then(r => r.arrayBuffer()).then(ab => {
       const wb = XLSX.read(ab, { type: 'array' });
-      const sh = XLSX.utils.sheet_to_json(wb.Sheets[excelSheets.find(s=>s.toLowerCase()===setup.cl.toLowerCase())]);
+      const sh = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames.find(s=>s.toLowerCase()===setup.cl.toLowerCase())]);
       setStudents(sh.map(s => ({ id: String(s['ROLL NO'] || s['ID']).trim() })));
       setActive(true);
     });
   };
 
-  const finalSync = () => {
+  const submit = () => {
     setLoading(true);
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const dist = Math.sqrt(Math.pow(pos.coords.latitude-CAMPUS_LAT,2)+Math.pow(pos.coords.longitude-CAMPUS_LON,2));
-      if(dist > RADIUS_LIMIT) { setLoading(false); return alert("Error: Out of College Campus!"); }
+      if(dist > RADIUS_LIMIT) { setLoading(false); return alert("GPS Error: You are outside campus radius!"); }
       
       const tStr = new Date().toLocaleDateString('en-GB');
       const { data: att } = await supabase.from('attendance').insert([{ 
@@ -216,7 +216,6 @@ function FacultyPanel({ user, setView, excelSheets }) {
         time_str: tStr 
       }]).select().single();
       
-      // ABSENTEE LOGIC (Tu dilya pramane exact logic)
       const absents = students.filter(s => !marked.includes(s.id)).map(s => ({ 
         attendance_id: att.id, 
         student_roll: s.id, 
@@ -227,24 +226,24 @@ function FacultyPanel({ user, setView, excelSheets }) {
       
       if(absents.length > 0) await supabase.from('absentee_records').insert(absents);
       alert("Attendance Synced Successfully!"); setView('login');
-    }, () => { setLoading(false); alert("GPS Required for Sync"); });
+    }, () => { setLoading(false); alert("GPS access denied!"); });
   };
 
   if (!active) return (
     <div style={ui.mobileWrap}>
-      <div style={ui.header}><div><small>Teacher</small><h4>{user.name}</h4></div><button onClick={()=>setView('login')} style={ui.exitBtn}><LogOut/></button></div>
-      <p style={ui.label}>MY CLASSES</p>
+      <div style={ui.header}><div><small>Faculty</small><h4>Prof. {user.name}</h4></div><button onClick={()=>setView('login')} style={ui.exitBtn}><LogOut/></button></div>
+      <p style={ui.label}>SELECT CLASS</p>
       <div style={ui.tileGrid}>{[...new Set(myJobs.map(j=>j.class_name))].map(c => (<div key={c} onClick={()=>setSetup({...setup, cl:c})} style={{...ui.tile, background: setup.cl===c?'#0891b2':'#1e293b'}}>{c}</div>))}</div>
       {setup.cl && (
         <div style={{marginTop:'20px'}}>
-          <p style={ui.label}>MY SUBJECTS</p>
+          <p style={ui.label}>CHOOSE SUBJECT</p>
           {myJobs.filter(j=>j.class_name===setup.cl).map(j => (<div key={j.id} onClick={()=>setSetup({...setup, sub:j.subject_name})} style={{...ui.subRow, background: setup.sub===j.subject_name?'#0891b2':'#1e293b'}}>{j.subject_name}</div>))}
           <div style={{display:'flex', gap:'10px', marginTop:'15px'}}><input type="time" onChange={e=>setSetup({...setup, start:e.target.value})}/><input type="time" onChange={e=>setSetup({...setup, end:e.target.value})}/></div>
           <div style={{display:'flex', gap:'10px', marginTop:'10px'}}>
-            <button onClick={()=>setSetup({...setup, ty:'Theory'})} style={{...ui.tabBtn, flex:1, background:setup.ty==='Theory'?'#0891b2':'#1e293b'}}>Theory</button>
-            <button onClick={()=>setSetup({...setup, ty:'Practical'})} style={{...ui.tabBtn, flex:1, background:setup.ty==='Practical'?'#10b981':'#1e293b'}}>Practical</button>
+             <button onClick={()=>setSetup({...setup, ty:'Theory'})} style={{...ui.tabBtn, flex:1, background:setup.ty==='Theory'?'#06b6d4':'#1e293b'}}>Theory</button>
+             <button onClick={()=>setSetup({...setup, ty:'Practical'})} style={{...ui.tabBtn, flex:1, background:setup.ty==='Practical'?'#10b981':'#1e293b'}}>Practical</button>
           </div>
-          <button onClick={startSession} style={{...ui.primaryBtn, marginTop:'20px', padding:'20px'}}><Zap size={18}/> TAKE ATTENDANCE</button>
+          <button onClick={launch} style={{...ui.primaryBtn, marginTop:'20px', padding:'20px'}}><Zap size={18}/> START SESSION</button>
         </div>
       )}
     </div>
@@ -254,12 +253,11 @@ function FacultyPanel({ user, setView, excelSheets }) {
     <div style={ui.mobileWrap}>
       <div style={ui.stickyHeader}><button onClick={()=>setActive(false)} style={ui.circleBtn}><ArrowLeft/></button><h3>{setup.cl}</h3><div style={ui.badge}>{marked.length}/{students.length}</div></div>
       <div className="roll-grid">{students.map(s => (<div key={s.id} onClick={() => setMarked(p=>p.includes(s.id)?p.filter(x=>x!==s.id):[...p, s.id])} style={{...ui.rollChip, background: marked.includes(s.id)?'#10b981':'#1e293b'}}>{s.id}</div>))}</div>
-      <button disabled={loading} onClick={finalSync} style={ui.submitBtn}>{loading ? "VERIFYING GPS..." : "SYNC TO SERVER"}</button>
+      <button disabled={loading} onClick={submit} style={ui.submitBtn}>{loading ? "VERIFYING GPS..." : "SYNC TO DATABASE"}</button>
     </div>
   );
 }
 
-// --- UI OBJECTS ---
 const ui = {
   loginWrap: { height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' },
   loginCard: { padding: '40px', width: '300px', textAlign: 'center' },
@@ -267,9 +265,9 @@ const ui = {
   container: { maxWidth: '1000px', margin: '0 auto', padding: '20px' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' },
   tabRow: { display: 'flex', gap: '8px', marginBottom: '30px', overflowX: 'auto', paddingBottom: '5px' },
-  tabBtn: { padding: '12px 20px', borderRadius: '14px', border: 'none', fontWeight: 'bold', color: '#fff', cursor: 'pointer', whiteSpace:'nowrap' },
+  tabBtn: { padding: '12px 20px', borderRadius: '14px', border: 'none', fontWeight: 'bold', color: '#fff', cursor: 'pointer' },
   primaryBtn: { width: '100%', padding: '16px', background: '#0891b2', color: '#fff', border: 'none', borderRadius: '14px', fontWeight: 'bold', display:'flex', alignItems:'center', justifyContent:'center', gap:'10px' },
-  exitBtn: { background: 'none', color: '#f43f5e', border: 'none', cursor: 'pointer' },
+  exitBtn: { background: 'none', color: '#f43f5e', border: 'none' },
   mobileWrap: { padding: '20px' },
   tileGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' },
   tile: { padding: '25px', borderRadius: '18px', textAlign: 'center', fontWeight: 'bold', color: '#fff' },
@@ -277,7 +275,7 @@ const ui = {
   label: { fontSize: '10px', color: '#64748b', fontWeight: 'bold', marginBottom: '5px' },
   stickyHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' },
   rollChip: { padding: '18px 5px', borderRadius: '12px', textAlign: 'center', fontWeight: 'bold', color: '#fff' },
-  submitBtn: { position: 'fixed', bottom: '20px', left: '20px', right: '20px', padding: '20px', borderRadius: '18px', background: '#10b981', color: '#fff', border: 'none', fontWeight: 'bold', zIndex: 10 },
+  submitBtn: { position: 'fixed', bottom: '20px', left: '20px', right: '20px', padding: '20px', borderRadius: '18px', background: '#10b981', color: '#fff', border: 'none', fontWeight: 'bold' },
   badge: { background: '#10b981', padding: '5px 12px', borderRadius: '10px', fontWeight: 'bold' },
   circleBtn: { width: '40px', height: '40px', borderRadius: '50%', background: '#1e293b', border: 'none', color: '#fff' },
   delBtn: { background: 'none', border: 'none', color: '#f43f5e' },
