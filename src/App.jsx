@@ -9,7 +9,7 @@ import {
 import * as XLSX from 'xlsx';
 import { supabase } from "./supabaseClient";
 
-// --- प्रीमियम डार्क थीम स्टाइलिंग ---
+// --- प्रीमियम डार्क थीम स्टाइलिंग ..---
 const injectStyles = () => {
   if (document.getElementById('amrit-pro-v4')) return;
   const styleTag = document.createElement("style");
