@@ -69,7 +69,7 @@ export default function AmritApp() {
         <p style={{color: '#06b6d4', fontSize: '10px', fontWeight: '800', letterSpacing: '4px', marginBottom: '35px', opacity: 0.8}}>COLLEGE ERP</p>
         <input id="u" placeholder="Admin/Faculty ID" />
         <input id="p" type="password" placeholder="Passcode" style={{marginTop:'12px'}} />
-        <button onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)} style={{...ui.primaryBtn, marginTop:'25px'}}>LOGIN <ChevronRight size={18}/></button>
+        <button onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)} style={{...ui.primaryBtn, marginTop:'25px'}}> LOGIN <ChevronRight size={18}/></button>
       </div>
     </div>
   );
