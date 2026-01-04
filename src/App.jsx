@@ -72,7 +72,7 @@ export default function AmritApp() {
         <input id="u" placeholder="User ID" style={ui.input} />
         <input id="p" type="password" placeholder="Passcode" style={ui.input} />
         <button onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)} style={ui.primaryBtn}>
-          ENTER SYSTEM <ChevronRight size={18}/>
+          LOGIN<ChevronRight size={18}/>
         </button>
       </div>
     </div>
@@ -261,7 +261,7 @@ function FacultyPanel({ user, setView }) {
 
   if (!active) return (
     <div style={ui.mobileWrap}>
-      <div style={ui.header}><div><small>Welcome,</small><h4>Prof. {user.name}</h4></div><button onClick={()=>setView('login')} style={ui.exitBtn}><LogOut/></button></div>
+      <div style={ui.header}><div><small>Welcome,</small><h4>{user.name}</h4></div><button onClick={()=>setView('login')} style={ui.exitBtn}><LogOut/></button></div>
       <p style={ui.label}>SELECT CLASS</p>
       <div style={ui.tileGrid}>{[...new Set(myJobs.map(j=>j.class_name))].map(c => (<div key={c} onClick={()=>setSetup({...setup, cl:c})} style={{...ui.tile, background: setup.cl===c?'#0891b2':'#1e293b'}}>{c}</div>))}</div>
       {setup.cl && (
