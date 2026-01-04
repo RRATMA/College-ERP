@@ -64,7 +64,7 @@ export default function AmritApp() {
 
   if (view === 'login') return (
     <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'radial-gradient(circle at top right, #083344, #020617)' }}>
-      <div className="glass-card" style={{ padding: '45px', width: '340px', textAlign: 'center' }}>
+      <div className="glass-card" style={{ padding: '45px', width: '320px', textAlign: 'center' }}>
         <img src="/logo.png" style={{width:'85px', marginBottom:'20px', borderRadius:'50%', border:'2px solid #06b6d4'}} alt="Logo" />
         <h1 style={{fontSize: '32px', margin: 0, fontWeight: 800, letterSpacing: '-1px'}}>AMRIT</h1>
         <p style={{color: '#06b6d4', fontSize: '10px', fontWeight: '800', letterSpacing: '3px', marginBottom: '35px'}}>MANAGEMENT SYSTEM</p>
@@ -78,6 +78,7 @@ export default function AmritApp() {
   return <div style={{minHeight: '100vh'}}>{view === 'hod' ? <HODPanel excelSheets={excelSheets} setView={setView} /> : <FacultyPanel user={user} setView={setView} />}</div>;
 }
 
+// --- HOD PANEL ---
 function HODPanel({ excelSheets, setView }) {
   const [tab, setTab] = useState('dashboard');
   const [db, setDb] = useState({ facs: [], logs: [], abs: [] });
@@ -92,20 +93,21 @@ function HODPanel({ excelSheets, setView }) {
 
   useEffect(() => { loadData(); }, []);
 
-  // FIXED BRANCH-WISE LOGIC
+  // FIXED BRANCH-WISE DEFAULTER LOGIC
   const defMap = db.abs.reduce((acc, curr) => {
-    const key = `${curr.student_roll}-${curr.class_name}`; // Unique Key
+    const key = `${curr.student_roll}-${curr.class_name}`;
     if (!acc[key]) acc[key] = { r: curr.student_roll, c: curr.class_name, count: 0 };
     acc[key].count += 1;
     return acc;
   }, {});
   const defs = Object.values(defMap).filter(d => d.count >= 5);
+  const avgAtt = db.logs.length > 0 ? ((db.logs.reduce((s, a) => s + (a.present||0), 0) / db.logs.reduce((s, a) => s + (a.total||1), 0)) * 100).toFixed(1) : 0;
 
   return (
     <div style={{ maxWidth: '1150px', margin: '0 auto', padding: '30px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '35px' }}>
-        <div><h2 style={{margin:0, fontWeight:800, fontSize:'28px'}}>HOD Command Center</h2></div>
-        <button onClick={()=>setView('login')} style={{ background:'rgba(244,63,94,0.1)', color:'#f43f5e', border:'none', padding:'12px', borderRadius:'14px', cursor:'pointer' }}><LogOut/></button>
+        <div><h2 style={{margin:0, fontWeight:800, fontSize:'28px'}}>HOD Panel</h2><p style={{margin:0, color:'#64748b', fontSize:'13px'}}>Academic Monitoring</p></div>
+        <button onClick={()=>setView('login')} style={{ background:'rgba(244,63,94,0.1)', color:'#f43f5e', border:'none', padding:'12px', borderRadius:'14px' }}><LogOut/></button>
       </div>
 
       <div className="scroll-hide" style={{ display: 'flex', gap: '8px', marginBottom: '30px', overflowX: 'auto' }}>
@@ -116,23 +118,22 @@ function HODPanel({ excelSheets, setView }) {
 
       {tab === 'dashboard' && (
         <div className="dashboard-grid">
-          <div className="glass-card stat-card"><div className="icon-box" style={{background:'rgba(244,63,94,0.1)', color:'#f43f5e'}}><ShieldAlert/></div><div><h2 style={{margin:0}}>{defs.length}</h2><p>DEFAULTERS</p></div></div>
-          <div className="glass-card stat-card"><div className="icon-box" style={{background:'rgba(6,182,212,0.1)', color:'#06b6d4'}}><Database/></div><div><h2 style={{margin:0}}>{db.logs.length}</h2><p>SESSIONS</p></div></div>
-          <div className="glass-card stat-card"><div className="icon-box" style={{background:'rgba(16,185,129,0.1)', color:'#10b981'}}><Users/></div><div><h2 style={{margin:0}}>{db.facs.length}</h2><p>STAFF</p></div></div>
+          <div className="glass-card stat-card"><div className="icon-box" style={{background:'rgba(244,63,94,0.1)', color:'#f43f5e'}}><ShieldAlert/></div><div><h2>{defs.length}</h2><p>DEFAULTERS</p></div></div>
+          <div className="glass-card stat-card"><div className="icon-box" style={{background:'rgba(6,182,212,0.1)', color:'#06b6d4'}}><Database/></div><div><h2>{db.logs.length}</h2><p>SESSIONS</p></div></div>
+          <div className="glass-card stat-card"><div className="icon-box" style={{background:'rgba(168,85,247,0.1)', color:'#a855f7'}}><Users/></div><div><h2>{db.facs.length}</h2><p>STAFF</p></div></div>
+          <div className="glass-card stat-card"><div className="icon-box" style={{background:'rgba(16,185,129,0.1)', color:'#10b981'}}><TrendingUp/></div><div><h2>{avgAtt}%</h2><p>AVG ATT.</p></div></div>
         </div>
       )}
 
       {tab === 'defaulters' && (
         <div className="glass-card" style={{padding:'25px'}}>
-          <h4 style={{color:'#f43f5e', marginTop:0}}>Critical Defaulters (Branch Wise)</h4>
-          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', paddingBottom:'10px', borderBottom:'2px solid rgba(255,255,255,0.1)', fontWeight:800, fontSize:'12px', color:'#64748b'}}>
-            <span>ROLL NO</span><span>BRANCH</span><span style={{textAlign:'right'}}>ABSENTS</span>
+          <h4 style={{color:'#f43f5e', marginBottom:'20px'}}>BRANCH-WISE DEFAULTERS (≥ 5 Absents)</h4>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', paddingBottom:'10px', borderBottom:'1px solid #1e293b', fontWeight:800, fontSize:'12px'}}>
+            <span>ROLL NO</span><span>CLASS/BRANCH</span><span style={{textAlign:'right'}}>ABSENTS</span>
           </div>
           {defs.map((d, i) => (
             <div key={i} style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', padding:'15px 0', borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
-              <span style={{fontWeight:800}}>{d.r}</span>
-              <span style={{color:'#06b6d4'}}>{d.c}</span>
-              <span style={{textAlign:'right', color:'#f43f5e', fontWeight:800}}>{d.count}</span>
+              <span>{d.r}</span><span style={{color:'#06b6d4'}}>{d.c}</span><span style={{textAlign:'right', color:'#f43f5e', fontWeight:800}}>{d.count}</span>
             </div>
           ))}
         </div>
@@ -140,30 +141,30 @@ function HODPanel({ excelSheets, setView }) {
 
       {tab === 'faculty-list' && (
         <div>
-          <div className="glass-card" style={{padding:'25px', marginBottom:'20px'}}>
-            <input placeholder="Full Name" style={{marginBottom:'12px'}} onChange={e=>setForm({...form, name:e.target.value})}/>
+           <div className="glass-card" style={{padding:'25px', marginBottom:'20px'}}>
+            <input placeholder="Full Name" style={{marginBottom:'10px'}} onChange={e=>setForm({...form, name:e.target.value})}/>
             <div style={{display:'flex', gap:'10px'}}><input placeholder="ID" onChange={e=>setForm({...form, id:e.target.value})}/><input placeholder="Pass" type="password" onChange={e=>setForm({...form, pass:e.target.value})}/></div>
-            <button className="action-btn" style={{marginTop:'20px'}} onClick={async()=>{await supabase.from('faculties').insert([{id:form.id, name:form.name, password:form.pass}]); loadData(); alert("Done!");}}>REGISTER</button>
-          </div>
-          {db.facs.map(f=><div key={f.id} className="glass-card" style={{display:'flex', justifyContent:'space-between', padding:'15px', marginBottom:'10px'}}><span>{f.name}</span><button onClick={async()=>{await supabase.from('faculties').delete().eq('id', f.id); loadData();}} style={{color:'#f43f5e', background:'none', border:'none'}}><Trash2/></button></div>)}
+            <button className="action-btn" style={{marginTop:'15px'}} onClick={async()=>{await supabase.from('faculties').insert([{id:form.id, name:form.name, password:form.pass}]); loadData();}}>ADD STAFF</button>
+           </div>
+           {db.facs.map(f=><div key={f.id} className="glass-card" style={{display:'flex', justifyContent:'space-between', padding:'15px', marginBottom:'10px'}}><span>{f.name} (UID: {f.id})</span><button onClick={async()=>{await supabase.from('faculties').delete().eq('id',f.id); loadData();}} style={{color:'#f43f5e', background:'none', border:'none'}}><Trash2 size={18}/></button></div>)}
         </div>
       )}
 
       {tab === 'subject-map' && (
         <div className="glass-card" style={{padding:'25px'}}>
-          <select style={{marginBottom:'12px'}} onChange={e=>setForm({...form, fId:e.target.value})}><option>Select Faculty</option>{db.facs.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select>
-          <select style={{marginBottom:'12px'}} onChange={e=>setForm({...form, cls:e.target.value})}><option>Select Class</option>{excelSheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
+          <select style={{marginBottom:'10px'}} onChange={e=>setForm({...form, fId:e.target.value})}><option>Select Faculty</option>{db.facs.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select>
+          <select style={{marginBottom:'10px'}} onChange={e=>setForm({...form, cls:e.target.value})}><option>Select Class</option>{excelSheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
           <input placeholder="Subject Name" onChange={e=>setForm({...form, sub:e.target.value})}/>
-          <button className="action-btn" style={{marginTop:'20px'}} onClick={async()=>{await supabase.from('assignments').insert([{fac_id:form.fId, class_name:form.cls, subject_name:form.sub}]); alert("Mapped!");}}>ASSIGN</button>
+          <button className="action-btn" style={{marginTop:'15px'}} onClick={async()=>{await supabase.from('assignments').insert([{fac_id:form.fId, class_name:form.cls, subject_name:form.sub}]); alert("Mapped!");}}>ASSIGN</button>
         </div>
       )}
 
       {tab === 'history' && (
         <div>
-          <button className="action-btn" style={{marginBottom:'20px', width:'auto'}} onClick={()=>{
+          <button className="action-btn" style={{marginBottom:'15px', width:'auto'}} onClick={()=>{
             const ws = XLSX.utils.json_to_sheet(db.logs);
             const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Logs");
-            XLSX.writeFile(wb, "Master_History.xlsx");
+            XLSX.writeFile(wb, "History.xlsx");
           }}><Download size={18}/> EXPORT ALL</button>
           {db.logs.map(log=><div key={log.id} className="glass-card" style={{padding:'15px', marginBottom:'10px', display:'flex', justifyContent:'space-between'}}><div><b>{log.class} | {log.sub}</b><br/><small>{log.faculty}</small></div><b>{log.present}/{log.total}</b></div>)}
         </div>
@@ -172,6 +173,7 @@ function HODPanel({ excelSheets, setView }) {
   );
 }
 
+// --- FACULTY PANEL ---
 function FacultyPanel({ user, setView }) {
   const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', start: '', end: '' });
   const [active, setActive] = useState(false);
@@ -185,7 +187,7 @@ function FacultyPanel({ user, setView }) {
   }, [user.id]);
 
   const startSession = () => {
-    if(!setup.cl || !setup.sub || !setup.start || !setup.end) return alert("Missing details.");
+    if(!setup.cl || !setup.sub || !setup.start || !setup.end) return alert("Fill all details.");
     fetch('/students_list.xlsx').then(r => r.arrayBuffer()).then(ab => {
       const wb = XLSX.read(ab, { type: 'array' });
       const sh = wb.Sheets[wb.SheetNames.find(s=>s.toLowerCase()===setup.cl.toLowerCase())];
@@ -213,14 +215,14 @@ function FacultyPanel({ user, setView }) {
       }));
       if(abs.length > 0) await supabase.from('absentee_records').insert(abs);
 
-      // Branded Export
-      const reportRows = [[INSTITUTE_NAME],["ATTENDANCE REPORT - "+tStr],[""],["FACULTY:", user.name, "CLASS:", setup.cl],["SUBJECT:", setup.sub],[""],["ROLL NO", "NAME", "STATUS"]];
+      // Automated Branded Download
+      const reportRows = [[INSTITUTE_NAME],["ATTENDANCE REPORT - "+tStr],[""],["FACULTY:", user.name, "CLASS:", setup.cl],["SUBJECT:", setup.sub],["TIME:", `${setup.start}-${setup.end}`],[""],["ROLL NO", "NAME", "STATUS"]];
       students.forEach(s => reportRows.push([s.id, s.name, marked.includes(s.id) ? "PRESENT" : "ABSENT"]));
       const ws = XLSX.utils.aoa_to_sheet(reportRows);
-      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-      XLSX.writeFile(wb, `${setup.cl}_Attendance.xlsx`);
+      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Report");
+      XLSX.writeFile(wb, `${setup.cl}_Report.xlsx`);
 
-      alert("Synced!"); setView('login');
+      alert("Synced & Downloaded!"); setView('login');
     }, () => { setLoading(false); alert("GPS Error."); });
   };
 
@@ -234,7 +236,7 @@ function FacultyPanel({ user, setView }) {
         <div style={{marginTop:'25px'}}>
           {myJobs.filter(j=>j.class_name===setup.cl).map(j => <div key={j.id} onClick={()=>setSetup({...setup, sub:j.subject_name})} style={{padding:'18px', marginBottom:'10px', borderRadius:'15px', background:setup.sub===j.subject_name?'#0891b2':'#1e293b', cursor:'pointer', textAlign:'center'}}>{j.subject_name}</div>)}
           <div style={{display:'flex', gap:'10px', marginTop:'15px'}}><input type="time" onChange={e=>setSetup({...setup, start:e.target.value})}/><input type="time" onChange={e=>setSetup({...setup, end:e.target.value})}/></div>
-          <button onClick={startSession} className="action-btn" style={{marginTop:'30px'}}>START SESSION</button>
+          <button onClick={startSession} className="action-btn" style={{marginTop:'30px'}}>START ATTENDANCE</button>
         </div>
       )}
     </div>
@@ -247,4 +249,4 @@ function FacultyPanel({ user, setView }) {
       <button disabled={loading} onClick={submitAttendance} className="action-btn" style={{position:'fixed', bottom:'25px', left:'25px', right:'25px', width:'calc(100% - 50px)', background:'#10b981'}}>{loading ? "WAIT..." : "SYNC & DOWNLOAD"}</button>
     </div>
   );
-          }
+      }
