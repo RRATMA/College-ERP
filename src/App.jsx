@@ -65,7 +65,7 @@ export default function AmritApp() {
     <div style={ui.loginWrap}>
       <div className="glass" style={ui.loginCard}>
         <div style={ui.logoBox}><img src="/logo.png" style={{width:'100%', height:'100%', objectFit:'contain'}} alt="Logo" /></div>
-        <h1 style={{fontSize: '32px', margin: '0', fontWeight: 800, letterSpacing: '-1.5px'}}>AMRIT</h1>
+        <h1 style={{fontSize: '32px', margin: '0', fontWeight: 800, letterSpacing: '-1.5px'}}>AMRIT 0.2</h1>
         <p style={{color: '#06b6d4', fontSize: '10px', fontWeight: '800', letterSpacing: '4px', marginBottom: '35px', opacity: 0.8}}>COLLEGE ERP</p>
         <input id="u" placeholder="Admin/Faculty ID" />
         <input id="p" type="password" placeholder="Passcode" style={{marginTop:'12px'}} />
