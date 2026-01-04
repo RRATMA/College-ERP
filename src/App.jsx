@@ -64,7 +64,7 @@ export default function AmritApp() {
 
   if (view === 'login') return (
     <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'radial-gradient(circle at top right, #083344, #020617)' }}>
-      <div className="glass-card" style={{ padding: '45px', width: '300px', textAlign: 'center' }}>
+      <div className="glass-card" style={{ padding: '45px', width: '340px', textAlign: 'center' }}>
         <img src="/logo.png" style={{width:'85px', marginBottom:'20px', borderRadius:'50%', border:'2px solid #06b6d4'}} alt="Logo" />
         <h1 style={{fontSize: '32px', margin: 0, fontWeight: 800, letterSpacing: '-1px'}}>AMRIT</h1>
         <p style={{color: '#06b6d4', fontSize: '10px', fontWeight: '800', letterSpacing: '3px', marginBottom: '35px'}}>MANAGEMENT SYSTEM</p>
@@ -78,7 +78,6 @@ export default function AmritApp() {
   return <div style={{minHeight: '100vh'}}>{view === 'hod' ? <HODPanel excelSheets={excelSheets} setView={setView} /> : <FacultyPanel user={user} setView={setView} />}</div>;
 }
 
-// --- HOD PANEL ---
 function HODPanel({ excelSheets, setView }) {
   const [tab, setTab] = useState('dashboard');
   const [db, setDb] = useState({ facs: [], logs: [], abs: [] });
@@ -93,13 +92,10 @@ function HODPanel({ excelSheets, setView }) {
 
   useEffect(() => { loadData(); }, []);
 
-  const todayStr = new Date().toLocaleDateString('en-GB');
-  const todayLogs = db.logs.filter(l => l.time_str === todayStr);
-  
-  // BRANCH-WISE DEFAULTER LOGIC
+  // FIXED BRANCH-WISE LOGIC
   const defMap = db.abs.reduce((acc, curr) => {
-    const key = `${curr.student_roll}-${curr.class_name}`;
-    if (!acc[key]) acc[key] = { roll: curr.student_roll, cls: curr.class_name, count: 0 };
+    const key = `${curr.student_roll}-${curr.class_name}`; // Unique Key
+    if (!acc[key]) acc[key] = { r: curr.student_roll, c: curr.class_name, count: 0 };
     acc[key].count += 1;
     return acc;
   }, {});
@@ -121,19 +117,22 @@ function HODPanel({ excelSheets, setView }) {
       {tab === 'dashboard' && (
         <div className="dashboard-grid">
           <div className="glass-card stat-card"><div className="icon-box" style={{background:'rgba(244,63,94,0.1)', color:'#f43f5e'}}><ShieldAlert/></div><div><h2 style={{margin:0}}>{defs.length}</h2><p>DEFAULTERS</p></div></div>
-          <div className="glass-card stat-card"><div className="icon-box" style={{background:'rgba(6,182,212,0.1)', color:'#06b6d4'}}><Database/></div><div><h2 style={{margin:0}}>{db.logs.length}</h2><p>TOTAL SESSIONS</p></div></div>
+          <div className="glass-card stat-card"><div className="icon-box" style={{background:'rgba(6,182,212,0.1)', color:'#06b6d4'}}><Database/></div><div><h2 style={{margin:0}}>{db.logs.length}</h2><p>SESSIONS</p></div></div>
+          <div className="glass-card stat-card"><div className="icon-box" style={{background:'rgba(16,185,129,0.1)', color:'#10b981'}}><Users/></div><div><h2 style={{margin:0}}>{db.facs.length}</h2><p>STAFF</p></div></div>
         </div>
       )}
 
       {tab === 'defaulters' && (
         <div className="glass-card" style={{padding:'25px'}}>
-          <h4 style={{color:'#f43f5e', marginBottom:'20px'}}>BRANCH-WISE DEFAULTERS (≥ 5 Absents)</h4>
-          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', paddingBottom:'10px', borderBottom:'1px solid #1e293b', fontWeight:800, fontSize:'12px', color:'#64748b'}}>
-            <span>ROLL NO</span><span>BRANCH/CLASS</span><span style={{textAlign:'right'}}>ABSENTS</span>
+          <h4 style={{color:'#f43f5e', marginTop:0}}>Critical Defaulters (Branch Wise)</h4>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', paddingBottom:'10px', borderBottom:'2px solid rgba(255,255,255,0.1)', fontWeight:800, fontSize:'12px', color:'#64748b'}}>
+            <span>ROLL NO</span><span>BRANCH</span><span style={{textAlign:'right'}}>ABSENTS</span>
           </div>
           {defs.map((d, i) => (
             <div key={i} style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', padding:'15px 0', borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
-              <span>{d.roll}</span><span style={{color:'#06b6d4'}}>{d.cls}</span><span style={{textAlign:'right', color:'#f43f5e', fontWeight:800}}>{d.count}</span>
+              <span style={{fontWeight:800}}>{d.r}</span>
+              <span style={{color:'#06b6d4'}}>{d.c}</span>
+              <span style={{textAlign:'right', color:'#f43f5e', fontWeight:800}}>{d.count}</span>
             </div>
           ))}
         </div>
@@ -141,30 +140,30 @@ function HODPanel({ excelSheets, setView }) {
 
       {tab === 'faculty-list' && (
         <div>
-           <div className="glass-card" style={{padding:'25px', marginBottom:'20px'}}>
-            <input placeholder="Full Name" style={{marginBottom:'10px'}} onChange={e=>setForm({...form, name:e.target.value})}/>
+          <div className="glass-card" style={{padding:'25px', marginBottom:'20px'}}>
+            <input placeholder="Full Name" style={{marginBottom:'12px'}} onChange={e=>setForm({...form, name:e.target.value})}/>
             <div style={{display:'flex', gap:'10px'}}><input placeholder="ID" onChange={e=>setForm({...form, id:e.target.value})}/><input placeholder="Pass" type="password" onChange={e=>setForm({...form, pass:e.target.value})}/></div>
-            <button className="action-btn" style={{marginTop:'15px'}} onClick={async()=>{await supabase.from('faculties').insert([{id:form.id, name:form.name, password:form.pass}]); loadData();}}>ADD STAFF</button>
-           </div>
-           {db.facs.map(f=><div key={f.id} className="glass-card" style={{display:'flex', justifyContent:'space-between', padding:'15px', marginBottom:'10px'}}><span>{f.name}</span><button onClick={async()=>{await supabase.from('faculties').delete().eq('id',f.id); loadData();}} style={{color:'#f43f5e', background:'none', border:'none'}}><Trash2 size={18}/></button></div>)}
+            <button className="action-btn" style={{marginTop:'20px'}} onClick={async()=>{await supabase.from('faculties').insert([{id:form.id, name:form.name, password:form.pass}]); loadData(); alert("Done!");}}>REGISTER</button>
+          </div>
+          {db.facs.map(f=><div key={f.id} className="glass-card" style={{display:'flex', justifyContent:'space-between', padding:'15px', marginBottom:'10px'}}><span>{f.name}</span><button onClick={async()=>{await supabase.from('faculties').delete().eq('id', f.id); loadData();}} style={{color:'#f43f5e', background:'none', border:'none'}}><Trash2/></button></div>)}
         </div>
       )}
 
       {tab === 'subject-map' && (
         <div className="glass-card" style={{padding:'25px'}}>
-          <select style={{marginBottom:'10px'}} onChange={e=>setForm({...form, fId:e.target.value})}><option>Select Faculty</option>{db.facs.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select>
-          <select style={{marginBottom:'10px'}} onChange={e=>setForm({...form, cls:e.target.value})}><option>Select Class</option>{excelSheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
+          <select style={{marginBottom:'12px'}} onChange={e=>setForm({...form, fId:e.target.value})}><option>Select Faculty</option>{db.facs.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select>
+          <select style={{marginBottom:'12px'}} onChange={e=>setForm({...form, cls:e.target.value})}><option>Select Class</option>{excelSheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
           <input placeholder="Subject Name" onChange={e=>setForm({...form, sub:e.target.value})}/>
-          <button className="action-btn" style={{marginTop:'15px'}} onClick={async()=>{await supabase.from('assignments').insert([{fac_id:form.fId, class_name:form.cls, subject_name:form.sub}]); alert("Mapped!");}}>ASSIGN SUBJECT</button>
+          <button className="action-btn" style={{marginTop:'20px'}} onClick={async()=>{await supabase.from('assignments').insert([{fac_id:form.fId, class_name:form.cls, subject_name:form.sub}]); alert("Mapped!");}}>ASSIGN</button>
         </div>
       )}
 
       {tab === 'history' && (
         <div>
-          <button className="action-btn" style={{marginBottom:'15px', width:'auto'}} onClick={()=>{
+          <button className="action-btn" style={{marginBottom:'20px', width:'auto'}} onClick={()=>{
             const ws = XLSX.utils.json_to_sheet(db.logs);
             const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Logs");
-            XLSX.writeFile(wb, "Attendance_Master_Log.xlsx");
+            XLSX.writeFile(wb, "Master_History.xlsx");
           }}><Download size={18}/> EXPORT ALL</button>
           {db.logs.map(log=><div key={log.id} className="glass-card" style={{padding:'15px', marginBottom:'10px', display:'flex', justifyContent:'space-between'}}><div><b>{log.class} | {log.sub}</b><br/><small>{log.faculty}</small></div><b>{log.present}/{log.total}</b></div>)}
         </div>
@@ -173,7 +172,6 @@ function HODPanel({ excelSheets, setView }) {
   );
 }
 
-// --- FACULTY PANEL ---
 function FacultyPanel({ user, setView }) {
   const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', start: '', end: '' });
   const [active, setActive] = useState(false);
@@ -187,7 +185,7 @@ function FacultyPanel({ user, setView }) {
   }, [user.id]);
 
   const startSession = () => {
-    if(!setup.cl || !setup.sub || !setup.start || !setup.end) return alert("Fill all details.");
+    if(!setup.cl || !setup.sub || !setup.start || !setup.end) return alert("Missing details.");
     fetch('/students_list.xlsx').then(r => r.arrayBuffer()).then(ab => {
       const wb = XLSX.read(ab, { type: 'array' });
       const sh = wb.Sheets[wb.SheetNames.find(s=>s.toLowerCase()===setup.cl.toLowerCase())];
@@ -201,7 +199,7 @@ function FacultyPanel({ user, setView }) {
     setLoading(true);
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const dist = Math.sqrt(Math.pow(pos.coords.latitude-CAMPUS_LAT,2)+Math.pow(pos.coords.longitude-CAMPUS_LON,2));
-      if(dist > RADIUS_LIMIT) { setLoading(false); return alert("Not in Campus."); }
+      if(dist > RADIUS_LIMIT) { setLoading(false); return alert("Outside Campus!"); }
       
       const tStr = new Date().toLocaleDateString('en-GB');
       const { data: att } = await supabase.from('attendance').insert([{ 
@@ -215,11 +213,11 @@ function FacultyPanel({ user, setView }) {
       }));
       if(abs.length > 0) await supabase.from('absentee_records').insert(abs);
 
-      // Branded Excel Download
+      // Branded Export
       const reportRows = [[INSTITUTE_NAME],["ATTENDANCE REPORT - "+tStr],[""],["FACULTY:", user.name, "CLASS:", setup.cl],["SUBJECT:", setup.sub],[""],["ROLL NO", "NAME", "STATUS"]];
       students.forEach(s => reportRows.push([s.id, s.name, marked.includes(s.id) ? "PRESENT" : "ABSENT"]));
       const ws = XLSX.utils.aoa_to_sheet(reportRows);
-      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Report");
+      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
       XLSX.writeFile(wb, `${setup.cl}_Attendance.xlsx`);
 
       alert("Synced!"); setView('login');
@@ -227,26 +225,26 @@ function FacultyPanel({ user, setView }) {
   };
 
   if (!active) return (
-    <div style={{ padding: '20px', maxWidth: '500px', margin: '0 auto' }}>
-      <div style={{display:'flex', justifyContent:'space-between', marginBottom:'20px'}}><h3>{user.name}</h3><button onClick={()=>setView('login')} style={{background:'none', border:'none', color:'#f43f5e'}}><LogOut/></button></div>
-      <div className="roll-grid" style={{gridTemplateColumns:'1fr 1fr', gap:'10px'}}>
-        {[...new Set(myJobs.map(j=>j.class_name))].map(c => <div key={c} onClick={()=>setSetup({...setup, cl:c})} style={{padding:'20px', textAlign:'center', borderRadius:'15px', background:setup.cl===c?'#0891b2':'#1e293b', cursor:'pointer'}}>{c}</div>)}
+    <div style={{ padding: '25px', maxWidth: '500px', margin: '0 auto' }}>
+      <div style={{display:'flex', justifyContent:'space-between', marginBottom:'30px'}}><h3>{user.name}</h3><button onClick={()=>setView('login')} style={{background:'none', border:'none', color:'#f43f5e'}}><LogOut/></button></div>
+      <div className="roll-grid" style={{gridTemplateColumns:'1fr 1fr'}}>
+        {[...new Set(myJobs.map(j=>j.class_name))].map(c => <div key={c} onClick={()=>setSetup({...setup, cl:c})} style={{padding:'25px 0', textAlign:'center', borderRadius:'20px', background:setup.cl===c?'#0891b2':'#1e293b', cursor:'pointer'}}>{c}</div>)}
       </div>
       {setup.cl && (
-        <div style={{marginTop:'20px'}}>
-          {myJobs.filter(j=>j.class_name===setup.cl).map(j => <div key={j.id} onClick={()=>setSetup({...setup, sub:j.subject_name})} style={{padding:'15px', marginBottom:'10px', borderRadius:'10px', textAlign:'center', background:setup.sub===j.subject_name?'#0891b2':'#1e293b', cursor:'pointer'}}>{j.subject_name}</div>)}
-          <div style={{display:'flex', gap:'10px'}}><input type="time" onChange={e=>setSetup({...setup, start:e.target.value})}/><input type="time" onChange={e=>setSetup({...setup, end:e.target.value})}/></div>
-          <button onClick={startSession} className="action-btn" style={{marginTop:'20px'}}>START</button>
+        <div style={{marginTop:'25px'}}>
+          {myJobs.filter(j=>j.class_name===setup.cl).map(j => <div key={j.id} onClick={()=>setSetup({...setup, sub:j.subject_name})} style={{padding:'18px', marginBottom:'10px', borderRadius:'15px', background:setup.sub===j.subject_name?'#0891b2':'#1e293b', cursor:'pointer', textAlign:'center'}}>{j.subject_name}</div>)}
+          <div style={{display:'flex', gap:'10px', marginTop:'15px'}}><input type="time" onChange={e=>setSetup({...setup, start:e.target.value})}/><input type="time" onChange={e=>setSetup({...setup, end:e.target.value})}/></div>
+          <button onClick={startSession} className="action-btn" style={{marginTop:'30px'}}>START SESSION</button>
         </div>
       )}
     </div>
   );
 
   return (
-    <div style={{ padding: '20px', maxWidth: '500px', margin: '0 auto' }}>
-      <div style={{display:'flex', justifyContent:'space-between', marginBottom:'20px'}}><button onClick={()=>setActive(false)} style={{background:'none', color:'#fff', border:'none'}}><ArrowLeft/></button><b>{setup.cl}</b><span style={{background:'#10b981', padding:'5px 10px', borderRadius:'10px'}}>{marked.length}/{students.length}</span></div>
-      <div className="roll-grid">{students.map(s => <div key={s.id} onClick={() => setMarked(p => p.includes(s.id) ? p.filter(x => x !== s.id) : [...p, s.id])} style={{padding:'20px 0', textAlign:'center', borderRadius:'12px', background:marked.includes(s.id)?'#10b981':'#1e293b', cursor:'pointer'}}>{s.id}</div>)}</div>
-      <button disabled={loading} onClick={submitAttendance} className="action-btn" style={{position:'fixed', bottom:'20px', left:'20px', right:'20px', width:'calc(100% - 40px)', background:'#10b981'}}>{loading ? "WAIT..." : "SYNC & DOWNLOAD"}</button>
+    <div style={{ padding: '25px', maxWidth: '500px', margin: '0 auto' }}>
+      <div style={{display:'flex', justifyContent:'space-between', marginBottom:'25px'}}><button onClick={()=>setActive(false)} style={{background:'none', color:'#fff', border:'none'}}><ArrowLeft/></button><b>{setup.cl}</b><span style={{background:'#10b981', padding:'5px 15px', borderRadius:'10px'}}>{marked.length}/{students.length}</span></div>
+      <div className="roll-grid">{students.map(s => <div key={s.id} onClick={() => setMarked(p => p.includes(s.id) ? p.filter(x => x !== s.id) : [...p, s.id])} style={{padding:'20px 0', textAlign:'center', borderRadius:'15px', background:marked.includes(s.id)?'#10b981':'#1e293b', cursor:'pointer'}}>{s.id}</div>)}</div>
+      <button disabled={loading} onClick={submitAttendance} className="action-btn" style={{position:'fixed', bottom:'25px', left:'25px', right:'25px', width:'calc(100% - 50px)', background:'#10b981'}}>{loading ? "WAIT..." : "SYNC & DOWNLOAD"}</button>
     </div>
   );
-  }
+          }
