@@ -125,16 +125,44 @@ function HODPanel({ excelSheets, setView }) {
       )}
 
       {tab === 'defaulters' && (
-        <div className="glass-card" style={{padding:'25px'}}>
-          <h4 style={{color:'#f43f5e', marginTop:0}}>Critical Defaulter List (&ge; 5 Absents)</h4>
-          {defs.length === 0 ? <p>No students in the defaulter list yet.</p> : defs.map(d => (
-            <div key={d.r} style={{display:'flex', justifyContent:'space-between', padding:'15px', borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
-              <span>Roll Number: <b>{d.r}</b></span>
-              <span style={{color:'#f43f5e', fontWeight:'800'}}>{d.c} Absents</span>
-            </div>
-          ))}
+  <div className="glass-card" style={{padding:'25px'}}>
+    <h4 style={{color:'#f43f5e', marginTop:0, display:'flex', alignItems:'center', gap:'10px'}}>
+      <ShieldAlert /> Critical Defaulter List (≥ 5 Absents)
+    </h4>
+    
+    {/* Header for clarity */}
+    <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', padding:'10px 15px', borderBottom:'2px solid rgba(255,255,255,0.1)', fontSize:'12px', fontWeight:800, color:'#64748b'}}>
+      <span>ROLL NO</span>
+      <span>CLASS / BRANCH</span>
+      <span style={{textAlign:'right'}}>TOTAL ABSENTS</span>
+    </div>
+
+    {/* Data Rows */}
+    {db.abs.length === 0 ? (
+      <p style={{padding:'20px', textAlign:'center', color:'#64748b'}}>No records found yet.</p>
+    ) : (
+      Object.entries(
+        db.abs.reduce((acc, curr) => {
+          // Unique key banavli: RollNo + ClassName
+          const key = `${curr.student_roll}-${curr.class_name}`;
+          if (!acc[key]) {
+            acc[key] = { roll: curr.student_roll, class: curr.class_name, count: 0 };
+          }
+          acc[key].count += 1;
+          return acc;
+        }, {})
+      )
+      .filter(([_, data]) => data.count >= 5) // Fakt 5 peksha jasta absents aslele
+      .map(([key, data]) => (
+        <div key={key} style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', padding:'15px', borderBottom:'1px solid rgba(255,255,255,0.05)', alignItems:'center'}}>
+          <span style={{fontWeight:800, color:'#f1f5f9'}}>{data.roll}</span>
+          <span style={{color:'#06b6d4', fontWeight:600}}>{data.class}</span>
+          <span style={{textAlign:'right', color:'#f43f5e', fontWeight:800}}>{data.count} Sessions</span>
         </div>
-      )}
+      ))
+    )}
+  </div>
+)}
 
       {tab === 'faculty-list' && (
         <div>
