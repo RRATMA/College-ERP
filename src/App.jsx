@@ -60,7 +60,7 @@ export default function AmritApp() {
         <input id="u" placeholder="User ID" style={{marginBottom:'10px'}} />
         <input id="p" type="password" placeholder="Passcode" style={{marginBottom:'20px'}} />
         <button onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)} style={ui.primaryBtn}>
-          ENTER SYSTEM <ChevronRight size={18}/>
+          LOGIN <ChevronRight size={18}/>
         </button>
       </div>
     </div>
