@@ -48,7 +48,7 @@ export default function AmritApp() {
     fetch('/students_list.xlsx').then(res => res.arrayBuffer()).then(ab => {
       const wb = XLSX.read(ab, { type: 'array' });
       setExcelSheets(wb.SheetNames);
-    }).catch(() => console.error("Excel data file missing."));
+    }).catch(() => console.error("Excel data file missing in public folder."));
   }, []);
 
   const handleLogin = async (u, p) => {
@@ -78,7 +78,7 @@ export default function AmritApp() {
   return <div style={{minHeight: '100vh'}}>{view === 'hod' ? <HODPanel excelSheets={excelSheets} setView={setView} /> : <FacultyPanel user={user} setView={setView} />}</div>;
 }
 
-// --- HOD PANEL ---
+// --- HOD PANEL COMPONENT ---
 function HODPanel({ excelSheets, setView }) {
   const [tab, setTab] = useState('dashboard');
   const [db, setDb] = useState({ facs: [], logs: [], abs: [] });
@@ -93,7 +93,7 @@ function HODPanel({ excelSheets, setView }) {
 
   useEffect(() => { loadData(); }, []);
 
-  // FIXED BRANCH-WISE DEFAULTER LOGIC
+  // Correct Branch-wise Defaulter calculation
   const defMap = db.abs.reduce((acc, curr) => {
     const key = `${curr.student_roll}-${curr.class_name}`;
     if (!acc[key]) acc[key] = { r: curr.student_roll, c: curr.class_name, count: 0 };
@@ -106,34 +106,34 @@ function HODPanel({ excelSheets, setView }) {
   return (
     <div style={{ maxWidth: '1150px', margin: '0 auto', padding: '30px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '35px' }}>
-        <div><h2 style={{margin:0, fontWeight:800, fontSize:'28px'}}>HOD Panel</h2><p style={{margin:0, color:'#64748b', fontSize:'13px'}}>Academic Monitoring</p></div>
-        <button onClick={()=>setView('login')} style={{ background:'rgba(244,63,94,0.1)', color:'#f43f5e', border:'none', padding:'12px', borderRadius:'14px' }}><LogOut/></button>
+        <div><h2 style={{margin:0, fontWeight:800, fontSize:'28px'}}>HOD Command Center</h2><p style={{margin:0, color:'#64748b', fontSize:'13px'}}>Academic Monitoring & Control</p></div>
+        <button onClick={()=>setView('login')} style={{ background:'rgba(244,63,94,0.1)', border:'none', color:'#f43f5e', padding:'12px', borderRadius:'14px', cursor:'pointer' }}><LogOut/></button>
       </div>
 
-      <div className="scroll-hide" style={{ display: 'flex', gap: '8px', marginBottom: '30px', overflowX: 'auto' }}>
+      <div className="scroll-hide" style={{ display: 'flex', gap: '8px', marginBottom: '30px', overflowX: 'auto', paddingBottom: '10px' }}>
         {['dashboard', 'faculty-list', 'subject-map', 'defaulters', 'history'].map(t => (
-          <button key={t} onClick={()=>setTab(t)} className={`tab-btn ${tab===t?'active':''}`}>{t.toUpperCase()}</button>
+          <button key={t} onClick={()=>setTab(t)} className={`tab-btn ${tab===t?'active':''}`}>{t.replace('-',' ').toUpperCase()}</button>
         ))}
       </div>
 
       {tab === 'dashboard' && (
         <div className="dashboard-grid">
-          <div className="glass-card stat-card"><div className="icon-box" style={{background:'rgba(244,63,94,0.1)', color:'#f43f5e'}}><ShieldAlert/></div><div><h2>{defs.length}</h2><p>DEFAULTERS</p></div></div>
-          <div className="glass-card stat-card"><div className="icon-box" style={{background:'rgba(6,182,212,0.1)', color:'#06b6d4'}}><Database/></div><div><h2>{db.logs.length}</h2><p>SESSIONS</p></div></div>
-          <div className="glass-card stat-card"><div className="icon-box" style={{background:'rgba(168,85,247,0.1)', color:'#a855f7'}}><Users/></div><div><h2>{db.facs.length}</h2><p>STAFF</p></div></div>
-          <div className="glass-card stat-card"><div className="icon-box" style={{background:'rgba(16,185,129,0.1)', color:'#10b981'}}><TrendingUp/></div><div><h2>{avgAtt}%</h2><p>AVG ATT.</p></div></div>
+          <div className="glass-card stat-card"><div className="icon-box" style={{background:'rgba(6,182,212,0.1)', color:'#06b6d4'}}><Database/></div><div><h2 style={{margin:0}}>{db.logs.length}</h2><p style={{fontSize:'10px', fontWeight:800, color:'#64748b'}}>TOTAL SESSIONS</p></div></div>
+          <div className="glass-card stat-card"><div className="icon-box" style={{background:'rgba(168,85,247,0.1)', color:'#a855f7'}}><Users/></div><div><h2 style={{margin:0}}>{db.facs.length}</h2><p style={{fontSize:'10px', fontWeight:800, color:'#64748b'}}>ACTIVE STAFF</p></div></div>
+          <div className="glass-card stat-card"><div className="icon-box" style={{background:'rgba(16,185,129,0.1)', color:'#10b981'}}><TrendingUp/></div><div><h2 style={{margin:0}}>{avgAtt}%</h2><p style={{fontSize:'10px', fontWeight:800, color:'#64748b'}}>AVG ATTENDANCE</p></div></div>
+          <div className="glass-card stat-card"><div className="icon-box" style={{background:'rgba(244,63,94,0.1)', color:'#f43f5e'}}><ShieldAlert/></div><div><h2 style={{margin:0}}>{defs.length}</h2><p style={{fontSize:'10px', fontWeight:800, color:'#64748b'}}>DEFAULTERS</p></div></div>
         </div>
       )}
 
       {tab === 'defaulters' && (
         <div className="glass-card" style={{padding:'25px'}}>
-          <h4 style={{color:'#f43f5e', marginBottom:'20px'}}>BRANCH-WISE DEFAULTERS (≥ 5 Absents)</h4>
-          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', paddingBottom:'10px', borderBottom:'1px solid #1e293b', fontWeight:800, fontSize:'12px'}}>
-            <span>ROLL NO</span><span>CLASS/BRANCH</span><span style={{textAlign:'right'}}>ABSENTS</span>
+          <h4 style={{color:'#f43f5e', marginTop:0}}>Critical Defaulters (Branch-wise Tracking)</h4>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', paddingBottom:'10px', borderBottom:'1px solid rgba(255,255,255,0.1)', fontWeight:800, color:'#64748b', fontSize:'12px'}}>
+            <span>ROLL NO</span><span>CLASS</span><span style={{textAlign:'right'}}>ABSENTS</span>
           </div>
           {defs.map((d, i) => (
             <div key={i} style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', padding:'15px 0', borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
-              <span>{d.r}</span><span style={{color:'#06b6d4'}}>{d.c}</span><span style={{textAlign:'right', color:'#f43f5e', fontWeight:800}}>{d.count}</span>
+              <span><b>{d.r}</b></span><span style={{color:'#06b6d4'}}>{d.c}</span><span style={{textAlign:'right', color:'#f43f5e', fontWeight:800}}>{d.count}</span>
             </div>
           ))}
         </div>
@@ -141,39 +141,49 @@ function HODPanel({ excelSheets, setView }) {
 
       {tab === 'faculty-list' && (
         <div>
-           <div className="glass-card" style={{padding:'25px', marginBottom:'20px'}}>
-            <input placeholder="Full Name" style={{marginBottom:'10px'}} onChange={e=>setForm({...form, name:e.target.value})}/>
-            <div style={{display:'flex', gap:'10px'}}><input placeholder="ID" onChange={e=>setForm({...form, id:e.target.value})}/><input placeholder="Pass" type="password" onChange={e=>setForm({...form, pass:e.target.value})}/></div>
-            <button className="action-btn" style={{marginTop:'15px'}} onClick={async()=>{await supabase.from('faculties').insert([{id:form.id, name:form.name, password:form.pass}]); loadData();}}>ADD STAFF</button>
-           </div>
-           {db.facs.map(f=><div key={f.id} className="glass-card" style={{display:'flex', justifyContent:'space-between', padding:'15px', marginBottom:'10px'}}><span>{f.name} (UID: {f.id})</span><button onClick={async()=>{await supabase.from('faculties').delete().eq('id',f.id); loadData();}} style={{color:'#f43f5e', background:'none', border:'none'}}><Trash2 size={18}/></button></div>)}
+          <div className="glass-card" style={{padding:'25px', marginBottom:'20px'}}>
+            <input placeholder="Full Name" style={{marginBottom:'12px'}} onChange={e=>setForm({...form, name:e.target.value})}/>
+            <div style={{display:'flex', gap:'10px'}}><input placeholder="Faculty ID" onChange={e=>setForm({...form, id:e.target.value})}/><input placeholder="Password" type="password" onChange={e=>setForm({...form, pass:e.target.value})}/></div>
+            <button className="action-btn" style={{marginTop:'20px'}} onClick={async()=>{await supabase.from('faculties').insert([{id:form.id, name:form.name, password:form.pass}]); loadData(); alert("Faculty Added!");}}>REGISTER STAFF</button>
+          </div>
+          {db.facs.map(f => (
+            <div key={f.id} className="glass-card" style={{display:'flex', justifyContent:'space-between', padding:'18px', marginBottom:'10px'}}>
+              <span><b>{f.name}</b> (UID: {f.id})</span>
+              <button onClick={async()=>{await supabase.from('faculties').delete().eq('id', f.id); loadData();}} style={{color:'#f43f5e', background:'none', border:'none'}}><Trash2 size={20}/></button>
+            </div>
+          ))}
         </div>
       )}
 
       {tab === 'subject-map' && (
         <div className="glass-card" style={{padding:'25px'}}>
-          <select style={{marginBottom:'10px'}} onChange={e=>setForm({...form, fId:e.target.value})}><option>Select Faculty</option>{db.facs.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select>
-          <select style={{marginBottom:'10px'}} onChange={e=>setForm({...form, cls:e.target.value})}><option>Select Class</option>{excelSheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
+          <select style={{marginBottom:'12px'}} onChange={e=>setForm({...form, fId:e.target.value})}><option>Select Faculty</option>{db.facs.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select>
+          <select style={{marginBottom:'12px'}} onChange={e=>setForm({...form, cls:e.target.value})}><option>Select Class</option>{excelSheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
           <input placeholder="Subject Name" onChange={e=>setForm({...form, sub:e.target.value})}/>
-          <button className="action-btn" style={{marginTop:'15px'}} onClick={async()=>{await supabase.from('assignments').insert([{fac_id:form.fId, class_name:form.cls, subject_name:form.sub}]); alert("Mapped!");}}>ASSIGN</button>
+          <button className="action-btn" style={{marginTop:'25px'}} onClick={async()=>{await supabase.from('assignments').insert([{fac_id:form.fId, class_name:form.cls, subject_name:form.sub}]); alert("Mapping Saved!");}}>CONFIRM ASSIGNMENT</button>
         </div>
       )}
 
       {tab === 'history' && (
         <div>
-          <button className="action-btn" style={{marginBottom:'15px', width:'auto'}} onClick={()=>{
-            const ws = XLSX.utils.json_to_sheet(db.logs);
-            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Logs");
-            XLSX.writeFile(wb, "History.xlsx");
-          }}><Download size={18}/> EXPORT ALL</button>
-          {db.logs.map(log=><div key={log.id} className="glass-card" style={{padding:'15px', marginBottom:'10px', display:'flex', justifyContent:'space-between'}}><div><b>{log.class} | {log.sub}</b><br/><small>{log.faculty}</small></div><b>{log.present}/{log.total}</b></div>)}
+          <button className="action-btn" style={{marginBottom:'20px', width:'auto'}} onClick={()=>{
+             const ws = XLSX.utils.json_to_sheet(db.logs);
+             const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "MasterData");
+             XLSX.writeFile(wb, "Amrit_Master_Database.xlsx");
+          }}><Download size={18}/> EXPORT ENTIRE DATABASE</button>
+          {db.logs.map(log => (
+            <div key={log.id} className="glass-card" style={{display:'flex', justifyContent:'space-between', padding:'20px', marginBottom:'12px'}}>
+              <div><b>{log.class} | {log.sub}</b><br/><small>{log.faculty} • {log.type}</small></div>
+              <div style={{textAlign:'right'}}><b>{log.present}/{log.total}</b><br/><small>{log.time_str}</small></div>
+            </div>
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-// --- FACULTY PANEL ---
+// --- FACULTY PANEL COMPONENT ---
 function FacultyPanel({ user, setView }) {
   const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', start: '', end: '' });
   const [active, setActive] = useState(false);
@@ -187,11 +197,12 @@ function FacultyPanel({ user, setView }) {
   }, [user.id]);
 
   const startSession = () => {
-    if(!setup.cl || !setup.sub || !setup.start || !setup.end) return alert("Fill all details.");
+    if(!setup.cl || !setup.sub || !setup.start || !setup.end) return alert("Please fill all session details.");
     fetch('/students_list.xlsx').then(r => r.arrayBuffer()).then(ab => {
       const wb = XLSX.read(ab, { type: 'array' });
-      const sh = wb.Sheets[wb.SheetNames.find(s=>s.toLowerCase()===setup.cl.toLowerCase())];
-      const data = XLSX.utils.sheet_to_json(sh);
+      const shName = wb.SheetNames.find(s=>s.toLowerCase()===setup.cl.toLowerCase());
+      if(!shName) return alert("Class data not found in Excel.");
+      const data = XLSX.utils.sheet_to_json(wb.Sheets[shName]);
       setStudents(data.map(s => ({ id: String(s['ROLL NO'] || s['ID']).trim(), name: s['NAME'] || 'Unknown' })));
       setActive(true);
     });
@@ -201,7 +212,7 @@ function FacultyPanel({ user, setView }) {
     setLoading(true);
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const dist = Math.sqrt(Math.pow(pos.coords.latitude-CAMPUS_LAT,2)+Math.pow(pos.coords.longitude-CAMPUS_LON,2));
-      if(dist > RADIUS_LIMIT) { setLoading(false); return alert("Outside Campus!"); }
+      if(dist > RADIUS_LIMIT) { setLoading(false); return alert("Submission Blocked: You must be inside the College Campus."); }
       
       const tStr = new Date().toLocaleDateString('en-GB');
       const { data: att } = await supabase.from('attendance').insert([{ 
@@ -215,28 +226,47 @@ function FacultyPanel({ user, setView }) {
       }));
       if(abs.length > 0) await supabase.from('absentee_records').insert(abs);
 
-      // Automated Branded Download
-      const reportRows = [[INSTITUTE_NAME],["ATTENDANCE REPORT - "+tStr],[""],["FACULTY:", user.name, "CLASS:", setup.cl],["SUBJECT:", setup.sub],["TIME:", `${setup.start}-${setup.end}`],[""],["ROLL NO", "NAME", "STATUS"]];
+      // --- AUTOMATED BRANDED EXCEL REPORT ---
+      const reportRows = [
+        [INSTITUTE_NAME], ["ATTENDANCE STATUS REPORT - " + tStr], [""],
+        ["FACULTY:", user.name, "CLASS:", setup.cl],
+        ["SUBJECT:", setup.sub, "SESSION:", setup.ty],
+        ["TIME:", `${setup.start} to ${setup.end}`], [""],
+        ["ROLL NO", "STUDENT NAME", "STATUS"]
+      ];
       students.forEach(s => reportRows.push([s.id, s.name, marked.includes(s.id) ? "PRESENT" : "ABSENT"]));
       const ws = XLSX.utils.aoa_to_sheet(reportRows);
-      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Report");
-      XLSX.writeFile(wb, `${setup.cl}_Report.xlsx`);
+      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+      XLSX.writeFile(wb, `${setup.cl}_${setup.sub}_Report.xlsx`);
 
-      alert("Synced & Downloaded!"); setView('login');
-    }, () => { setLoading(false); alert("GPS Error."); });
+      alert("Attendance Synced and Report Downloaded!");
+      setView('login');
+    }, () => { setLoading(false); alert("GPS Access Required for verification."); });
   };
 
   if (!active) return (
     <div style={{ padding: '25px', maxWidth: '500px', margin: '0 auto' }}>
-      <div style={{display:'flex', justifyContent:'space-between', marginBottom:'30px'}}><h3>{user.name}</h3><button onClick={()=>setView('login')} style={{background:'none', border:'none', color:'#f43f5e'}}><LogOut/></button></div>
-      <div className="roll-grid" style={{gridTemplateColumns:'1fr 1fr'}}>
-        {[...new Set(myJobs.map(j=>j.class_name))].map(c => <div key={c} onClick={()=>setSetup({...setup, cl:c})} style={{padding:'25px 0', textAlign:'center', borderRadius:'20px', background:setup.cl===c?'#0891b2':'#1e293b', cursor:'pointer'}}>{c}</div>)}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+        <div><small style={{color:'#64748b', fontWeight:800}}>FACULTY PORTAL</small><h4 style={{margin:0, fontSize:'20px'}}>{user.name}</h4></div>
+        <button onClick={()=>setView('login')} style={{background:'rgba(244,63,94,0.1)', color:'#f43f5e', border:'none', padding:'10px', borderRadius:'12px'}}><LogOut/></button>
+      </div>
+      <p style={{fontSize:'11px', fontWeight:800, color:'#64748b', marginBottom:'12px'}}>SELECT CLASS</p>
+      <div className="roll-grid" style={{gridTemplateColumns:'1fr 1fr', marginBottom:'25px'}}>
+        {[...new Set(myJobs.map(j=>j.class_name))].map(c => (
+          <div key={c} onClick={()=>setSetup({...setup, cl:c})} style={{ padding:'25px 10px', borderRadius:'20px', textAlign:'center', fontWeight:800, cursor:'pointer', background: setup.cl===c?'#0891b2':'#1e293b' }}>{c}</div>
+        ))}
       </div>
       {setup.cl && (
-        <div style={{marginTop:'25px'}}>
-          {myJobs.filter(j=>j.class_name===setup.cl).map(j => <div key={j.id} onClick={()=>setSetup({...setup, sub:j.subject_name})} style={{padding:'18px', marginBottom:'10px', borderRadius:'15px', background:setup.sub===j.subject_name?'#0891b2':'#1e293b', cursor:'pointer', textAlign:'center'}}>{j.subject_name}</div>)}
-          <div style={{display:'flex', gap:'10px', marginTop:'15px'}}><input type="time" onChange={e=>setSetup({...setup, start:e.target.value})}/><input type="time" onChange={e=>setSetup({...setup, end:e.target.value})}/></div>
-          <button onClick={startSession} className="action-btn" style={{marginTop:'30px'}}>START ATTENDANCE</button>
+        <div>
+          <p style={{fontSize:'11px', fontWeight:800, color:'#64748b', marginBottom:'12px'}}>ASSIGNED SUBJECTS</p>
+          {myJobs.filter(j=>j.class_name===setup.cl).map(j => (
+            <div key={j.id} onClick={()=>setSetup({...setup, sub:j.subject_name})} style={{ padding:'18px', borderRadius:'15px', fontWeight:700, marginBottom:'10px', cursor:'pointer', textAlign:'center', background: setup.sub===j.subject_name?'#0891b2':'#1e293b' }}>{j.subject_name}</div>
+          ))}
+          <div style={{display:'flex', gap:'12px', marginTop:'20px'}}>
+            <div style={{flex:1}}><p style={{fontSize:'10px', fontWeight:800, color:'#64748b'}}>START</p><input type="time" onChange={e=>setSetup({...setup, start:e.target.value})}/></div>
+            <div style={{flex:1}}><p style={{fontSize:'10px', fontWeight:800, color:'#64748b'}}>END</p><input type="time" onChange={e=>setSetup({...setup, end:e.target.value})}/></div>
+          </div>
+          <button onClick={startSession} className="action-btn" style={{marginTop:'30px'}}>INITIATE ATTENDANCE</button>
         </div>
       )}
     </div>
@@ -244,9 +274,23 @@ function FacultyPanel({ user, setView }) {
 
   return (
     <div style={{ padding: '25px', maxWidth: '500px', margin: '0 auto' }}>
-      <div style={{display:'flex', justifyContent:'space-between', marginBottom:'25px'}}><button onClick={()=>setActive(false)} style={{background:'none', color:'#fff', border:'none'}}><ArrowLeft/></button><b>{setup.cl}</b><span style={{background:'#10b981', padding:'5px 15px', borderRadius:'10px'}}>{marked.length}/{students.length}</span></div>
-      <div className="roll-grid">{students.map(s => <div key={s.id} onClick={() => setMarked(p => p.includes(s.id) ? p.filter(x => x !== s.id) : [...p, s.id])} style={{padding:'20px 0', textAlign:'center', borderRadius:'15px', background:marked.includes(s.id)?'#10b981':'#1e293b', cursor:'pointer'}}>{s.id}</div>)}</div>
-      <button disabled={loading} onClick={submitAttendance} className="action-btn" style={{position:'fixed', bottom:'25px', left:'25px', right:'25px', width:'calc(100% - 50px)', background:'#10b981'}}>{loading ? "WAIT..." : "SYNC & DOWNLOAD"}</button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
+        <button onClick={()=>setActive(false)} style={{width:'45px', height:'45px', borderRadius:'50%', border:'none', background:'#1e293b', color:'#fff'}}><ArrowLeft/></button>
+        <h3 style={{margin:0}}>{setup.cl}</h3>
+        <div style={{background:'#10b981', padding:'6px 15px', borderRadius:'12px', fontWeight:900}}>{marked.length}/{students.length}</div>
+      </div>
+      <div className="roll-grid">
+        {students.map(s => (
+          <div key={s.id} onClick={() => setMarked(prev => prev.includes(s.id) ? prev.filter(x => x !== s.id) : [...prev, s.id])} 
+               style={{ padding:'22px 0', borderRadius:'18px', textAlign:'center', fontWeight:800, cursor:'pointer', background: marked.includes(s.id)?'#10b981':'#1e293b' }}>
+            {s.id}
+          </div>
+        ))}
+      </div>
+      <div style={{height:'100px'}}></div>
+      <button disabled={loading} onClick={submitAttendance} className="action-btn" style={{ position:'fixed', bottom:'25px', left:'25px', right:'25px', width:'calc(100% - 50px)', background:'#10b981' }}>
+        {loading ? "VERIFYING LOCATION..." : "SYNC & DOWNLOAD REPORT"}
+      </button>
     </div>
   );
-      }
+                       }
