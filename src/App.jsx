@@ -6,10 +6,10 @@ import {
 import * as XLSX from 'xlsx';
 import { supabase } from "./supabaseClient";
 
-// --- Configuration ---
-const CAMPUS_LAT = 19.554751; 
+// --- Configuration Update ---
+const CAMPUS_LAT = 19.555568; 
 const CAMPUS_LON = 73.250732;
-const RADIUS_LIMIT = 0.0020; // Increased for faster locking
+const RADIUS_LIMIT = 0.0020; // Exact 200m Range
 const INSTITUTE_NAME = "ATMA MALIK INSTITUTE OF TECHNOLOGY AND RESEARCH";
 
 const injectStyles = () => {
@@ -157,7 +157,7 @@ function HODPanel({ sheets, setView }) {
   );
 }
 
-// --- Faculty Panel Component ---
+// --- Faculty Panel Component (Optimized Fast Verify) ---
 function FacultyPanel({ user, setView }) {
   const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', s: '', e: '' });
   const [active, setActive] = useState(false);
@@ -180,11 +180,21 @@ function FacultyPanel({ user, setView }) {
   const submit = () => {
     setLoading(true);
     
-    const gpsOptions = { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 };
+    // Fast Location Settings
+    const gpsOptions = { 
+      enableHighAccuracy: false, // Precision kami kelyane fast lock hote
+      timeout: 8000, 
+      maximumAge: 60000 // 1 minute cached location allow
+    };
 
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const dist = Math.sqrt(Math.pow(pos.coords.latitude - CAMPUS_LAT, 2) + Math.pow(pos.coords.longitude - CAMPUS_LON, 2));
-      if (dist > RADIUS_LIMIT) { setLoading(false); return alert("Location Error: Outside College"); }
+      
+      // Radius limit check (200m)
+      if (dist > RADIUS_LIMIT) { 
+        setLoading(false); 
+        return alert("Location Error: College baher ahat."); 
+      }
       
       try {
         const dt = new Date().toLocaleDateString('en-GB');
@@ -211,7 +221,7 @@ function FacultyPanel({ user, setView }) {
       } finally {
         setLoading(false);
       }
-    }, () => { setLoading(false); alert("GPS Required/Timeout"); }, gpsOptions);
+    }, () => { setLoading(false); alert("GPS Required/Timeout. Please check location permissions."); }, gpsOptions);
   };
 
   if (!active) return (
@@ -252,4 +262,4 @@ function FacultyPanel({ user, setView }) {
       <button disabled={loading} onClick={submit} className="btn-cyan" style={{ position: 'fixed', bottom: '20px', left: '20px', width: 'calc(100% - 40px)', background: '#10b981' }}>{loading ? "VERIFYING..." : "SUBMIT ATTENDANCE"}</button>
     </div>
   );
-}
+                            }
