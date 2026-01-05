@@ -6,11 +6,10 @@ import {
 import * as XLSX from 'xlsx';
 import { supabase } from "./supabaseClient";
 
+// --- Configuration ---
 const CAMPUS_LAT = 19.554751; 
-const CAMPUS_LON = 73.24960;
-const RADIUS_LIMIT = 0.0020;
-
-
+const CAMPUS_LON = 73.249608;
+const RADIUS_LIMIT = 0.0020; // Increased for faster locking
 const INSTITUTE_NAME = "ATMA MALIK INSTITUTE OF TECHNOLOGY AND RESEARCH";
 
 const injectStyles = () => {
@@ -70,6 +69,7 @@ export default function AmritApp() {
   return view === 'hod' ? <HODPanel sheets={sheets} setView={setView} /> : <FacultyPanel user={user} setView={setView} />;
 }
 
+// --- HOD Panel Component ---
 function HODPanel({ sheets, setView }) {
   const [tab, setTab] = useState('dash');
   const [db, setDb] = useState({ f: [], l: [], a: [], m: [] });
@@ -157,6 +157,7 @@ function HODPanel({ sheets, setView }) {
   );
 }
 
+// --- Faculty Panel Component ---
 function FacultyPanel({ user, setView }) {
   const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', s: '', e: '' });
   const [active, setActive] = useState(false);
@@ -178,20 +179,39 @@ function FacultyPanel({ user, setView }) {
 
   const submit = () => {
     setLoading(true);
+    
+    const gpsOptions = { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 };
+
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const dist = Math.sqrt(Math.pow(pos.coords.latitude - CAMPUS_LAT, 2) + Math.pow(pos.coords.longitude - CAMPUS_LON, 2));
       if (dist > RADIUS_LIMIT) { setLoading(false); return alert("Location Error: Outside College"); }
       
-      const dt = new Date().toLocaleDateString('en-GB');
-      const { data: at } = await supabase.from('attendance').insert([{ faculty: user.name, sub: setup.sub, class: setup.cl, type: setup.ty, duration: `${setup.s}-${setup.e}`, present: marked.length, total: list.length, time_str: dt }]).select().single();
-      const abs = list.filter(s => !marked.includes(s.id)).map(s => ({ attendance_id: at.id, student_roll: s.id, class_name: setup.cl, date: dt }));
-      if (abs.length > 0) await supabase.from('absentee_records').insert(abs);
-      
-      const report = [[INSTITUTE_NAME], ["SESSION REPORT: " + dt], [], ["FACULTY:", user.name], ["CLASS:", setup.cl, "TYPE:", setup.ty], ["SUBJECT:", setup.sub], ["TIME:", `${setup.s} to ${setup.e}`], [], ["ROLL", "NAME", "STATUS"]];
-      list.forEach(s => report.push([s.id, s.name, marked.includes(s.id) ? "PRESENT" : "ABSENT"]));
-      XLSX.writeFile({ SheetNames: ["R"], Sheets: { "R": XLSX.utils.aoa_to_sheet(report) } }, `${setup.cl}_${setup.ty}_Report.xlsx`);
-      alert("Attendance Submitted Successfully!"); setView('login');
-    }, () => { setLoading(false); alert("GPS Required"); });
+      try {
+        const dt = new Date().toLocaleDateString('en-GB');
+        const { data: at, error: atError } = await supabase.from('attendance').insert([{ 
+          faculty: user.name, sub: setup.sub, class: setup.cl, type: setup.ty, 
+          duration: `${setup.s}-${setup.e}`, present: marked.length, total: list.length, time_str: dt 
+        }]).select().single();
+
+        if (atError) throw atError;
+
+        const abs = list.filter(s => !marked.includes(s.id)).map(s => ({ 
+          attendance_id: at.id, student_roll: s.id, class_name: setup.cl, date: dt 
+        }));
+
+        if (abs.length > 0) await supabase.from('absentee_records').insert(abs);
+        
+        const report = [[INSTITUTE_NAME], ["SESSION REPORT: " + dt], [], ["FACULTY:", user.name], ["CLASS:", setup.cl, "TYPE:", setup.ty], ["SUBJECT:", setup.sub], ["TIME:", `${setup.s} to ${setup.e}`], [], ["ROLL", "NAME", "STATUS"]];
+        list.forEach(s => report.push([s.id, s.name, marked.includes(s.id) ? "PRESENT" : "ABSENT"]));
+        XLSX.writeFile({ SheetNames: ["R"], Sheets: { "R": XLSX.utils.aoa_to_sheet(report) } }, `${setup.cl}_${setup.ty}_Report.xlsx`);
+        
+        alert("Attendance Submitted Successfully!"); setView('login');
+      } catch (err) {
+        alert("Sync Error: " + err.message);
+      } finally {
+        setLoading(false);
+      }
+    }, () => { setLoading(false); alert("GPS Required/Timeout"); }, gpsOptions);
   };
 
   if (!active) return (
@@ -232,4 +252,4 @@ function FacultyPanel({ user, setView }) {
       <button disabled={loading} onClick={submit} className="btn-cyan" style={{ position: 'fixed', bottom: '20px', left: '20px', width: 'calc(100% - 40px)', background: '#10b981' }}>{loading ? "VERIFYING..." : "SUBMIT ATTENDANCE"}</button>
     </div>
   );
-                                            }
+}
