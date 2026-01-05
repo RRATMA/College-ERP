@@ -6,8 +6,8 @@ import {
 import * as XLSX from 'xlsx';
 import { supabase } from "./supabaseClient";
 
-const CAMPUS_LAT = 19.7042; 
-const CAMPUS_LON = 72.7645;
+const CAMPUS_LAT = 19.554993; 
+const CAMPUS_LON = 73.249619;
 const RADIUS_LIMIT = 0.0008;
 const INSTITUTE_NAME = "ATMA MALIK INSTITUTE OF TECHNOLOGY AND RESEARCH";
 
