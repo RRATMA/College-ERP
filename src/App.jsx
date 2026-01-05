@@ -8,7 +8,7 @@ import { supabase } from "./supabaseClient";
 
 // --- Configuration ---
 const CAMPUS_LAT = 19.554751; 
-const CAMPUS_LON = 73.249608;
+const CAMPUS_LON = 73.250732;
 const RADIUS_LIMIT = 0.0020; // Increased for faster locking
 const INSTITUTE_NAME = "ATMA MALIK INSTITUTE OF TECHNOLOGY AND RESEARCH";
 
