@@ -180,7 +180,7 @@ function FacultyPanel({ user, setView }) {
   const submit = () => {
     setLoading(true);
     
-    const gpsOptions = { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 };
+    const gpsOptions = { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 };
 
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const dist = Math.sqrt(Math.pow(pos.coords.latitude - CAMPUS_LAT, 2) + Math.pow(pos.coords.longitude - CAMPUS_LON, 2));
