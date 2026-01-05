@@ -6,7 +6,7 @@ import {
 import * as XLSX from 'xlsx';
 import { supabase } from "./supabaseClient";
 
-// --- Configuration Update ---
+// --- Configuration ---
 const CAMPUS_LAT = 19.555568; 
 const CAMPUS_LON = 73.250732;
 const RADIUS_LIMIT = 0.0020; // Exact 200m Range
@@ -69,7 +69,6 @@ export default function AmritApp() {
   return view === 'hod' ? <HODPanel sheets={sheets} setView={setView} /> : <FacultyPanel user={user} setView={setView} />;
 }
 
-// --- HOD Panel Component ---
 function HODPanel({ sheets, setView }) {
   const [tab, setTab] = useState('dash');
   const [db, setDb] = useState({ f: [], l: [], a: [], m: [] });
@@ -157,7 +156,6 @@ function HODPanel({ sheets, setView }) {
   );
 }
 
-// --- Faculty Panel Component (Optimized Fast Verify) ---
 function FacultyPanel({ user, setView }) {
   const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', s: '', e: '' });
   const [active, setActive] = useState(false);
@@ -179,28 +177,26 @@ function FacultyPanel({ user, setView }) {
 
   const submit = () => {
     setLoading(true);
-    
-    // Fast Location Settings
-    const gpsOptions = { 
-      enableHighAccuracy: false, // Precision kami kelyane fast lock hote
-      timeout: 8000, 
-      maximumAge: 60000 // 1 minute cached location allow
-    };
+    const gpsOptions = { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 };
 
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const dist = Math.sqrt(Math.pow(pos.coords.latitude - CAMPUS_LAT, 2) + Math.pow(pos.coords.longitude - CAMPUS_LON, 2));
-      
-      // Radius limit check (200m)
-      if (dist > RADIUS_LIMIT) { 
-        setLoading(false); 
-        return alert("Location Error: College baher ahat."); 
-      }
+      if (dist > RADIUS_LIMIT) { setLoading(false); return alert("Location Error: College baher ahat."); }
       
       try {
         const dt = new Date().toLocaleDateString('en-GB');
+        
+        // FIX: Mapping setup.s and setup.e to database columns start_time and end_time
         const { data: at, error: atError } = await supabase.from('attendance').insert([{ 
-          faculty: user.name, sub: setup.sub, class: setup.cl, type: setup.ty, 
-          duration: `${setup.s}-${setup.e}`, present: marked.length, total: list.length, time_str: dt 
+          faculty: user.name, 
+          sub: setup.sub, 
+          class: setup.cl, 
+          type: setup.ty, 
+          start_time: setup.s, 
+          end_time: setup.e, 
+          present: marked.length, 
+          total: list.length, 
+          time_str: dt 
         }]).select().single();
 
         if (atError) throw atError;
@@ -221,7 +217,7 @@ function FacultyPanel({ user, setView }) {
       } finally {
         setLoading(false);
       }
-    }, () => { setLoading(false); alert("GPS Required/Timeout. Please check location permissions."); }, gpsOptions);
+    }, () => { setLoading(false); alert("GPS Required/Timeout."); }, gpsOptions);
   };
 
   if (!active) return (
@@ -262,4 +258,4 @@ function FacultyPanel({ user, setView }) {
       <button disabled={loading} onClick={submit} className="btn-cyan" style={{ position: 'fixed', bottom: '20px', left: '20px', width: 'calc(100% - 40px)', background: '#10b981' }}>{loading ? "VERIFYING..." : "SUBMIT ATTENDANCE"}</button>
     </div>
   );
-                            }
+        }
