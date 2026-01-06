@@ -207,7 +207,7 @@ function FacultyPanel({ user, setView }) {
 
         if (abs.length > 0) await supabase.from('absentee_records').insert(abs);
         
-        const report = [[INSTITUTE_NAME], ["SESSION REPORT: " + dt], [], ["FACULTY:", user.name], ["CLASS:", setup.cl, "TYPE:", setup.ty], ["SUBJECT:", setup.sub], ["TIME:", `${setup.s} to ${setup.e}`], [], ["ROLL", "NAME", "STATUS"]];
+        const report = [[INSTITUTE_NAME], ["SESSION REPORT: " + dt], [], ["FACULTY:", user.name], ["CLASS:", setup.cl, "TYPE:", setup.ty], ["SUBJECT:", setup.sub], ["TIME:", `${setup.s} to ${setup.e}`], [], ["ROLL", "STUDENT NAME", "STATUS"]];
         list.forEach(s => report.push([s.id, s.name, marked.includes(s.id) ? "PRESENT" : "ABSENT"]));
         XLSX.writeFile({ SheetNames: ["R"], Sheets: { "R": XLSX.utils.aoa_to_sheet(report) } }, `${setup.cl}_${setup.ty}_Report.xlsx`);
         
