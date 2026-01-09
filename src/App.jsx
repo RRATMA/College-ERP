@@ -41,7 +41,7 @@ export default function AmritApp() {
 
   useEffect(() => {
     injectStyles();
-    fetch('/students_list.xlsx').then(res => res.arrayBuffer()).then(ab => {
+    fetch('/students_list(1).xlsx').then(res => res.arrayBuffer()).then(ab => {
       setSheets(XLSX.read(ab, { type: 'array' }).SheetNames);
     });
   }, []);
