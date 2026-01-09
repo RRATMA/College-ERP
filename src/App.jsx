@@ -41,7 +41,7 @@ export default function AmritApp() {
 
   useEffect(() => {
     injectStyles();
-    fetch('/students_list(1).xlsx').then(res => res.arrayBuffer()).then(ab => {
+    fetch('/students_list(3).xlsx').then(res => res.arrayBuffer()).then(ab => {
       setSheets(XLSX.read(ab, { type: 'array' }).SheetNames);
     });
   }, []);
@@ -168,7 +168,7 @@ function FacultyPanel({ user, setView }) {
 
   const start = () => {
     if(!setup.cl || !setup.sub || !setup.s || !setup.e) return alert("Please fill all details");
-    fetch('/students_list(1).xlsx').then(r => r.arrayBuffer()).then(ab => {
+    fetch('/students_list(3).xlsx').then(r => r.arrayBuffer()).then(ab => {
       const data = XLSX.utils.sheet_to_json(XLSX.read(ab, { type: 'array' }).Sheets[setup.cl]);
       setList(data.map(s => ({ id: String(s['ROLL NO'] || s['ID']), name: s['NAME'] })));
       setActive(true);
