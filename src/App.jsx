@@ -94,7 +94,7 @@ function HODPanel({ sheets, setView }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
         <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
           <img src="/logo.png" className="logo-circle" style={{width:'50px', height:'50px'}} alt="logo" />
-          <h2 style={{margin:0, fontSize:'20px'}}>HOD Console</h2>
+          <h2 style={{margin:0, fontSize:'20px'}}>HOD</h2>
         </div>
         <button onClick={() => setView('login')} style={{background:'none', border:'none', color:'#f43f5e'}}><LogOut/></button>
       </div>
@@ -168,7 +168,7 @@ function FacultyPanel({ user, setView }) {
 
   const start = () => {
     if(!setup.cl || !setup.sub || !setup.s || !setup.e) return alert("Please fill all details");
-    fetch('/students_list.xlsx').then(r => r.arrayBuffer()).then(ab => {
+    fetch('/students_list(1).xlsx').then(r => r.arrayBuffer()).then(ab => {
       const data = XLSX.utils.sheet_to_json(XLSX.read(ab, { type: 'array' }).Sheets[setup.cl]);
       setList(data.map(s => ({ id: String(s['ROLL NO'] || s['ID']), name: s['NAME'] })));
       setActive(true);
