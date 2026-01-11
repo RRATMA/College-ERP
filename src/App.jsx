@@ -170,7 +170,7 @@ function FacultyPanel({ user, setView }) {
     if(!setup.cl || !setup.sub || !setup.s || !setup.e) return alert("Please fill all details");
     fetch('/students_list.xlsx').then(r => r.arrayBuffer()).then(ab => {
       const data = XLSX.utils.sheet_to_json(XLSX.read(ab, { type: 'array' }).Sheets[setup.cl]);
-      setList(data.map(s => ({ id: String(s['ROLL NO'] || s['ID']), name: s['NAME'] })));
+      setList(data.map(s => ({ id: String(s['ROLL NO'] || s['ID']), name: s['STUDENT NAME'] })));
       setActive(true);
     });
   };
