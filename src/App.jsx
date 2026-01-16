@@ -181,7 +181,7 @@ function FacultyPanel({ user, setView }) {
 
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const dist = Math.sqrt(Math.pow(pos.coords.latitude - CAMPUS_LAT, 2) + Math.pow(pos.coords.longitude - CAMPUS_LON, 2));
-      if (dist > RADIUS_LIMIT) { setLoading(false); return alert("Location Error: College baher ahat."); }
+      if (dist > RADIUS_LIMIT) { setLoading(false); return alert("Location Error: You are out off campus !."); }
       
       try {
         const dt = new Date().toLocaleDateString('en-GB');
