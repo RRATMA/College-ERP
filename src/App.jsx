@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { LogOut, ArrowLeft, Download, CheckCircle, BookOpen } from 'lucide-react';
+import { LogOut, ArrowLeft, Download, CheckCircle, BookOpen, UserCheck } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { supabase } from "./supabaseClient";
@@ -42,10 +42,15 @@ export default function AmritApp() {
   }, []);
 
   const handleLogin = async (u, p) => {
-    if (u === "HODCOM" && p === "COMP1578") { setUser({ name: "HOD Admin", role: 'hod' }); setView('hod'); }
-    else {
+    if (u === "HODCOM" && p === "COMP1578") { 
+      setUser({ name: "HOD Admin", role: 'hod' }); setView('hod'); 
+    } else {
       const { data } = await supabase.from('faculties').select('*').eq('id', u).eq('password', p).single();
-      if (data) { setUser({ ...data, role: 'faculty' }); setView('faculty'); } else alert("Access Denied!");
+      if (data) { 
+        setUser({ ...data, role: 'faculty' }); setView('faculty'); 
+      } else {
+        alert("Access Denied: Invalid Employee ID or Password!");
+      }
     }
   };
 
@@ -54,8 +59,10 @@ export default function AmritApp() {
       <div className="glass" style={{ width: '320px', textAlign: 'center' }}>
         <img src="/logo.png" className="logo-circle" style={{width:'80px', height:'80px', marginBottom:'15px'}} alt="Logo" />
         <h2 style={{color: '#06b6d4', margin: 0}}>AMRIT ERP</h2>
-        <input id="u" placeholder="Employee ID" /><input id="p" type="password" placeholder="Password" />
-        <button className="btn-cyan" onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)}>LOGIN</button>
+        <p style={{fontSize:'12px', color:'#94a3b8', marginBottom:'20px'}}>Institute Management System</p>
+        <input id="u" placeholder="Employee ID" />
+        <input id="p" type="password" placeholder="Password" />
+        <button className="btn-cyan" onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)}>SIGN IN</button>
       </div>
     </div>
   );
@@ -80,28 +87,30 @@ function HODPanel({ sheets, setView }) {
   return (
     <div style={{ padding: '20px', maxWidth: '1100px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-        <h2 style={{margin:0, color:'#06b6d4'}}>HOD PANEL</h2>
+        <h2 style={{margin:0, color:'#06b6d4'}}>ADMINISTRATOR PANEL</h2>
         <LogOut onClick={() => setView('login')} style={{cursor:'pointer', color:'#f43f5e'}}/>
       </div>
       <div style={{ display: 'flex', gap: '20px', marginBottom: '25px', borderBottom: '1px solid #1e293b' }}>
-        {['dash', 'staff', 'map', 'history'].map(t => (
+        {['dashboard', 'staff', 'mapping', 'history'].map(t => (
           <p key={t} onClick={()=>setTab(t)} style={{cursor:'pointer', color:tab===t?'#06b6d4':'#64748b', fontWeight:800, fontSize:'12px', paddingBottom:'10px'}}>{t.toUpperCase()}</p>
         ))}
       </div>
       {tab === 'staff' && (
         <div className="glass">
-          <input placeholder="Faculty Name" onChange={e=>setForm({...form, n:e.target.value})}/>
+          <h3>Register Faculty</h3>
+          <input placeholder="Full Name" onChange={e=>setForm({...form, n:e.target.value})}/>
           <input placeholder="Employee ID" onChange={e=>setForm({...form, id:e.target.value})}/>
-          <input placeholder="Password" onChange={e=>setForm({...form, p:e.target.value})}/>
-          <button className="btn-cyan" onClick={async()=>{await supabase.from('faculties').insert([{id:form.id, name:form.n, password:form.p}]); refresh(); alert("Added!");}}>ADD FACULTY</button>
+          <input placeholder="Secure Password" onChange={e=>setForm({...form, p:e.target.value})}/>
+          <button className="btn-cyan" onClick={async()=>{await supabase.from('faculties').insert([{id:form.id, name:form.n, password:form.p}]); refresh(); alert("Faculty Registered Successfully!");}}>REGISTER STAFF</button>
         </div>
       )}
-      {tab === 'map' && (
+      {tab === 'mapping' && (
         <div className="glass">
+          <h3>Subject Assignment</h3>
           <select onChange={e=>setForm({...form, fid:e.target.value})}><option>Select Faculty</option>{db.f.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select>
           <select onChange={e=>setForm({...form, cl:e.target.value})}><option>Select Class</option>{sheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
-          <input placeholder="Subject" onChange={e=>setForm({...form, s:e.target.value})}/>
-          <button className="btn-cyan" onClick={async()=>{await supabase.from('assignments').insert([{fac_id:form.fid, class_name:form.cl, subject_name:form.s}]); refresh(); alert("Mapped!");}}>MAP SUBJECT</button>
+          <input placeholder="Subject Name" onChange={e=>setForm({...form, s:e.target.value})}/>
+          <button className="btn-cyan" onClick={async()=>{await supabase.from('assignments').insert([{fac_id:form.fid, class_name:form.cl, subject_name:form.s}]); refresh(); alert("Mapping Saved Successfully!");}}>SAVE ASSIGNMENT</button>
         </div>
       )}
       {tab === 'history' && (
@@ -111,7 +120,7 @@ function HODPanel({ sheets, setView }) {
   );
 }
 
-// --- FACULTY PANEL (MASTER REGISTER LOGIC) ---
+// --- FACULTY PANEL (ENGLISH VERSION) ---
 function FacultyPanel({ user, setView }) {
   const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', s: '', e: '' });
   const [active, setActive] = useState(false);
@@ -125,14 +134,12 @@ function FacultyPanel({ user, setView }) {
   }, [user.id]);
 
   const exportMasterFormat = async () => {
-    if (!setup.cl || !setup.sub) return alert("Pahile Class ani Subject select kara!");
+    if (!setup.cl || !setup.sub) return alert("Please select Class and Subject first!");
     setLoading(true);
     try {
-      // 1. Fetch Attendance History (All Days)
       const { data: logs } = await supabase.from('attendance')
         .select('id, time_str')
-        .eq('class', setup.cl)
-        .eq('sub', setup.sub)
+        .eq('class', setup.cl).eq('sub', setup.sub)
         .order('time_str', { ascending: true });
 
       const uniqueDates = logs && logs.length > 0 ? [...new Set(logs.map(a => a.time_str))] : [];
@@ -143,7 +150,6 @@ function FacultyPanel({ user, setView }) {
       const workbook = new ExcelJS.Workbook();
       const ws = workbook.addWorksheet(`${setup.cl}_Register`);
 
-      // 2. Header & Branding
       try {
         const response = await fetch('/logo.png');
         const logoId = workbook.addImage({ buffer: await (await response.blob()).arrayBuffer(), extension: 'png' });
@@ -161,16 +167,14 @@ function FacultyPanel({ user, setView }) {
 
       ws.addRow([]); 
 
-      // 3. Table Headers
-      const tableHeaders = ["ROLL NO", "STUDENT NAME", ...uniqueDates, "TOTAL", "%"];
-      const headerRow = ws.addRow(tableHeaders);
+      const headers = ["ROLL NO", "STUDENT NAME", ...uniqueDates, "TOTAL", "%"];
+      const headerRow = ws.addRow(headers);
       headerRow.eachCell(c => {
         c.fill = { type: 'pattern', pattern:'solid', fgColor:{argb:'FF06B6D4'} };
         c.font = { color: { argb: 'FFFFFFFF' }, bold: true };
         c.border = { style: 'thin' };
       });
 
-      // 4. Data Population
       const res = await fetch('/students_list.xlsx');
       const abFile = await res.arrayBuffer();
       const studentsFromExcel = XLSX.utils.sheet_to_json(XLSX.read(abFile, { type: 'array' }).Sheets[setup.cl]);
@@ -180,15 +184,12 @@ function FacultyPanel({ user, setView }) {
         const name = s['STUDENT NAME'] || "N/A";
         let pCount = 0;
         const rowData = [roll, name];
-
         uniqueDates.forEach(date => {
           const isA = abs.find(a => String(a.student_roll) === roll && a.date === date);
           if (!isA) { rowData.push("P"); pCount++; } else { rowData.push("A"); }
         });
-
         const percent = uniqueDates.length > 0 ? ((pCount / uniqueDates.length) * 100).toFixed(2) + "%" : "0%";
         rowData.push(pCount, percent);
-        
         const sr = ws.addRow(rowData);
         sr.eachCell(c => {
           if (c.value === "A") c.font = { color: { argb: 'FFFF0000' }, bold: true };
@@ -201,13 +202,14 @@ function FacultyPanel({ user, setView }) {
       const buffer = await workbook.xlsx.writeBuffer();
       const link = document.createElement('a');
       link.href = window.URL.createObjectURL(new Blob([buffer]));
-      link.download = `Master_Register_${setup.cl}_${setup.sub}_25-26.xlsx`;
+      link.download = `Master_Register_${setup.cl}_2025_26.xlsx`;
       link.click();
-    } catch (err) { alert(err.message); } finally { setLoading(false); }
+      alert("Master Register Downloaded Successfully!");
+    } catch (err) { alert("Download Failed: " + err.message); } finally { setLoading(false); }
   };
 
   const start = () => {
-    if(!setup.cl || !setup.sub || !setup.s || !setup.e) return alert("Sarv options select kara!");
+    if(!setup.cl || !setup.sub || !setup.s || !setup.e) return alert("Please select all options to proceed!");
     fetch('/students_list.xlsx').then(r => r.arrayBuffer()).then(ab => {
       const data = XLSX.utils.sheet_to_json(XLSX.read(ab, { type: 'array' }).Sheets[setup.cl]);
       setList(data.map(s => ({ id: String(s['ROLL NO'] || s['ID']), name: s['STUDENT NAME'] })));
@@ -219,22 +221,25 @@ function FacultyPanel({ user, setView }) {
     setLoading(true);
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const dist = Math.sqrt(Math.pow(pos.coords.latitude - CAMPUS_LAT, 2) + Math.pow(pos.coords.longitude - CAMPUS_LON, 2));
-      if (dist > RADIUS_LIMIT) { setLoading(false); return alert("Out of Campus!"); }
+      if (dist > RADIUS_LIMIT) { 
+        setLoading(false); 
+        return alert("Verification Failed: You must be inside the campus to submit attendance."); 
+      }
       try {
         const dt = new Date().toLocaleDateString('en-GB');
         const { data: at } = await supabase.from('attendance').insert([{ faculty: user.name, sub: setup.sub, class: setup.cl, type: setup.ty, start_time: setup.s, end_time: setup.e, present: marked.length, total: list.length, time_str: dt }]).select().single();
         const absData = list.filter(s => !marked.includes(s.id)).map(s => ({ attendance_id: at.id, student_roll: s.id, class_name: setup.cl, date: dt }));
         if (absData.length > 0) await supabase.from('absentee_records').insert(absData);
-        alert("Submitted!"); setView('login');
-      } catch (err) { alert(err.message); } finally { setLoading(false); }
-    }, () => { setLoading(false); alert("GPS Error!"); });
+        alert("Success: Attendance has been submitted!"); setView('login');
+      } catch (err) { alert("Error: " + err.message); } finally { setLoading(false); }
+    }, () => { setLoading(false); alert("GPS Error: Unable to verify location."); });
   };
 
   if (!active) return (
     <div style={{ padding: '20px', maxWidth: '500px', margin: '0 auto' }}>
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'30px'}}>
         <img src="/logo.png" className="logo-circle" alt="Logo" />
-        <div style={{textAlign:'right'}}><b>{user.name}</b><br/><small>Faculty</small></div>
+        <div style={{textAlign:'right'}}><b>{user.name}</b><br/><small>Faculty Member</small></div>
         <LogOut onClick={()=>setView('login')} color="#f43f5e" style={{cursor:'pointer'}}/>
       </div>
       <div style={{display:'flex', gap:'10px', marginBottom:'20px'}}>
@@ -247,8 +252,8 @@ function FacultyPanel({ user, setView }) {
         <div className="glass">
           {jobs.filter(j => j.class_name === setup.cl).map(j => <div key={j.id} onClick={() => setSetup({ ...setup, sub: j.subject_name })} className="glass" style={{ marginBottom: '10px', padding:'10px', cursor:'pointer', background: setup.sub === j.subject_name ? '#0891B2' : '' }}>{j.subject_name}</div>)}
           <div style={{display:'flex', gap:'10px', marginTop:'15px'}}><input type="time" onChange={e=>setSetup({...setup, s:e.target.value})}/><input type="time" onChange={e=>setSetup({...setup, e:e.target.value})}/></div>
-          <button className="btn-cyan" onClick={start} style={{marginTop:'20px'}}>MARK ATTENDANCE</button>
-          <button className="btn-cyan" onClick={exportMasterFormat} style={{marginTop:'10px', background:'#1e293b', border:'1px solid #06b6d4'}} disabled={loading}>DOWNLOAD MASTER REGISTER</button>
+          <button className="btn-cyan" onClick={start} style={{marginTop:'20px'}}>TAKE ATTENDANCE</button>
+          <button className="btn-cyan" onClick={exportMasterFormat} style={{marginTop:'10px', background:'#1e293b', border:'1px solid #06b6d4'}} disabled={loading}>{loading ? "GENERATING..." : "DOWNLOAD MASTER REGISTER"}</button>
         </div>
       )}
     </div>
@@ -267,4 +272,4 @@ function FacultyPanel({ user, setView }) {
       <button onClick={submit} className="btn-cyan" style={{ position: 'fixed', bottom: '20px', left: '20px', width: 'calc(100% - 40px)', background: '#10b981' }}>SUBMIT ATTENDANCE</button>
     </div>
   );
-  }
+                                }
