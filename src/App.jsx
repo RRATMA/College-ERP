@@ -64,7 +64,7 @@ export default function AmritApp() {
     <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
       <div className="glass" style={{ width: '340px', textAlign: 'center' }}>
         <img src="/logo.png" className="logo-circle" style={{width:'90px', height:'90px', marginBottom:'15px'}} alt="Logo" />
-        <h2 style={{color: '#06b6d4', margin: 0, letterSpacing: '1px'}}>AMRIT ERP</h2>
+        <h2 style={{color: '#06b6d4', margin: 0}}>AMRIT ERP</h2>
         <input id="u" placeholder="Employee ID" style={{marginTop:'15px'}} /><input id="p" type="password" placeholder="Password" />
         <button className="btn-cyan" onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)}>SIGN IN</button>
       </div>
@@ -74,6 +74,7 @@ export default function AmritApp() {
   return view === 'hod' ? <HODPanel sheets={sheets} setView={setView} /> : <FacultyPanel user={user} setView={setView} />;
 }
 
+// --- HOD PANEL ---
 function HODPanel({ sheets, setView }) {
   const [tab, setTab] = useState('dash');
   const [db, setDb] = useState({ f: [], l: [], m: [] });
@@ -97,7 +98,7 @@ function HODPanel({ sheets, setView }) {
       const { data: abs } = await supabase.from('absentee_records').select('*').eq('class_name', cls);
       const students = XLSX.utils.sheet_to_json(XLSX.read(await (await fetch('/students_list.xlsx')).arrayBuffer(), { type: 'array' }).Sheets[cls]);
       const wb = new ExcelJS.Workbook();
-      const ws = wb.addWorksheet('Attendance');
+      const ws = wb.addWorksheet('Report');
       ws.addRow([INSTITUTE_NAME]);
       ws.addRow([`${isDef ? 'DEFAULTER' : 'MASTER'} - ${cls}`]);
       const headers = ["ROLL NO", "NAME", ...logs.map(l => `${l.time_str}\n(${l.sub})`), "TOTAL", "%"];
@@ -107,13 +108,13 @@ function HODPanel({ sheets, setView }) {
       students.forEach(s => {
         const roll = String(s['ROLL NO'] || s['ID']);
         let p = 0;
-        const rowData = [roll, s['STUDENT NAME']];
+        const row = [roll, s['STUDENT NAME']];
         logs.forEach(l => {
           const isA = abs.find(a => a.attendance_id === l.id && String(a.student_roll) === roll);
-          if(!isA) { rowData.push("P"); p++; } else rowData.push("A");
+          if(!isA) { row.push("P"); p++; } else row.push("A");
         });
         const pct = (p / (logs.length || 1)) * 100;
-        if (!isDef || pct < 75) { rowData.push(p, pct.toFixed(2) + "%"); ws.addRow(rowData); }
+        if (!isDef || pct < 75) { row.push(p, pct.toFixed(2) + "%"); ws.addRow(row); }
       });
       const buffer = await wb.xlsx.writeBuffer();
       const link = document.createElement('a');
@@ -132,7 +133,6 @@ function HODPanel({ sheets, setView }) {
         </div>
         <LogOut onClick={() => setView('login')} color="#f43f5e" style={{cursor:'pointer'}}/>
       </div>
-
       {tab === 'dash' && (
         <div className="stat-grid">
           <div className="glass stat-card"><h3>{db.l.length}</h3><p>Total Lectures</p></div>
@@ -146,13 +146,11 @@ function HODPanel({ sheets, setView }) {
           </div>
         </div>
       )}
-
       <div className="tab-nav">
         {['dash', 'staff', 'mapping', 'records'].map(t => (
           <div key={t} onClick={()=>setTab(t)} className={`tab-link ${tab===t?'active':''}`}>{t.toUpperCase()}</div>
         ))}
       </div>
-
       {tab === 'staff' && (
         <div className="glass" style={{maxWidth:'500px'}}>
           <h3>Faculty Registration</h3>
@@ -163,7 +161,6 @@ function HODPanel({ sheets, setView }) {
           }}>SAVE FACULTY</button>
         </div>
       )}
-
       {tab === 'mapping' && (
         <div className="glass" style={{maxWidth:'500px'}}>
           <h3>Subject Assignment</h3>
@@ -176,7 +173,6 @@ function HODPanel({ sheets, setView }) {
           }}>CONFIRM MAPPING</button>
         </div>
       )}
-
       {tab === 'records' && (
         <div className="glass">
           {sheets.map(s => (
@@ -191,6 +187,7 @@ function HODPanel({ sheets, setView }) {
   );
 }
 
+// --- FACULTY PANEL (Corrected Logic + Master Sheet) ---
 function FacultyPanel({ user, setView }) {
   const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', s: '', e: '' });
   const [active, setActive] = useState(false);
@@ -202,12 +199,45 @@ function FacultyPanel({ user, setView }) {
     supabase.from('assignments').select('*').eq('fac_id', user.id).then(r => setJobs(r.data || [])); 
   }, [user.id]);
 
+  const exportFacultyMaster = async () => {
+    if (!setup.cl || !setup.sub) return alert("Select Class and Subject!");
+    try {
+      const { data: logs } = await supabase.from('attendance').select('id, time_str').eq('class', setup.cl).eq('sub', setup.sub).order('time_str', { ascending: true });
+      const { data: abs } = await supabase.from('absentee_records').select('*').eq('class_name', setup.cl);
+      const res = await fetch('/students_list.xlsx');
+      const students = XLSX.utils.sheet_to_json(XLSX.read(await res.arrayBuffer(), { type: 'array' }).Sheets[setup.cl]);
+      
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet('My Master');
+      ws.addRow([INSTITUTE_NAME]);
+      ws.addRow([`SUBJECT: ${setup.sub} | CLASS: ${setup.cl}`]);
+      ws.addRow(["ROLL NO", "NAME", ...logs.map(l => l.time_str), "TOTAL", "%"]);
+      
+      students.forEach(s => {
+        const roll = String(s['ROLL NO'] || s['ID']);
+        let p = 0;
+        const row = [roll, s['STUDENT NAME']];
+        logs.forEach(l => {
+          const isA = abs.find(a => a.attendance_id === l.id && String(a.student_roll) === roll);
+          if(!isA) { row.push("P"); p++; } else row.push("A");
+        });
+        row.push(p, ((p/(logs.length || 1))*100).toFixed(2) + "%");
+        ws.addRow(row);
+      });
+      const buffer = await wb.xlsx.writeBuffer();
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(new Blob([buffer]));
+      link.download = `Faculty_Master_${setup.cl}_${setup.sub}.xlsx`;
+      link.click();
+    } catch(e) { alert("Download Error!"); }
+  };
+
   const start = () => {
-    if(!setup.cl || !setup.sub || !setup.s || !setup.e) return alert("All fields required!");
+    if(!setup.cl || !setup.sub || !setup.s || !setup.e) return alert("Fill all details!");
     fetch('/students_list.xlsx').then(r => r.arrayBuffer()).then(ab => {
       const data = XLSX.utils.sheet_to_json(XLSX.read(ab, { type: 'array' }).Sheets[setup.cl]);
       setList(data.map(s => ({ id: String(s['ROLL NO'] || s['ID']), name: s['STUDENT NAME'] })));
-      setMarked([]); // Empty start (All Absent)
+      setMarked([]); // Empty initially (All Absent)
       setActive(true);
     });
   };
@@ -240,13 +270,15 @@ function FacultyPanel({ user, setView }) {
         {['Theory', 'Practical'].map(t => <div key={t} onClick={()=>setSetup({...setup, ty:t})} className={`type-chip ${setup.ty===t?'active':''}`}>{t}</div>)}
       </div>
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px', marginBottom:'20px'}}>
-        {[...new Set(jobs.map(j => j.class_name))].map(c => <div key={c} onClick={() => setSetup({ ...setup, cl: c })} className="glass" style={{ textAlign: 'center', background: setup.cl === c ? '#0891B2' : '', cursor:'pointer' }}>{c}</div>)}
+        {[...new Set(jobs.map(j => j.class_name))].map(c => <div key={c} onClick={() => setSetup({ ...setup, cl: c })} className="glass" style={{ textAlign: 'center', background: setup.cl === c ? '#0891B2' : '', cursor:'pointer', fontWeight:800 }}>{c}</div>)}
       </div>
       {setup.cl && (
         <div className="glass">
           {jobs.filter(j => j.class_name === setup.cl).map(j => <div key={j.id} onClick={() => setSetup({ ...setup, sub: j.subject_name })} className="glass" style={{ marginBottom: '10px', padding:'12px', cursor:'pointer', background: setup.sub === j.subject_name ? '#0891B2' : '' }}>{j.subject_name}</div>)}
           <div style={{display:'flex', gap:'10px', marginTop:'15px'}}><input type="time" onChange={e=>setSetup({...setup, s:e.target.value})}/><input type="time" onChange={e=>setSetup({...setup, e:e.target.value})}/></div>
           <button className="btn-cyan" onClick={start} style={{marginTop:'20px'}}>START MARKING</button>
+          {/* Faculty Master Sheet Feature */}
+          <button className="btn-cyan" onClick={exportFacultyMaster} style={{marginTop:'10px', background:'#1e293b', border:'1px solid #06b6d4'}}>DOWNLOAD MY MASTER</button>
         </div>
       )}
     </div>
@@ -267,4 +299,4 @@ function FacultyPanel({ user, setView }) {
       </div>
     </div>
   );
-      }
+            }
