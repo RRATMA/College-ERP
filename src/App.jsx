@@ -1,8 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  LogOut, ArrowLeft, Trash2, Users, Database, TrendingUp, 
-  ShieldAlert, Download, BookOpen, CheckCircle 
-} from 'lucide-react';
+import { LogOut, ArrowLeft, Download, CheckCircle, BookOpen } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { supabase } from "./supabaseClient";
@@ -26,7 +23,7 @@ const injectStyles = () => {
     .btn-cyan:hover { background: #06b6d4; }
     .roll-btn { padding: 15px 0; border-radius: 12px; text-align: center; font-weight: 800; cursor: pointer; background: #1e293b; transition: 0.2s; border: 1px solid transparent; }
     .roll-btn.active { background: #10b981; transform: scale(1.05); border-color: #34d399; }
-    .type-chip { flex: 1; padding: 10px; border-radius: 10px; text-align: center; cursor: pointer; background: #1e293b; font-weight: 800; font-size: 12px; }
+    .type-chip { flex: 1; padding: 10px; border-radius: 10px; text-align: center; cursor: pointer; background: #1e293b; font-weight: 800; font-size: 12px; transition: 0.3s; }
     .type-chip.active { background: #06b6d4; color: #fff; }
   `;
   document.head.appendChild(s);
@@ -48,7 +45,7 @@ export default function AmritApp() {
     if (u === "HODCOM" && p === "COMP1578") { setUser({ name: "HOD Admin", role: 'hod' }); setView('hod'); }
     else {
       const { data } = await supabase.from('faculties').select('*').eq('id', u).eq('password', p).single();
-      if (data) { setUser({ ...data, role: 'faculty' }); setView('faculty'); } else alert("Invalid ID or Password!");
+      if (data) { setUser({ ...data, role: 'faculty' }); setView('faculty'); } else alert("Access Denied!");
     }
   };
 
@@ -69,14 +66,14 @@ export default function AmritApp() {
 // --- HOD PANEL ---
 function HODPanel({ sheets, setView }) {
   const [tab, setTab] = useState('dash');
-  const [db, setDb] = useState({ f: [], l: [], a: [], m: [] });
+  const [db, setDb] = useState({ f: [], l: [], m: [] });
   const [form, setForm] = useState({});
 
   const refresh = async () => {
     const { data: f } = await supabase.from('faculties').select('*');
     const { data: l } = await supabase.from('attendance').select('*').order('created_at', { ascending: false });
     const { data: m } = await supabase.from('assignments').select('*');
-    setDb({ f: f||[], l: l||[], a: [], m: m||[] });
+    setDb({ f: f||[], l: l||[], m: m||[] });
   };
   useEffect(() => { refresh(); }, []);
 
@@ -84,7 +81,7 @@ function HODPanel({ sheets, setView }) {
     <div style={{ padding: '20px', maxWidth: '1100px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
         <h2 style={{margin:0, color:'#06b6d4'}}>HOD PANEL</h2>
-        <button onClick={() => setView('login')} style={{background:'none', border:'none', color:'#f43f5e', cursor:'pointer'}}><LogOut/></button>
+        <LogOut onClick={() => setView('login')} style={{cursor:'pointer', color:'#f43f5e'}}/>
       </div>
       <div style={{ display: 'flex', gap: '20px', marginBottom: '25px', borderBottom: '1px solid #1e293b' }}>
         {['dash', 'staff', 'map', 'history'].map(t => (
@@ -96,15 +93,15 @@ function HODPanel({ sheets, setView }) {
           <input placeholder="Faculty Name" onChange={e=>setForm({...form, n:e.target.value})}/>
           <input placeholder="Employee ID" onChange={e=>setForm({...form, id:e.target.value})}/>
           <input placeholder="Password" onChange={e=>setForm({...form, p:e.target.value})}/>
-          <button className="btn-cyan" onClick={async()=>{await supabase.from('faculties').insert([{id:form.id, name:form.n, password:form.p}]); refresh();}}>ADD FACULTY</button>
+          <button className="btn-cyan" onClick={async()=>{await supabase.from('faculties').insert([{id:form.id, name:form.n, password:form.p}]); refresh(); alert("Added!");}}>ADD FACULTY</button>
         </div>
       )}
       {tab === 'map' && (
         <div className="glass">
           <select onChange={e=>setForm({...form, fid:e.target.value})}><option>Select Faculty</option>{db.f.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select>
           <select onChange={e=>setForm({...form, cl:e.target.value})}><option>Select Class</option>{sheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
-          <input placeholder="Subject Name" onChange={e=>setForm({...form, s:e.target.value})}/>
-          <button className="btn-cyan" onClick={async()=>{await supabase.from('assignments').insert([{fac_id:form.fid, class_name:form.cl, subject_name:form.s}]); refresh();}}>SAVE MAPPING</button>
+          <input placeholder="Subject" onChange={e=>setForm({...form, s:e.target.value})}/>
+          <button className="btn-cyan" onClick={async()=>{await supabase.from('assignments').insert([{fac_id:form.fid, class_name:form.cl, subject_name:form.s}]); refresh(); alert("Mapped!");}}>MAP SUBJECT</button>
         </div>
       )}
       {tab === 'history' && (
@@ -114,7 +111,7 @@ function HODPanel({ sheets, setView }) {
   );
 }
 
-// --- FACULTY PANEL (WITH UPDATED MASTER SHEET) ---
+// --- FACULTY PANEL (MASTER REGISTER LOGIC) ---
 function FacultyPanel({ user, setView }) {
   const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', s: '', e: '' });
   const [active, setActive] = useState(false);
@@ -131,23 +128,26 @@ function FacultyPanel({ user, setView }) {
     if (!setup.cl || !setup.sub) return alert("Pahile Class ani Subject select kara!");
     setLoading(true);
     try {
-      const { data: logs } = await supabase.from('attendance').select('*')
-        .eq('class', setup.cl).eq('sub', setup.sub).order('time_str', { ascending: true });
+      // 1. Fetch Attendance History (All Days)
+      const { data: logs } = await supabase.from('attendance')
+        .select('id, time_str')
+        .eq('class', setup.cl)
+        .eq('sub', setup.sub)
+        .order('time_str', { ascending: true });
 
       const uniqueDates = logs && logs.length > 0 ? [...new Set(logs.map(a => a.time_str))] : [];
       const { data: abs } = logs && logs.length > 0 
-        ? await supabase.from('absentee_records').select('*').in('attendance_id', logs.map(a => a.id))
+        ? await supabase.from('absentee_records').select('student_roll, date').eq('class_name', setup.cl).in('date', uniqueDates)
         : { data: [] };
 
       const workbook = new ExcelJS.Workbook();
-      const ws = workbook.addWorksheet(`${setup.cl} Register`);
+      const ws = workbook.addWorksheet(`${setup.cl}_Register`);
 
-      // 1. Logo & Header Information
+      // 2. Header & Branding
       try {
         const response = await fetch('/logo.png');
-        const ab = await (await response.blob()).arrayBuffer();
-        const logoId = workbook.addImage({ buffer: ab, extension: 'png' });
-        ws.addImage(logoId, { tl: { col: 0.1, row: 0.1 }, ext: { width: 55, height: 55 } });
+        const logoId = workbook.addImage({ buffer: await (await response.blob()).arrayBuffer(), extension: 'png' });
+        ws.addImage(logoId, { tl: { col: 0.1, row: 0.1 }, ext: { width: 50, height: 50 } });
       } catch (e) {}
 
       ws.mergeCells('C1:K1');
@@ -155,27 +155,22 @@ function FacultyPanel({ user, setView }) {
       ws.getCell('C1').font = { bold: true, size: 14 };
       ws.getCell('C1').alignment = { horizontal: 'center' };
 
-      ws.mergeCells('C2:K2');
-      ws.getCell('C2').value = "MASTER ATTENDANCE REGISTER (2025-26)";
-      ws.getCell('C2').alignment = { horizontal: 'center' };
-      ws.getCell('C2').font = { bold: true, color: { argb: 'FF0891B2' } };
+      ws.getRow(3).values = ["", "", "FACULTY:", user.name.toUpperCase(), "CLASS:", setup.cl, "YEAR:", "2025-26"];
+      ws.getRow(4).values = ["", "", "SUBJECT:", setup.sub, "ACADEMIC YEAR:", "2025-26"];
+      [3, 4].forEach(r => ws.getRow(r).font = { bold: true, size: 10 });
 
-      ws.getRow(4).values = ["", "", "FACULTY NAME:", user.name.toUpperCase(), "CLASS:", setup.cl];
-      ws.getRow(5).values = ["", "", "SUBJECT:", setup.sub, "ACADEMIC YEAR:", "2025-26"];
-      [4, 5].forEach(r => ws.getRow(r).font = { bold: true, size: 10 });
+      ws.addRow([]); 
 
-      ws.addRow([]); // Gap row
-
-      // 2. Table Header
-      const headers = ["ROLL NO", "STUDENT NAME", ...uniqueDates, "TOTAL", "%"];
-      const headerRow = ws.addRow(headers);
+      // 3. Table Headers
+      const tableHeaders = ["ROLL NO", "STUDENT NAME", ...uniqueDates, "TOTAL", "%"];
+      const headerRow = ws.addRow(tableHeaders);
       headerRow.eachCell(c => {
         c.fill = { type: 'pattern', pattern:'solid', fgColor:{argb:'FF06B6D4'} };
         c.font = { color: { argb: 'FFFFFFFF' }, bold: true };
-        c.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+        c.border = { style: 'thin' };
       });
 
-      // 3. Students Data Mapping (From Excel + Database)
+      // 4. Data Population
       const res = await fetch('/students_list.xlsx');
       const abFile = await res.arrayBuffer();
       const studentsFromExcel = XLSX.utils.sheet_to_json(XLSX.read(abFile, { type: 'array' }).Sheets[setup.cl]);
@@ -187,7 +182,7 @@ function FacultyPanel({ user, setView }) {
         const rowData = [roll, name];
 
         uniqueDates.forEach(date => {
-          const isA = abs.find(a => a.student_roll === roll && a.date === date);
+          const isA = abs.find(a => String(a.student_roll) === roll && a.date === date);
           if (!isA) { rowData.push("P"); pCount++; } else { rowData.push("A"); }
         });
 
@@ -198,22 +193,21 @@ function FacultyPanel({ user, setView }) {
         sr.eachCell(c => {
           if (c.value === "A") c.font = { color: { argb: 'FFFF0000' }, bold: true };
           if (c.value === "P") c.font = { color: { argb: 'FF008000' } };
-          c.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+          c.border = { style: 'thin' };
         });
       });
 
-      ws.getColumn(1).width = 12;
-      ws.getColumn(2).width = 40;
+      ws.getColumn(1).width = 10; ws.getColumn(2).width = 35;
       const buffer = await workbook.xlsx.writeBuffer();
       const link = document.createElement('a');
       link.href = window.URL.createObjectURL(new Blob([buffer]));
-      link.download = `${setup.cl}_Register_2025-26.xlsx`;
+      link.download = `Master_Register_${setup.cl}_${setup.sub}_25-26.xlsx`;
       link.click();
     } catch (err) { alert(err.message); } finally { setLoading(false); }
   };
 
   const start = () => {
-    if(!setup.cl || !setup.sub || !setup.s || !setup.e) return alert("Pahile sarv select kara!");
+    if(!setup.cl || !setup.sub || !setup.s || !setup.e) return alert("Sarv options select kara!");
     fetch('/students_list.xlsx').then(r => r.arrayBuffer()).then(ab => {
       const data = XLSX.utils.sheet_to_json(XLSX.read(ab, { type: 'array' }).Sheets[setup.cl]);
       setList(data.map(s => ({ id: String(s['ROLL NO'] || s['ID']), name: s['STUDENT NAME'] })));
@@ -239,7 +233,7 @@ function FacultyPanel({ user, setView }) {
   if (!active) return (
     <div style={{ padding: '20px', maxWidth: '500px', margin: '0 auto' }}>
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'30px'}}>
-        <img src="/logo.png" className="logo-circle" />
+        <img src="/logo.png" className="logo-circle" alt="Logo" />
         <div style={{textAlign:'right'}}><b>{user.name}</b><br/><small>Faculty</small></div>
         <LogOut onClick={()=>setView('login')} color="#f43f5e" style={{cursor:'pointer'}}/>
       </div>
@@ -254,7 +248,7 @@ function FacultyPanel({ user, setView }) {
           {jobs.filter(j => j.class_name === setup.cl).map(j => <div key={j.id} onClick={() => setSetup({ ...setup, sub: j.subject_name })} className="glass" style={{ marginBottom: '10px', padding:'10px', cursor:'pointer', background: setup.sub === j.subject_name ? '#0891B2' : '' }}>{j.subject_name}</div>)}
           <div style={{display:'flex', gap:'10px', marginTop:'15px'}}><input type="time" onChange={e=>setSetup({...setup, s:e.target.value})}/><input type="time" onChange={e=>setSetup({...setup, e:e.target.value})}/></div>
           <button className="btn-cyan" onClick={start} style={{marginTop:'20px'}}>MARK ATTENDANCE</button>
-          <button className="btn-cyan" onClick={exportMasterFormat} style={{marginTop:'10px', background:'#1e293b', border:'1px solid #06b6d4'}} disabled={loading}>{loading ? "PROCESSING..." : "DOWNLOAD MASTER REGISTER"}</button>
+          <button className="btn-cyan" onClick={exportMasterFormat} style={{marginTop:'10px', background:'#1e293b', border:'1px solid #06b6d4'}} disabled={loading}>DOWNLOAD MASTER REGISTER</button>
         </div>
       )}
     </div>
@@ -273,4 +267,4 @@ function FacultyPanel({ user, setView }) {
       <button onClick={submit} className="btn-cyan" style={{ position: 'fixed', bottom: '20px', left: '20px', width: 'calc(100% - 40px)', background: '#10b981' }}>SUBMIT ATTENDANCE</button>
     </div>
   );
-}
+  }
