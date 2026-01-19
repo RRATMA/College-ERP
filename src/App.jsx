@@ -9,7 +9,7 @@ import { supabase } from "./supabaseClient";
 
 const CAMPUS_LAT = 19.555568; 
 const CAMPUS_LON = 73.250732;
-const RADIUS_LIMIT = 0.0030; // Corrected Radius
+const RADIUS_LIMIT = 0.0018; 
 const INSTITUTE_NAME = "ATMA MALIK INSTITUTE OF TECHNOLOGY AND RESEARCH";
 
 const injectStyles = () => {
@@ -20,28 +20,20 @@ const injectStyles = () => {
     body { font-family: 'Plus Jakarta Sans', sans-serif; background: #020617; color: #f1f5f9; margin: 0; }
     .glass { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 20px; transition: 0.3s; }
     .logo-circle { width: 55px; height: 55px; border-radius: 50%; border: 2px solid #06b6d4; object-fit: cover; background: #fff; }
-    
-    /* Interactive Dashboard Grid */
-    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 30px; }
-    .stat-card { position: relative; overflow: hidden; border-left: 4px solid #06b6d4; transition: 0.3s; padding: 15px; }
-    .stat-card:hover { transform: translateY(-5px); background: rgba(30, 41, 59, 0.6); }
-    .stat-card h3 { font-size: 26px; margin: 8px 0 2px 0; font-weight: 800; color: #fff; }
-    .stat-card p { font-size: 10px; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin: 0; }
-    .stat-icon { position: absolute; right: 15px; top: 15px; opacity: 0.2; color: #06b6d4; }
-
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    .stat-card { position: relative; overflow: hidden; border-left: 4px solid #06b6d4; }
+    .stat-card h3 { font-size: 28px; margin: 10px 0 5px 0; font-weight: 800; color: #fff; }
+    .stat-card p { font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin: 0; }
     input, select { background: #0f172a; border: 1px solid #1e293b; color: #fff; padding: 12px; border-radius: 12px; width: 100%; outline: none; margin-bottom: 10px; }
     .btn-cyan { background: #0891b2; color: #fff; border: none; padding: 14px; border-radius: 12px; font-weight: 700; cursor: pointer; width: 100%; transition: 0.3s; }
-    .btn-cyan:hover { background: #06b6d4; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3); }
-    
-    .tab-nav { display: flex; gap: 20px; margin-bottom: 25px; border-bottom: 1px solid #1e293b; overflow-x: auto; padding-bottom: 5px; }
-    .tab-link { cursor: pointer; padding: 10px 5px; color: #64748b; font-weight: 700; font-size: 13px; white-space: nowrap; transition: 0.3s; }
+    .btn-cyan:hover { background: #06b6d4; transform: translateY(-2px); }
+    .tab-nav { display: flex; gap: 25px; margin-bottom: 25px; border-bottom: 1px solid #1e293b; overflow-x: auto; }
+    .tab-link { cursor: pointer; padding: 12px 5px; color: #64748b; font-weight: 700; font-size: 13px; white-space: nowrap; }
     .tab-link.active { color: #06b6d4; border-bottom: 2px solid #06b6d4; }
-    
     .roll-btn { padding: 18px 0; border-radius: 12px; text-align: center; font-weight: 800; background: #1e293b; cursor: pointer; transition: 0.2s; border: 1px solid rgba(255,255,255,0.05); color: #94a3b8; }
-    .roll-btn.active { background: #10b981 !important; color: white !important; border-color: #34d399; transform: scale(1.05); box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
-    
-    .type-chip { flex: 1; padding: 12px; border-radius: 10px; text-align: center; cursor: pointer; background: #1e293b; font-weight: 800; transition: 0.3s; }
-    .type-chip.active { background: #06b6d4; box-shadow: 0 4px 10px rgba(6, 182, 212, 0.3); }
+    .roll-btn.active { background: #10b981 !important; color: white !important; border-color: #34d399; transform: scale(1.05); }
+    .type-chip { flex: 1; padding: 12px; border-radius: 10px; text-align: center; cursor: pointer; background: #1e293b; font-weight: 800; }
+    .type-chip.active { background: #06b6d4; }
   `;
   document.head.appendChild(s);
 };
@@ -72,9 +64,8 @@ export default function AmritApp() {
     <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
       <div className="glass" style={{ width: '340px', textAlign: 'center' }}>
         <img src="/logo.png" className="logo-circle" style={{width:'90px', height:'90px', marginBottom:'15px'}} alt="Logo" />
-        <h2 style={{color: '#06b6d4', margin: 0, fontWeight: 900}}>AMRIT ERP</h2>
-        <p style={{fontSize: '11px', color: '#64748b', marginBottom: '20px'}}>Computer Engineering Dept.</p>
-        <input id="u" placeholder="Employee ID" /><input id="p" type="password" placeholder="Password" />
+        <h2 style={{color: '#06b6d4', margin: 0}}>AMRIT ERP</h2>
+        <input id="u" placeholder="Employee ID" style={{marginTop:'15px'}} /><input id="p" type="password" placeholder="Password" />
         <button className="btn-cyan" onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)}>SIGN IN</button>
       </div>
     </div>
@@ -83,7 +74,7 @@ export default function AmritApp() {
   return view === 'hod' ? <HODPanel sheets={sheets} setView={setView} /> : <FacultyPanel user={user} setView={setView} />;
 }
 
-// --- HOD PANEL (Restored Logic with Improved Dashboard UI) ---
+// --- HOD PANEL ---
 function HODPanel({ sheets, setView }) {
   const [tab, setTab] = useState('dash');
   const [db, setDb] = useState({ f: [], l: [], m: [] });
@@ -138,35 +129,31 @@ function HODPanel({ sheets, setView }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
         <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
           <img src="/logo.png" className="logo-circle" alt="Logo" />
-          <h2 style={{color:'#06b6d4', margin:0, fontWeight: 900}}>HOD ADMIN</h2>
+          <h2 style={{color:'#06b6d4', margin:0}}>HOD ADMIN</h2>
         </div>
         <LogOut onClick={() => setView('login')} color="#f43f5e" style={{cursor:'pointer'}}/>
       </div>
-
       {tab === 'dash' && (
         <div className="stat-grid">
-          <div className="glass stat-card"><Database className="stat-icon"/><h3>{db.l.length}</h3><p>Total Lectures</p></div>
-          <div className="glass stat-card"><Calendar className="stat-icon"/><h3>{theory}T | {practical}P</h3><p>Today's Lectures</p></div>
-          <div className="glass stat-card"><Users className="stat-icon"/><h3>{tLogs.reduce((a,c)=>a+c.present,0)}</h3><p>Today's Present</p></div>
-          <div className="glass stat-card"><BookOpen className="stat-icon"/><h3>{sheets.length}</h3><p>Total Classes</p></div>
-          <div className="glass stat-card"><ShieldCheck className="stat-icon"/><h3>{db.f.length}</h3><p>Staff Count</p></div>
+          <div className="glass stat-card"><h3>{db.l.length}</h3><p>Total Lectures</p></div>
+          <div className="glass stat-card"><h3>{theory}T | {practical}P</h3><p>Today's Lectures</p></div>
+          <div className="glass stat-card"><h3>{tLogs.reduce((a,c)=>a+c.present,0)}</h3><p>Today's Present</p></div>
+          <div className="glass stat-card"><h3>{sheets.length}</h3><p>Total Classes</p></div>
+          <div className="glass stat-card"><h3>{db.f.length}</h3><p>Staff Count</p></div>
           <div className="glass stat-card" style={{borderLeftColor:'#f43f5e'}}>
-             <TrendingUp className="stat-icon" color="#f43f5e"/>
-             <select id="dc" style={{fontSize:'12px', padding: '5px', marginBottom: '5px'}}>{sheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
-             <button onClick={()=>exportReport(document.getElementById('dc').value, true)} className="btn-cyan" style={{padding:'8px', fontSize:'11px', background:'#f43f5e'}}>DEFAULTER LIST</button>
+             <select id="dc" style={{fontSize:'12px'}}>{sheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
+             <button onClick={()=>exportReport(document.getElementById('dc').value, true)} className="btn-cyan" style={{padding:'8px', fontSize:'11px', background:'#f43f5e', marginTop:'5px'}}>DEFAULTER LIST</button>
           </div>
         </div>
       )}
-
       <div className="tab-nav">
         {['dash', 'staff', 'mapping', 'records'].map(t => (
           <div key={t} onClick={()=>setTab(t)} className={`tab-link ${tab===t?'active':''}`}>{t.toUpperCase()}</div>
         ))}
       </div>
-
       {tab === 'staff' && (
         <div className="glass" style={{maxWidth:'500px'}}>
-          <h3 style={{marginTop:0}}><PlusCircle size={18} style={{marginBottom:-3, marginRight:8}}/>Faculty Registration</h3>
+          <h3>Faculty Registration</h3>
           <input id="fi" placeholder="Emp ID"/><input id="fn" placeholder="Name"/><input id="fp" placeholder="Password"/>
           <button className="btn-cyan" onClick={async()=>{
             await supabase.from('faculties').insert([{id:document.getElementById('fi').value, name:document.getElementById('fn').value, password:document.getElementById('fp').value}]);
@@ -174,10 +161,9 @@ function HODPanel({ sheets, setView }) {
           }}>SAVE FACULTY</button>
         </div>
       )}
-
       {tab === 'mapping' && (
         <div className="glass" style={{maxWidth:'500px'}}>
-          <h3 style={{marginTop:0}}><LinkIcon size={18} style={{marginBottom:-3, marginRight:8}}/>Subject Assignment</h3>
+          <h3>Subject Assignment</h3>
           <select id="sf"><option>Select Faculty</option>{db.f.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select>
           <select id="sc"><option>Select Class</option>{sheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
           <input id="ss" placeholder="Subject Name"/>
@@ -187,13 +173,11 @@ function HODPanel({ sheets, setView }) {
           }}>CONFIRM MAPPING</button>
         </div>
       )}
-
       {tab === 'records' && (
         <div className="glass">
-          <h3 style={{marginTop:0}}><FileSpreadsheet size={18} style={{marginBottom:-3, marginRight:8}}/>Master Sheets</h3>
           {sheets.map(s => (
-            <div key={s} className="glass" style={{marginBottom:'10px', display:'flex', justifyContent:'space-between', alignItems:'center', background:'rgba(255,255,255,0.03)', padding: '12px 20px'}}>
-              <b style={{color: '#06b6d4'}}>{s}</b>
+            <div key={s} className="glass" style={{marginBottom:'10px', display:'flex', justifyContent:'space-between', alignItems:'center', background:'rgba(255,255,255,0.03)'}}>
+              <b>{s} Master Register</b>
               <button onClick={()=>exportReport(s, false)} className="btn-cyan" style={{width:'110px', padding:'8px', fontSize:'11px'}}>DOWNLOAD</button>
             </div>
           ))}
@@ -203,7 +187,7 @@ function HODPanel({ sheets, setView }) {
   );
 }
 
-// --- FACULTY PANEL (Restored Logic with UI Polish) ---
+// --- FACULTY PANEL (Corrected Logic + Master Sheet) ---
 function FacultyPanel({ user, setView }) {
   const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', s: '', e: '' });
   const [active, setActive] = useState(false);
@@ -222,11 +206,13 @@ function FacultyPanel({ user, setView }) {
       const { data: abs } = await supabase.from('absentee_records').select('*').eq('class_name', setup.cl);
       const res = await fetch('/students_list.xlsx');
       const students = XLSX.utils.sheet_to_json(XLSX.read(await res.arrayBuffer(), { type: 'array' }).Sheets[setup.cl]);
+      
       const wb = new ExcelJS.Workbook();
       const ws = wb.addWorksheet('My Master');
       ws.addRow([INSTITUTE_NAME]);
       ws.addRow([`SUBJECT: ${setup.sub} | CLASS: ${setup.cl}`]);
       ws.addRow(["ROLL NO", "NAME", ...logs.map(l => l.time_str), "TOTAL", "%"]);
+      
       students.forEach(s => {
         const roll = String(s['ROLL NO'] || s['ID']);
         let p = 0;
@@ -251,7 +237,7 @@ function FacultyPanel({ user, setView }) {
     fetch('/students_list.xlsx').then(r => r.arrayBuffer()).then(ab => {
       const data = XLSX.utils.sheet_to_json(XLSX.read(ab, { type: 'array' }).Sheets[setup.cl]);
       setList(data.map(s => ({ id: String(s['ROLL NO'] || s['ID']), name: s['STUDENT NAME'] })));
-      setMarked([]); 
+      setMarked([]); // Empty initially (All Absent)
       setActive(true);
     });
   };
@@ -291,6 +277,7 @@ function FacultyPanel({ user, setView }) {
           {jobs.filter(j => j.class_name === setup.cl).map(j => <div key={j.id} onClick={() => setSetup({ ...setup, sub: j.subject_name })} className="glass" style={{ marginBottom: '10px', padding:'12px', cursor:'pointer', background: setup.sub === j.subject_name ? '#0891B2' : '' }}>{j.subject_name}</div>)}
           <div style={{display:'flex', gap:'10px', marginTop:'15px'}}><input type="time" onChange={e=>setSetup({...setup, s:e.target.value})}/><input type="time" onChange={e=>setSetup({...setup, e:e.target.value})}/></div>
           <button className="btn-cyan" onClick={start} style={{marginTop:'20px'}}>START MARKING</button>
+          {/* Faculty Master Sheet Feature */}
           <button className="btn-cyan" onClick={exportFacultyMaster} style={{marginTop:'10px', background:'#1e293b', border:'1px solid #06b6d4'}}>DOWNLOAD MY MASTER</button>
         </div>
       )}
@@ -312,4 +299,4 @@ function FacultyPanel({ user, setView }) {
       </div>
     </div>
   );
-                                                                }
+        }
