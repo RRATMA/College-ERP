@@ -187,7 +187,7 @@ function HODPanel({ sheets, setView }) {
   );
 }
 
-// --- FACULTY PANEL (Corrected Logic + Master Sheet) ---
+// --- FACULTY PANEL (Auto-Download Added) ---
 function FacultyPanel({ user, setView }) {
   const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', s: '', e: '' });
   const [active, setActive] = useState(false);
@@ -237,23 +237,51 @@ function FacultyPanel({ user, setView }) {
     fetch('/students_list.xlsx').then(r => r.arrayBuffer()).then(ab => {
       const data = XLSX.utils.sheet_to_json(XLSX.read(ab, { type: 'array' }).Sheets[setup.cl]);
       setList(data.map(s => ({ id: String(s['ROLL NO'] || s['ID']), name: s['STUDENT NAME'] })));
-      setMarked([]); // Empty initially (All Absent)
+      setMarked([]); 
       setActive(true);
     });
+  };
+
+  // --- AUTOMATIC DOWNLOAD FUNCTION ---
+  const generateCurrentSheet = async () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Attendance');
+    ws.addRow([INSTITUTE_NAME]);
+    ws.addRow([`CLASS: ${setup.cl}`, `SUBJECT: ${setup.sub}`, `TYPE: ${setup.ty}`]);
+    ws.addRow([`DATE: ${new Date().toLocaleDateString('en-GB')}`, `FACULTY: ${user.name}`]);
+    ws.addRow([]);
+    ws.addRow(["ROLL NO", "STUDENT NAME", "STATUS"]);
+    
+    list.forEach(s => {
+      ws.addRow([s.id, s.name, marked.includes(s.id) ? "PRESENT" : "ABSENT"]);
+    });
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const link = document.createElement('a');
+    link.href = window.URL.createObjectURL(new Blob([buffer]));
+    link.download = `Attendance_${setup.cl}_${setup.sub}_${new Date().toLocaleDateString('en-GB')}.xlsx`;
+    link.click();
   };
 
   const submit = () => {
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const dist = Math.sqrt(Math.pow(pos.coords.latitude - CAMPUS_LAT, 2) + Math.pow(pos.coords.longitude - CAMPUS_LON, 2));
       if (dist > RADIUS_LIMIT) return alert("Outside campus boundary!");
+      
       const dt = new Date().toLocaleDateString('en-GB');
       const { data: at } = await supabase.from('attendance').insert([{ 
         faculty: user.name, sub: setup.sub, class: setup.cl, type: setup.ty, 
         start_time: setup.s, end_time: setup.e, present: marked.length, total: list.length, time_str: dt 
       }]).select().single();
+
       const abs = list.filter(s => !marked.includes(s.id)).map(s => ({ attendance_id: at.id, student_roll: s.id, class_name: setup.cl, date: dt }));
       if (abs.length > 0) await supabase.from('absentee_records').insert(abs);
-      alert("Attendance Saved!"); setView('login');
+      
+      // DOWNLOAD TRIGGERED HERE
+      await generateCurrentSheet();
+
+      alert("Attendance Saved & Sheet Downloaded!"); 
+      setView('login');
     }, () => alert("GPS Error!"));
   };
 
@@ -277,7 +305,6 @@ function FacultyPanel({ user, setView }) {
           {jobs.filter(j => j.class_name === setup.cl).map(j => <div key={j.id} onClick={() => setSetup({ ...setup, sub: j.subject_name })} className="glass" style={{ marginBottom: '10px', padding:'12px', cursor:'pointer', background: setup.sub === j.subject_name ? '#0891B2' : '' }}>{j.subject_name}</div>)}
           <div style={{display:'flex', gap:'10px', marginTop:'15px'}}><input type="time" onChange={e=>setSetup({...setup, s:e.target.value})}/><input type="time" onChange={e=>setSetup({...setup, e:e.target.value})}/></div>
           <button className="btn-cyan" onClick={start} style={{marginTop:'20px'}}>START MARKING</button>
-          {/* Faculty Master Sheet Feature */}
           <button className="btn-cyan" onClick={exportFacultyMaster} style={{marginTop:'10px', background:'#1e293b', border:'1px solid #06b6d4'}}>DOWNLOAD MY MASTER</button>
         </div>
       )}
@@ -299,4 +326,4 @@ function FacultyPanel({ user, setView }) {
       </div>
     </div>
   );
-        }
+      }
