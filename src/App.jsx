@@ -49,8 +49,8 @@ const injectStyles = () => {
       .stat-grid { grid-template-columns: repeat(3, 1fr); }
     }
 
-    .stat-card { border-left: 3px solid #06b6d4; padding: 12px; position: relative; overflow: hidden; }
-    .stat-card h3 { font-size: 22px; margin: 5px 0; font-weight: 800; color: #fff; }
+    .stat-card { border-left: 3px solid #06b6d4; padding: 12px; position: relative; }
+    .stat-card h3 { font-size: 20px; margin: 5px 0; font-weight: 800; color: #fff; }
     .stat-card p { font-size: 9px; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin: 0; }
 
     input, select { 
@@ -74,9 +74,7 @@ const injectStyles = () => {
       font-weight: 700; 
       width: 100%; 
       cursor: pointer;
-      transition: 0.2s;
     }
-    .btn-cyan:active { transform: scale(0.98); }
     
     .tab-nav { 
       display: flex; 
@@ -110,7 +108,6 @@ const injectStyles = () => {
     .roll-btn.active { 
       background: #10b981 !important; 
       color: white !important; 
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
     }
 
     .type-chip { flex: 1; padding: 12px; border-radius: 10px; text-align: center; cursor: pointer; background: #1e293b; font-weight: 800; font-size: 14px; }
@@ -146,7 +143,6 @@ export default function AmritApp() {
       <div className="glass" style={{ maxWidth: '340px', textAlign: 'center' }}>
         <img src="/logo.png" className="logo-circle" style={{width:'80px', height:'80px', marginBottom:'15px'}} alt="Logo" />
         <h2 style={{color: '#06b6d4', margin: 0, fontWeight: 900}}>AMRIT ERP</h2>
-        <p style={{fontSize: '11px', color: '#64748b', marginBottom: '20px'}}>Computer Engineering Dept.</p>
         <input id="u" placeholder="Employee ID" /><input id="p" type="password" placeholder="Password" />
         <button className="btn-cyan" onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)}>SIGN IN</button>
       </div>
@@ -193,8 +189,7 @@ function HODPanel({ sheets, setView }) {
         let p = 0;
         const row = [roll, s['STUDENT NAME']];
         logs.forEach(l => {
-          const isA = abs.find(a => a.attendance_id === l.id && String(a.student_roll) === roll);
-          if(!isA) { row.push("P"); p++; } else row.push("A");
+          if(!abs.find(a => a.attendance_id === l.id && String(a.student_roll) === roll)) { row.push("P"); p++; } else row.push("A");
         });
         const pct = (p / (logs.length || 1)) * 100;
         if (!isDef || pct < 75) { row.push(p, pct.toFixed(2) + "%"); ws.addRow(row); }
@@ -221,7 +216,7 @@ function HODPanel({ sheets, setView }) {
         <div className="stat-grid">
           <div className="glass stat-card"><h3>{db.l.length}</h3><p>Total Lec</p></div>
           <div className="glass stat-card"><h3>{tLogs.length}</h3><p>Today Lec</p></div>
-          <div className="glass stat-card"><h3>{tLogs.reduce((a,c)=>a+c.present,0)}</h3><p>Present Today</p></div>
+          <div className="glass stat-card"><h3>{tLogs.reduce((a,c)=>a+c.present,0)}</h3><p>Present</p></div>
           <div className="glass stat-card"><h3>{sheets.length}</h3><p>Classes</p></div>
           <div className="glass stat-card"><h3>{db.f.length}</h3><p>Staff</p></div>
           <div className="glass stat-card" style={{borderLeftColor:'#f43f5e'}}>
@@ -239,25 +234,23 @@ function HODPanel({ sheets, setView }) {
 
       {tab === 'staff' && (
         <div className="glass">
-          <h4 style={{marginTop:0}}>Add Faculty</h4>
           <input id="fi" placeholder="Emp ID"/><input id="fn" placeholder="Name"/><input id="fp" placeholder="Password"/>
           <button className="btn-cyan" onClick={async()=>{
             await supabase.from('faculties').insert([{id:document.getElementById('fi').value, name:document.getElementById('fn').value, password:document.getElementById('fp').value}]);
             refresh(); alert("Staff Added!");
-          }}>SAVE</button>
+          }}>SAVE STAFF</button>
         </div>
       )}
 
       {tab === 'mapping' && (
         <div className="glass">
-          <h4 style={{marginTop:0}}>Mapping</h4>
           <select id="sf"><option>Select Faculty</option>{db.f.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select>
           <select id="sc"><option>Select Class</option>{sheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
           <input id="ss" placeholder="Subject"/>
           <button className="btn-cyan" onClick={async()=>{
             await supabase.from('assignments').insert([{fac_id:document.getElementById('sf').value, class_name:document.getElementById('sc').value, subject_name:document.getElementById('ss').value}]);
             refresh(); alert("Mapped!");
-          }}>CONFIRM</button>
+          }}>CONFIRM MAPPING</button>
         </div>
       )}
 
@@ -265,7 +258,7 @@ function HODPanel({ sheets, setView }) {
         <div>
           {sheets.map(s => (
             <div key={s} className="glass" style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 15px'}}>
-              <span style={{fontSize:'13px', fontWeight:700}}>{s} Master</span>
+              <span style={{fontSize:'13px', fontWeight:700}}>{s} Register</span>
               <button onClick={()=>exportReport(s, false)} className="btn-cyan" style={{width:'80px', padding:'6px', fontSize:'10px'}}>GET XLSX</button>
             </div>
           ))}
@@ -285,6 +278,39 @@ function FacultyPanel({ user, setView }) {
   useEffect(() => { 
     supabase.from('assignments').select('*').eq('fac_id', user.id).then(r => setJobs(r.data || [])); 
   }, [user.id]);
+
+  // --- RESTORED FEATURE: MASTER SHEET DOWNLOAD ---
+  const exportFacultyMaster = async () => {
+    if (!setup.cl || !setup.sub) return alert("Select Class and Subject!");
+    try {
+      const { data: logs } = await supabase.from('attendance').select('id, time_str').eq('class', setup.cl).eq('sub', setup.sub).order('time_str', { ascending: true });
+      const { data: abs } = await supabase.from('absentee_records').select('*').eq('class_name', setup.cl);
+      const res = await fetch('/students_list.xlsx');
+      const students = XLSX.utils.sheet_to_json(XLSX.read(await res.arrayBuffer(), { type: 'array' }).Sheets[setup.cl]);
+      
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet('My Master');
+      ws.addRow([INSTITUTE_NAME]);
+      ws.addRow([`SUBJECT: ${setup.sub} | CLASS: ${setup.cl}`]);
+      ws.addRow(["ROLL NO", "NAME", ...logs.map(l => l.time_str), "TOTAL", "%"]);
+      
+      students.forEach(s => {
+        const roll = String(s['ROLL NO'] || s['ID']);
+        let p = 0;
+        const row = [roll, s['STUDENT NAME']];
+        logs.forEach(l => {
+          if(!abs.find(a => a.attendance_id === l.id && String(a.student_roll) === roll)) { row.push("P"); p++; } else row.push("A");
+        });
+        row.push(p, ((p/(logs.length || 1))*100).toFixed(2) + "%");
+        ws.addRow(row);
+      });
+      const buffer = await wb.xlsx.writeBuffer();
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(new Blob([buffer]));
+      link.download = `Master_${setup.cl}_${setup.sub}.xlsx`;
+      link.click();
+    } catch(e) { alert("Download Error!"); }
+  };
 
   const generateCurrentSheet = async () => {
     const wb = new ExcelJS.Workbook();
@@ -346,7 +372,9 @@ function FacultyPanel({ user, setView }) {
         <div className="glass">
           {jobs.filter(j => j.class_name === setup.cl).map(j => <div key={j.id} onClick={() => setSetup({ ...setup, sub: j.subject_name })} className="glass" style={{ marginBottom: '10px', padding:'12px', background: setup.sub === j.subject_name ? '#0891B2' : '', fontSize:'13px' }}>{j.subject_name}</div>)}
           <div style={{display:'flex', gap:'10px'}}><input type="time" onChange={e=>setSetup({...setup, s:e.target.value})}/><input type="time" onChange={e=>setSetup({...setup, e:e.target.value})}/></div>
-          <button className="btn-cyan" onClick={start} style={{marginTop:'10px'}}>START</button>
+          <button className="btn-cyan" onClick={start} style={{marginTop:'10px'}}>START ATTENDANCE</button>
+          {/* Master Sheet Button Restored */}
+          <button className="btn-cyan" onClick={exportFacultyMaster} style={{marginTop:'10px', background:'#1e293b', border:'1px solid #06b6d4'}}>DOWNLOAD MY MASTER</button>
         </div>
       )}
     </>
