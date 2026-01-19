@@ -10,7 +10,7 @@ import { supabase } from "./supabaseClient";
 // --- Configuration ---
 const CAMPUS_LAT = 19.555568; 
 const CAMPUS_LON = 73.250732;
-const RADIUS_LIMIT = 0.0018; // Updated for 200 meters accuracy
+const RADIUS_LIMIT = 0.0018; // 200 meters accuracy
 const INSTITUTE_NAME = "ATMA MALIK INSTITUTE OF TECHNOLOGY AND RESEARCH";
 const ACADEMIC_YEAR = "2025-26";
 
@@ -58,7 +58,7 @@ export default function AmritApp() {
   if (view === 'login') return (
     <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
       <div className="glass" style={{ width: '340px', textAlign: 'center' }}>
-        <img src="/logo.png" className="logo-circle" style={{width:'80px', height:'80px', marginBottom:'15px'}} />
+        <img src="/logo.png" className="logo-circle" style={{width:'80px', height:'80px', marginBottom:'15px'}} alt="Logo" />
         <h2 style={{color: '#06b6d4', margin: 0}}>AMRIT ERP</h2>
         <input id="u" placeholder="Employee ID" /><input id="p" type="password" placeholder="Password" />
         <button className="btn-cyan" onClick={() => handleLogin(document.getElementById('u').value, document.getElementById('p').value)}>SIGN IN</button>
@@ -69,7 +69,6 @@ export default function AmritApp() {
   return view === 'hod' ? <HODPanel sheets={sheets} setView={setView} /> : <FacultyPanel user={user} setView={setView} />;
 }
 
-// --- HOD PANEL (Restored same as your code) ---
 function HODPanel({ sheets, setView }) {
   const [tab, setTab] = useState('dash');
   const [db, setDb] = useState({ f: [], l: [], m: [] });
@@ -122,8 +121,11 @@ function HODPanel({ sheets, setView }) {
 
   return (
     <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '30px' }}>
-        <h2 style={{color:'#06b6d4'}}>HOD PANEL</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+        <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
+          <img src="/logo.png" className="logo-circle" style={{width:'50px', height:'50px'}} alt="Logo" />
+          <h2 style={{color:'#06b6d4', margin:0}}>HOD PANEL</h2>
+        </div>
         <LogOut onClick={() => setView('login')} color="#f43f5e" style={{cursor:'pointer'}}/>
       </div>
 
@@ -150,7 +152,7 @@ function HODPanel({ sheets, setView }) {
       {tab === 'records' && (
         <div className="glass">
           {sheets.map(s => (
-            <div key={s} style={{display:'flex', justifyContent:'space-between', marginBottom:'10px'}}>
+            <div key={s} style={{display:'flex', justifyContent:'space-between', marginBottom:'10px', alignItems:'center'}}>
               <span>{s} Register</span>
               <button onClick={()=>exportHODReport(s, false)} className="btn-cyan" style={{width:'120px', padding:'5px'}}>DOWNLOAD</button>
             </div>
@@ -161,7 +163,6 @@ function HODPanel({ sheets, setView }) {
   );
 }
 
-// --- FACULTY PANEL (Restored exactly as your code with updated Radius) ---
 function FacultyPanel({ user, setView }) {
   const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', s: '', e: '' });
   const [active, setActive] = useState(false);
@@ -220,13 +221,10 @@ function FacultyPanel({ user, setView }) {
     setLoading(true);
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const dist = Math.sqrt(Math.pow(pos.coords.latitude - CAMPUS_LAT, 2) + Math.pow(pos.coords.longitude - CAMPUS_LON, 2));
-      
-      // Checking against 200mtr approx limit
       if (dist > RADIUS_LIMIT) { 
         setLoading(false); 
         return alert("Out of Campus Boundary!"); 
       }
-      
       const dt = new Date().toLocaleDateString('en-GB');
       const { data: at } = await supabase.from('attendance').insert([{ 
         faculty: user.name, sub: setup.sub, class: setup.cl, type: setup.ty, 
@@ -240,8 +238,11 @@ function FacultyPanel({ user, setView }) {
 
   if (!active) return (
     <div style={{ padding: '20px', maxWidth: '500px', margin: '0 auto' }}>
-      <div className="glass" style={{display:'flex', justifyContent:'space-between', marginBottom:'20px'}}>
-        <div><b>{user.name}</b><br/><small>Faculty</small></div>
+      <div className="glass" style={{display:'flex', justifyContent:'space-between', marginBottom:'20px', alignItems:'center'}}>
+        <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
+          <img src="/logo.png" className="logo-circle" style={{width:'40px', height:'40px'}} alt="Logo" />
+          <div><b>{user.name}</b><br/><small>Faculty</small></div>
+        </div>
         <LogOut onClick={()=>setView('login')} color="#f43f5e" style={{cursor:'pointer'}}/>
       </div>
       <div style={{display:'flex', gap:'10px', marginBottom:'20px'}}>
@@ -276,4 +277,4 @@ function FacultyPanel({ user, setView }) {
       </div>
     </div>
   );
-    }
+      }
