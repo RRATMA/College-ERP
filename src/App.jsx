@@ -12,7 +12,6 @@ const CAMPUS_LAT = 19.555568;
 const CAMPUS_LON = 73.250732;
 const RADIUS_LIMIT = 0.0018; // 200 meters accuracy
 const INSTITUTE_NAME = "ATMA MALIK INSTITUTE OF TECHNOLOGY AND RESEARCH";
-const ACADEMIC_YEAR = "2025-26";
 
 const injectStyles = () => {
   if (typeof document === 'undefined' || document.getElementById('amrit-ultimate-vfinal')) return;
@@ -29,6 +28,8 @@ const injectStyles = () => {
     .roll-btn.active { background: #10b981; transform: scale(1.05); border-color: #34d399; color: white; }
     .type-chip { flex: 1; padding: 12px; border-radius: 10px; text-align: center; cursor: pointer; background: #1e293b; font-weight: 800; font-size: 13px; transition: 0.3s; }
     .type-chip.active { background: #06b6d4; color: #fff; }
+    .stat-card h3 { margin: 5px 0; font-size: 22px; color: #fff; }
+    .stat-card p { margin: 0; font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; }
   `;
   document.head.appendChild(s);
 };
@@ -69,6 +70,7 @@ export default function AmritApp() {
   return view === 'hod' ? <HODPanel sheets={sheets} setView={setView} /> : <FacultyPanel user={user} setView={setView} />;
 }
 
+// --- HOD PANEL (Restored All Features: Staff Add, Mapping, Master Reports) ---
 function HODPanel({ sheets, setView }) {
   const [tab, setTab] = useState('dash');
   const [db, setDb] = useState({ f: [], l: [], m: [] });
@@ -84,6 +86,8 @@ function HODPanel({ sheets, setView }) {
 
   const today = new Date().toLocaleDateString('en-GB');
   const todayLogs = db.l.filter(l => l.time_str === today);
+  const theory = todayLogs.filter(l => l.type === 'Theory').length;
+  const practical = todayLogs.filter(l => l.type === 'Practical').length;
 
   const exportHODReport = async (className, isDefaulter = false) => {
     setLoading(true);
@@ -94,27 +98,29 @@ function HODPanel({ sheets, setView }) {
       const workbook = new ExcelJS.Workbook();
       const ws = workbook.addWorksheet('Report');
       ws.addRow([INSTITUTE_NAME]);
-      ws.addRow([`${isDefaulter ? 'DEFAULTER' : 'MASTER'} - ${className}`]);
+      ws.addRow([`${isDefaulter ? 'DEFAULTER LIST' : 'MASTER REGISTER'} - ${className}`]);
       const headers = ["ROLL NO", "NAME", ...logs.map(l => `${l.time_str}\n(${l.sub})`), "TOTAL", "%"];
-      ws.addRow(headers);
+      const hRow = ws.addRow(headers);
+      hRow.eachCell(c => { c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF0891B2'}}; c.font={color:{argb:'FFFFFFFF'},bold:true}; });
+
       students.forEach(s => {
         const roll = String(s['ROLL NO'] || s['ID']);
         let p = 0;
-        const row = [roll, s['STUDENT NAME']];
+        const rowData = [roll, s['STUDENT NAME']];
         logs.forEach(l => {
           const isA = abs.find(a => a.attendance_id === l.id && String(a.student_roll) === roll);
-          if(!isA) { row.push("P"); p++; } else row.push("A");
+          if(!isA) { rowData.push("P"); p++; } else rowData.push("A");
         });
-        const pct = (p / logs.length) * 100;
+        const pct = (p / (logs.length || 1)) * 100;
         if (!isDefaulter || pct < 75) {
-          row.push(p, pct.toFixed(2) + "%");
-          ws.addRow(row);
+          rowData.push(p, pct.toFixed(2) + "%");
+          ws.addRow(rowData);
         }
       });
       const buffer = await workbook.xlsx.writeBuffer();
       const link = document.createElement('a');
       link.href = window.URL.createObjectURL(new Blob([buffer]));
-      link.download = `${className}_Report.xlsx`;
+      link.download = `${isDefaulter ? 'Defaulter' : 'Master'}_${className}.xlsx`;
       link.click();
     } catch(e) { alert("Error!"); } finally { setLoading(false); }
   };
@@ -124,37 +130,60 @@ function HODPanel({ sheets, setView }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
         <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
           <img src="/logo.png" className="logo-circle" style={{width:'50px', height:'50px'}} alt="Logo" />
-          <h2 style={{color:'#06b6d4', margin:0}}>HOD PANEL</h2>
+          <h2 style={{color:'#06b6d4', margin:0}}>HOD ADMIN</h2>
         </div>
         <LogOut onClick={() => setView('login')} color="#f43f5e" style={{cursor:'pointer'}}/>
       </div>
 
       {tab === 'dash' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom:'30px' }}>
-          <div className="glass"><BookOpen color="#06b6d4"/><h3>{db.l.length}</h3><p>1. Total Lectures</p></div>
-          <div className="glass"><Calendar color="#10b981"/><h3>{todayLogs.length}</h3><p>2. Today's Lectures</p></div>
-          <div className="glass"><Users color="#f59e0b"/><h3>{todayLogs.reduce((a,c)=>a+c.present,0)}</h3><p>3. Total Present Today</p></div>
-          <div className="glass"><BarChart3 color="#8b5cf6"/><p>4. Classwise Presence</p></div>
-          <div className="glass"><TrendingUp color="#ec4899"/><p>5. Total Workload</p></div>
-          <div className="glass" style={{border:'1px solid #f43f5e'}}>
-            <select id="sel" style={{fontSize:'12px'}}>{sheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
-            <button onClick={()=>exportHODReport(document.getElementById('sel').value, true)} className="btn-cyan" style={{background:'#f43f5e', padding:'5px', fontSize:'11px'}}>6. DEFAULTER LIST</button>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '15px', marginBottom:'30px' }}>
+          <div className="glass stat-card"><BookOpen color="#06b6d4"/><h3>{db.l.length}</h3><p>Total Lectures</p></div>
+          <div className="glass stat-card"><Calendar color="#10b981"/><h3>{theory}T | {practical}P</h3><p>Today's Split</p></div>
+          <div className="glass stat-card"><Users color="#f59e0b"/><h3>{todayLogs.reduce((a,c)=>a+c.present,0)}</h3><p>Today's Presence</p></div>
+          <div className="glass stat-card" style={{border:'1px solid #f43f5e'}}>
+            <select id="selCls" style={{fontSize:'12px', marginTop:'5px'}}>{sheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
+            <button onClick={()=>exportHODReport(document.getElementById('selCls').value, true)} className="btn-cyan" style={{background:'#f43f5e', padding:'8px', fontSize:'11px'}}>GET DEFAULTER LIST</button>
           </div>
         </div>
       )}
 
       <div style={{ display: 'flex', gap: '20px', marginBottom: '25px', borderBottom: '1px solid #1e293b' }}>
         {['dash', 'staff', 'mapping', 'records'].map(t => (
-          <p key={t} onClick={()=>setTab(t)} style={{cursor:'pointer', color:tab===t?'#06b6d4':'#64748b', fontWeight:800}}>{t.toUpperCase()}</p>
+          <p key={t} onClick={()=>setTab(t)} style={{cursor:'pointer', color:tab===t?'#06b6d4':'#64748b', fontWeight:800, paddingBottom:'10px', borderBottom:tab===t?'2px solid #06b6d4':'none'}}>{t.toUpperCase()}</p>
         ))}
       </div>
 
+      {tab === 'staff' && (
+        <div className="glass">
+          <h3>Add New Faculty</h3>
+          <input id="fi" placeholder="Employee ID"/><input id="fn" placeholder="Full Name"/><input id="fp" placeholder="Password"/>
+          <button className="btn-cyan" onClick={async()=>{
+            await supabase.from('faculties').insert([{id:document.getElementById('fi').value, name:document.getElementById('fn').value, password:document.getElementById('fp').value}]);
+            refresh(); alert("Faculty Added!");
+          }}>SAVE FACULTY</button>
+        </div>
+      )}
+
+      {tab === 'mapping' && (
+        <div className="glass">
+          <h3>Subject Mapping</h3>
+          <select id="sf"><option>Select Faculty</option>{db.f.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select>
+          <select id="sc"><option>Select Class</option>{sheets.map(s=><option key={s} value={s}>{s}</option>)}</select>
+          <input id="ss" placeholder="Subject Name"/>
+          <button className="btn-cyan" onClick={async()=>{
+            await supabase.from('assignments').insert([{fac_id:document.getElementById('sf').value, class_name:document.getElementById('sc').value, subject_name:document.getElementById('ss').value}]);
+            refresh(); alert("Mapping Saved!");
+          }}>SAVE MAPPING</button>
+        </div>
+      )}
+
       {tab === 'records' && (
         <div className="glass">
+          <h3>Classwise Master Sheets</h3>
           {sheets.map(s => (
-            <div key={s} style={{display:'flex', justifyContent:'space-between', marginBottom:'10px', alignItems:'center'}}>
-              <span>{s} Register</span>
-              <button onClick={()=>exportHODReport(s, false)} className="btn-cyan" style={{width:'120px', padding:'5px'}}>DOWNLOAD</button>
+            <div key={s} className="glass" style={{marginBottom:'10px', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+              <b>{s} Master Register</b>
+              <button onClick={()=>exportHODReport(s, false)} className="btn-cyan" style={{width:'150px', fontSize:'12px', padding:'8px'}}>DOWNLOAD</button>
             </div>
           ))}
         </div>
@@ -163,6 +192,7 @@ function HODPanel({ sheets, setView }) {
   );
 }
 
+// --- FACULTY PANEL (Restored Exact Original Logic with Logo) ---
 function FacultyPanel({ user, setView }) {
   const [setup, setSetup] = useState({ cl: '', sub: '', ty: 'Theory', s: '', e: '' });
   const [active, setActive] = useState(false);
@@ -196,13 +226,13 @@ function FacultyPanel({ user, setView }) {
           const isA = abs.find(a => a.attendance_id === l.id && String(a.student_roll) === roll);
           if(!isA) { row.push("P"); p++; } else row.push("A");
         });
-        row.push(p, ((p/logs.length)*100).toFixed(2) + "%");
+        row.push(p, ((p/(logs.length || 1))*100).toFixed(2) + "%");
         ws.addRow(row);
       });
       const buffer = await workbook.xlsx.writeBuffer();
       const link = document.createElement('a');
       link.href = window.URL.createObjectURL(new Blob([buffer]));
-      link.download = `Master_${setup.cl}.xlsx`;
+      link.download = `Master_${setup.cl}_${setup.sub}.xlsx`;
       link.click();
     } catch(e) { alert("Error!"); } finally { setLoading(false); }
   };
@@ -212,7 +242,7 @@ function FacultyPanel({ user, setView }) {
     fetch('/students_list.xlsx').then(r => r.arrayBuffer()).then(ab => {
       const data = XLSX.utils.sheet_to_json(XLSX.read(ab, { type: 'array' }).Sheets[setup.cl]);
       setList(data.map(s => ({ id: String(s['ROLL NO'] || s['ID']), name: s['STUDENT NAME'] })));
-      setMarked(data.map(s => String(s['ROLL NO'] || s['ID']))); // Default present
+      setMarked(data.map(s => String(s['ROLL NO'] || s['ID'])));
       setActive(true);
     });
   };
@@ -221,10 +251,7 @@ function FacultyPanel({ user, setView }) {
     setLoading(true);
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const dist = Math.sqrt(Math.pow(pos.coords.latitude - CAMPUS_LAT, 2) + Math.pow(pos.coords.longitude - CAMPUS_LON, 2));
-      if (dist > RADIUS_LIMIT) { 
-        setLoading(false); 
-        return alert("Out of Campus Boundary!"); 
-      }
+      if (dist > RADIUS_LIMIT) { setLoading(false); return alert("Out of Campus Boundary!"); }
       const dt = new Date().toLocaleDateString('en-GB');
       const { data: at } = await supabase.from('attendance').insert([{ 
         faculty: user.name, sub: setup.sub, class: setup.cl, type: setup.ty, 
@@ -277,4 +304,4 @@ function FacultyPanel({ user, setView }) {
       </div>
     </div>
   );
-      }
+    }
