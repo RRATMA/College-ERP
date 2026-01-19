@@ -299,4 +299,4 @@ function FacultyPanel({ user, setView }) {
       </div>
     </div>
   );
-  }
+        }
