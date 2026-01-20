@@ -7,9 +7,9 @@ import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { supabase } from "./supabaseClient";
 
-const CAMPUS_LAT = 19.555568; 
-const CAMPUS_LON = 73.250732;
-const RADIUS_LIMIT = 0.0018; 
+const CAMPUS_LAT = 19.555009; 
+const CAMPUS_LON = 73.249081;
+const RADIUS_LIMIT = 0.0020; 
 const INSTITUTE_NAME = "ATMA MALIK INSTITUTE OF TECHNOLOGY AND RESEARCH";
 
 const injectStyles = () => {
